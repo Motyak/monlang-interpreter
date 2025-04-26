@@ -1,0 +1,16 @@
+# craft makefile arg to disable all macros
+echo DISABLE_WORDS="$(grep -r "DISABLE_" monlang-LV1/src/*.cpp | perl -pe 's/.* DISABLE_(\w+).*/$1,/' | sort -u | tr -d '\n')"
+
+# craft makefile arg to enable only certain macros
+(ENABLE_WORDS='CBG|SBT'; echo DISABLE_WORDS="$(grep -r "DISABLE_" monlang-LV1/src/*.cpp | grep -Ev "$ENABLE_WORDS" | perl -pe 's/.* DISABLE_(\w+).*/$1,/' | sort -u | tr -d '\n')")
+
+---
+
+On versionne monlang-LV1 en tant que lien symbolique MAIS
+on veut notre propre copie avec nos propres artefacts 
+pour pas casser les couilles quand on développe sur le repo monlang.
+  -> git ignore monlang-LV1
+
+On versionne monlang-parser en tant que lien symbolique MAIS
+on veut notre propre copie qui utilise notre propre build LV1.
+  -> git ignore monlang-parser

@@ -1,0 +1,16 @@
+{
+    "explorer.autoReveal": false,
+    "search.quickOpen.includeHistory": false,
+    "C_Cpp.autoAddFileAssociations": false,
+    "search.useIgnoreFiles": true, // exclude files in .gitignore
+    "search.exclude": {
+        /* we want only include/ and src/ */
+
+        "monlang-LV1/*": true,
+        "monlang-parser/*": true,
+
+        "lib/monlang-LV1/*": true,
+        "lib/monlang-LV2/*": true,
+    },
+}
+
