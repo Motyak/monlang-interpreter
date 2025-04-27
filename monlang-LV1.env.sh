@@ -5,8 +5,11 @@ function make {
 
     # local EXTRA_ARGS="-j16"
 
-    # disable all macros
-    local EXTRA_ARGS="-j16 DISABLE_WORDS=ASSOC,ATOM_QUOT,CBG,DOLLARS_CBG,MSBG,MULTILINE_QUOT,PATH,PG,PPG,PSBG,PSBG_SUFFICES,QUOT,SBG,SBT,SPECIAL_ATOMS,"
+    # # disable all macros => enable only Atom
+    # local EXTRA_ARGS="-j16 DISABLE_WORDS=ASSOC,ATOM_QUOT,CBG,DOLLARS_CBG,MSBG,MULTILINE_QUOT,PATH,PG,PPG,PSBG,PSBG_SUFFICES,QUOT,SBG,SBT,SPECIAL_ATOMS,"
+
+    # enable only Atom and PostfixParenthesesGroup
+    local EXTRA_ARGS="-j16 DISABLE_WORDS=ASSOC,ATOM_QUOT,CBG,DOLLARS_CBG,MSBG,MULTILINE_QUOT,PATH,PG,PSBG,PSBG_SUFFICES,QUOT,SBG,SBT,SPECIAL_ATOMS,"
 
     local target_args="$($MAKE --no-print-directory -q -E '$(info $(MAKECMDGOALS))' "$@" | head -n1)"
     local opt_args=""

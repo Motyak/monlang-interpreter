@@ -1,9 +1,9 @@
 #include <monlang-interpreter/interpret.h>
-// #include <monlang-interpreter/visitors/Interpret.h>
+#include <monlang-interpreter/InterpretVisitor.h>
 
 void interpret(const Program& prog, Environment& env) {
-    // auto interpret = Interpret(/*OUT*/env);
-    // interpret(prog);
+    auto interpret = InterpretVisitor(/*OUT*/env);
+    interpret(prog);
 }
 
 void interpret(const Program& prog) {

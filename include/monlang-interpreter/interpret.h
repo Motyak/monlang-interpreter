@@ -5,7 +5,7 @@
 
 #include <monlang-LV2/ast/Program.h>
 
-using Program = LV2::Program;
+using namespace LV2;
 
 void interpret(const Program&, Environment&);
 void interpret(const Program&);

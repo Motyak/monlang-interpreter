@@ -11,7 +11,8 @@ ARFLAGS = D -M < <(tools/aggregate-libs.mri.sh $@ $^); :
 ###########################################################
 
 OBJS := obj/interpret.o \
-obj/monlang_parser.o
+obj/monlang_parser.o \
+obj/InterpretVisitor.o
 DEPS := $(OBJS:obj/%.o=.deps/%.d)
 
 LIB_ARTIFACT_DIRS := ${foreach lib,${wildcard lib/*/},$(lib:%/=%)/{.deps,obj,dist,bin}}# for cleaning
@@ -32,7 +33,7 @@ mrproper:
 
 ###########################################################
 
-$(OBJS): obj/%.o: src/%.cpp
+$(OBJS) obj/main.o: obj/%.o: src/%.cpp
 	$(CXX) -o $@ -c $< $(CXXFLAGS) $(DEPFLAGS)
 
 obj/monlang_parser.o: CXXFLAGS += -I monlang-parser/include
