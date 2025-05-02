@@ -105,8 +105,12 @@ void InterpretVisitor::operator()(Operation*) {
     TODO();
 }
 
-void InterpretVisitor::operator()(FunctionCall*) {
-    TODO();
+void InterpretVisitor::operator()(FunctionCall* fnCall) {
+    // resolve function value
+    operator()(fnCall->function);
+
+    // resolve arguments (get their respective value or build a thunk to compute it later)
+
 }
 
 void InterpretVisitor::operator()(Lambda*) {

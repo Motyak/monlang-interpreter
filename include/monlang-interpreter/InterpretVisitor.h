@@ -8,8 +8,11 @@
 using namespace LV2;
 
 class InterpretVisitor : AstVisitor<void> {
+    // using value_t = int; // TODO: tmp
+
   private:
     Environment& env;
+    // std::vector<value_t> stack;
 
   public:
     InterpretVisitor(Environment& env) : env(env){}

@@ -44,7 +44,9 @@ int repl_main(int argc, char* argv[]) {
         std::cerr << e.what() << std::endl;
         goto Read;
     }
-    interpret(prog, /*OUT*/env);
+    for (auto stmt: prog.statements) {
+        performStatement(stmt, /*OUT*/env);
+    }
 
     Loop: goto Read
     ;
@@ -56,7 +58,7 @@ int stdinput_main(int argc, char* argv[]) {
 
     auto text = slurp_stdin(/*repeatable*/false);
     auto prog = parse(text);
-    interpret(prog);
+    interpretProgram(prog);
 
     return 0;
 }
@@ -74,7 +76,7 @@ int fileinput_main(int argc, char* argv[]) {
         return 1;
     }
     auto prog = parse(text);
-    interpret(prog);
+    interpretProgram(prog);
 
     return 0;
 }
