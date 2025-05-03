@@ -4,6 +4,7 @@
 
 #include <utils/iostream-utils.h>
 #include <utils/file-utils.h>
+#include <utils/defer-util.h>
 
 #define unless(x) if(!(x))
 
@@ -30,6 +31,8 @@ int repl_main(int argc, char* argv[]) {
     (void)argc;
     (void)argv;
     Environment env; // persists between programs
+
+    INTERACTIVE_MODE = true;
 
     Read:
     auto text = slurp_stdin(/*repeatable*/true);

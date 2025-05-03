@@ -8,10 +8,12 @@
 
 using namespace LV2;
 
+extern thread_local bool INTERACTIVE_MODE;
+
 void interpretProgram(const Program&);
 void performStatement(const Statement&, Environment&);
 value_t evaluateValue(const Expression&, const Environment&);
-value_t& evaluateLvalue(const Lvalue&, const Environment&);
+value_t* evaluateLvalue(const Lvalue&, const Environment&);
 
 /* performStatement */
 void performStatement(const Assignment&, Environment&);
@@ -42,8 +44,8 @@ value_t evaluateValue(const StrLiteral&, const Environment&);
 value_t evaluateValue(const Symbol&, const Environment&);
 
 /* evaluateLvalue */
-value_t& evaluateLvalue(const FieldAccess&, const Environment&);
-value_t& evaluateLvalue(const Subscript&, const Environment&);
-value_t& evaluateLvalue(const Symbol&, const Environment&);
+value_t* evaluateLvalue(const FieldAccess&, const Environment&);
+value_t* evaluateLvalue(const Subscript&, const Environment&);
+value_t* evaluateLvalue(const Symbol&, const Environment&);
 
 #endif // INTERPRET_H
