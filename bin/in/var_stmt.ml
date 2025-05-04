@@ -1,5 +1,5 @@
 
 var fds 91
 
-fds
-fds
+print(fds)
+print(fds)

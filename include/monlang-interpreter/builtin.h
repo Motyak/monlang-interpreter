@@ -1,14 +1,18 @@
 #ifndef BUILTIN_H
 #define BUILTIN_H
 
-#include <map>
-#include <string>
+#include <monlang-interpreter/types.h>
 
-extern const std::map<std::string, > BUILTIN_TABLE;
+#include <utils/loop-utils.h>
+
+#include <vector>
+#include <iostream>
 
 namespace builtin
 {
 
-}
+void print(const std::vector<value_t>& varargs);
+
+} // end of builtin namespace
 
 #endif // BUILTIN_H

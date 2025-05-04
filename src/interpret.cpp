@@ -2,6 +2,8 @@
 
 /* impl only */
 
+#include <monlang-interpreter/builtin.h>
+
 /* statements */
 #include <monlang-LV2/ast/stmt/Assignment.h>
 #include <monlang-LV2/ast/stmt/Accumulation.h>
@@ -31,10 +33,23 @@
 
 #include <utils/assert-utils.h>
 #include <utils/variant-utils.h>
+#include <utils/str-utils.h>
 
 #include <cmath> // TODO: tmp?
 
+#define unless(x) if(!(x))
+
 thread_local bool INTERACTIVE_MODE = false;
+
+using Int = prim_value_t::Int;
+using Byte = prim_value_t::Byte;
+using Bool = prim_value_t::Bool;
+using Int = prim_value_t::Int;
+using Float = prim_value_t::Float;
+using Str = prim_value_t::Str;
+using List = prim_value_t::List;
+using Map = prim_value_t::Map;
+using Lambda_ = prim_value_t::Lambda;
 
 void interpretProgram(const Program& prog) {
     Environment env;
@@ -85,7 +100,7 @@ void performStatement(const VarStatement& varStmt, Environment& env) {
         SHOULD_NOT_HAPPEN(); // TODO: die with a stacktrace
     }
     auto value = evaluateValue(varStmt.value, env);
-    env.symbolTable[varStmt.name.value] = value;
+    env.symbolTable[varStmt.name.value] = Environment::ConstValue{value};
 }
 
 void performStatement(const ReturnStatement&, Environment& env) {
@@ -118,7 +133,11 @@ void performStatement(const DoWhileStatement&, Environment& env) {
 
 void performStatement(const ExpressionStatement& exprStmt, Environment& env) {
     auto value = evaluateValue(exprStmt.expression, env);
-    std::cout << value << "\n"; // TODO: should only be done in interactive (REPL) mode
+    if (INTERACTIVE_MODE) {
+        if (!is_nil(value)) {
+            builtin::print({value});
+        }
+    }
 }
 
 
@@ -130,8 +149,42 @@ value_t evaluateValue(const Operation&, const Environment& env) {
     TODO();
 }
 
-value_t evaluateValue(const FunctionCall&, const Environment& env) {
-    TODO();
+value_t evaluateValue(const FunctionCall& fnCall, const Environment& env) {
+
+    /* TODO: tmp */
+    std::vector<value_t> printArgs;
+    for (auto arg: fnCall.arguments) {
+        auto argVal = evaluateValue(arg.expr, env);
+        printArgs.push_back(argVal);
+    }
+    builtin::print(printArgs);
+    return nil_value_t();
+
+    // value_t function;
+
+    // /*BREAKABLE BLOCK*/ for (int i = 1; i <= 1; ++i)
+    // {
+    //     unless (std::holds_alternative<Symbol*>(fnCall.function)) break;
+    //     auto symbol = *std::get<Symbol*>(fnCall.function);
+    //     if (env.enclosingEnv->symbolTable.contains(symbol.value)) {
+    //         function = evaluateValue(symbol, env);
+    //     }
+    //     else if (symbol.value == "print") {
+    //         std::vector<value_t> printArgs;
+    //         for (auto arg: fnCall.arguments) {
+    //             auto argVal = evaluateValue(arg.expr, env);
+    //             printArgs.push_back(argVal);
+    //         }
+    //         builtin::print(printArgs);
+    //         return nullptr;
+    //     }
+    //     // else if (...){...}
+    //     else {
+    //         // die: unbound symbol
+    //     }
+    // }
+
+    // auto fnEnv = new Environment{{}, env};
 }
 
 value_t evaluateValue(const Lambda&, const Environment& env) {
@@ -162,74 +215,75 @@ value_t evaluateValue(const SpecialSymbol&, const Environment& env) {
     TODO();
 }
 
-#include <utils/str-utils.h>
-
 value_t evaluateValue(const Numeral& numeral, const Environment& env) {
-    /*
-        most of this logic will be moved into parsing phase
-        (and stored in the Numeral struct)
+    if (numeral.type == "int") {
+        return new prim_value_t(Int(std::stoll(numeral.int1)));
+    }
 
-        we will add struct fields:
-        - type (str enum): int,hex,bin,oct,div,pow,fix_only,per_only,fix_and_per
-        - int1 (str, without digit sep) // used everywhere
-        - int2 (str, without digit sep) // used in 'pow and 'div
-        - fixed (str, without digit sep) // used in 'fix_only and 'fix_and_per
-        - periodic (str, without digit sep) // used in 'per_only and 'fix_and_per
-    */
-
-    auto num_without_sep = replace_all(numeral.fmt, "'", "");
-
-    if (numeral.fmt.starts_with("0x")) {
-        return std::stoll(num_without_sep, nullptr, 16);
+    if (numeral.type == "hex") {
+        return new prim_value_t(Int(std::stoll(numeral.int1, nullptr, 16)));
     }
     
-    if (numeral.fmt.starts_with("0b")) {
-        return std::stoll(num_without_sep, nullptr, 2);
+    if (numeral.type == "bin") {
+        return new prim_value_t(Int(std::stoll(numeral.int1, nullptr, 2)));
     }
 
-    if (numeral.fmt.starts_with("0o")) {
-        return std::stoll(num_without_sep, nullptr, 8);
+    if (numeral.type == "oct") {
+        return new prim_value_t(Int(std::stoll(numeral.int1, nullptr, 8)));
     }
 
-    if (numeral.fmt.contains("/")) {
-        auto numerator = split(num_without_sep, "/").at(0);
-        auto denominator = split(num_without_sep, "/").at(1);
-        // return std::stod(std::stoll(numerator) / std::stoll(denominator));
-        return 0; // TODO: tmp
+    if (numeral.type == "frac") {
+        auto numerator = std::stoll(numeral.int1);
+        auto denominator = std::stoll(numeral.int2);
+        auto division = (double)numerator / denominator;
+        return new prim_value_t(Float(division));
     }
 
-    if (numeral.fmt.contains("^")) {
-        auto base = split(num_without_sep, "^").at(0);
-        auto power = split(num_without_sep, "^").at(1);
-        // return std::powl(std::stoll(base), std::stoll(power));
-        return 0; // TODO: tmp
+    if (numeral.type == "pow") {
+        auto base = std::stoll(numeral.int1);
+        auto exponent = std::stoll(numeral.int2);
+        auto power = std::powl(base, exponent);
+        return new prim_value_t(Int(power));
     }
 
-    if (numeral.fmt.contains(".")) {
-        auto int_part = split(num_without_sep, ".").at(0);
-        // if it contains a periodic part..
-        if (split(num_without_sep, ".").at(1).ends_with(")")) {
-            // TODO: construct fraction from int part, fixed dec part and periodic dec part..
-            // ..and then convert to Float
-            return 0; // TODO: tmp
-        }
-        else {
-            auto dec_part = split(num_without_sep, ".").at(1);
-            // return new prim_value_t::Float(std::stod(int_part + dec_part));
-            return 0; // TODO: tmp
-        }
+    if (numeral.type == "fix_only") {
+        auto int_part = std::stoll(numeral.int1);
+        auto numerator = std::stoll(numeral.fixed);
+        auto denominator = numeral.fixed.size() * 10;
+        auto division = (double)numerator / denominator;
+        return new prim_value_t(Float(division));
     }
 
-    return std::stoll(num_without_sep);
+    if (numeral.type == "per_only") {
+        auto int_part = std::stoll(numeral.int1);
+        auto numerator = std::stoll(numeral.periodic);
+        auto denominator = numeral.periodic.size() * 10 - 1;
+        auto division = (double)numerator / denominator;
+        return new prim_value_t(Float(division));
+    }
+
+    if (numeral.type == "fix_and_per") {
+        auto int_part = std::stoll(numeral.int1);
+        auto fixed_part_numerator = std::stoll(numeral.fixed);
+        auto fixed_part_denominator = numeral.fixed.size() * 10;
+        auto fixed_part_division = (double)fixed_part_numerator / fixed_part_denominator;
+        auto periodic_part_numerator = std::stoll(numeral.periodic);
+        auto periodic_part_denominator = (numeral.periodic.size() * 10 - 1) * fixed_part_denominator;
+        auto periodic_part_division = (double)periodic_part_numerator / periodic_part_denominator;
+        auto sum = int_part + fixed_part_division + periodic_part_division;
+        return new prim_value_t(Float(sum));
+    }
+
+    SHOULD_NOT_HAPPEN();
 }
 
-value_t evaluateValue(const StrLiteral&, const Environment& env) {
-    TODO();
+value_t evaluateValue(const StrLiteral& strLiteral, const Environment& env) {
+    return new prim_value_t(Str(strLiteral.str));
 }
 
 value_t evaluateValue(const Symbol& symbol, const Environment& env) {
-    if (env.symbolTable.contains(symbol.value)) {
-        auto symbol_val = env.symbolTable.at(symbol.value);
+    if (env.contains(symbol.value)) {
+        auto symbol_val = env.at(symbol.value);
         return std::visit(overload{
             [](Environment::ConstValue /*or LabelToConst*/ const_){return const_;},
             [](Environment::Variable var){return *var;},
@@ -238,14 +292,13 @@ value_t evaluateValue(const Symbol& symbol, const Environment& env) {
             [](Environment::PassByDelayed delayed){return delayed();},
         }, symbol_val);
     }
-    // else if (BUILTIN_TABLE.contains(symbol.value)) {
-    //     // TODO: impl builtins
-    // }
-    // else {
-    //     // TODO: return symbol name as a Str
-    // }
     else {
-        TODO();
+        /* technically it can't happen, so let's add a hidden feature
+           for those who don't run the static analysis on prog
+           before interpreting it
+           => will return the symbol as a Str
+        */
+       return new prim_value_t(Str(symbol.value));
     }
 }
 

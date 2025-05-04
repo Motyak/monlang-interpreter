@@ -12,7 +12,8 @@ ARFLAGS = D -M < <(tools/aggregate-libs.mri.sh $@ $^); :
 
 OBJS := obj/interpret.o \
 obj/monlang_parser.o \
-obj/InterpretVisitor.o
+obj/builtin.o \
+obj/Environment.o
 DEPS := $(OBJS:obj/%.o=.deps/%.d)
 
 LIB_ARTIFACT_DIRS := ${foreach lib,${wildcard lib/*/},$(lib:%/=%)/{.deps,obj,dist,bin}}# for cleaning
