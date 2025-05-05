@@ -4,7 +4,8 @@
 
 #include <utils/iostream-utils.h>
 #include <utils/file-utils.h>
-#include <utils/defer-util.h>
+#include <utils/str-utils.h>
+#include <utils/vec-utils.h>
 
 #define unless(x) if(!(x))
 
@@ -14,6 +15,12 @@ int fileinput_main(int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
+    if (auto options = second(split_in_two(argv[0], " -"))) {
+        if (options->contains("i")) {
+            INTERACTIVE_MODE = true;
+        }
+    }
+
     /* delegate main based on execution mode */
 
     if (argc == 1) {
@@ -30,7 +37,7 @@ int main(int argc, char* argv[])
 int repl_main(int argc, char* argv[]) {
     (void)argc;
     (void)argv;
-    Environment env; // persists between programs
+    Environment env; // persists between top-level statements
 
     INTERACTIVE_MODE = true;
 

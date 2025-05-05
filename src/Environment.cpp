@@ -11,13 +11,11 @@ bool Environment::contains(const SymbolName& symbolName) const {
         curEnv = curEnv->enclosingEnv;
     }
     return false;
-
-    // return this->symbolTable.contains(symbolName); //
 }
 
-Environment::SymbolValue&
-Environment::at(const SymbolName& symbolName) {
-    Environment* curEnv = this;
+Environment::SymbolValue
+Environment::at(const SymbolName& symbolName) const {
+    auto* curEnv = this;
     while (curEnv) {
         if (curEnv->symbolTable.contains(symbolName)) {
             return curEnv->symbolTable.at(symbolName);
@@ -27,9 +25,9 @@ Environment::at(const SymbolName& symbolName) {
     SHOULD_NOT_HAPPEN(); // should call ::contains before calling ::at
 }
 
-Environment::SymbolValue
-Environment::at(const SymbolName& symbolName) const {
-    const Environment* curEnv = this;
+Environment::SymbolValue&
+Environment::at(const SymbolName& symbolName) {
+    auto* curEnv = this;
     while (curEnv) {
         if (curEnv->symbolTable.contains(symbolName)) {
             return curEnv->symbolTable.at(symbolName);

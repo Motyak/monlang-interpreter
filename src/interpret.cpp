@@ -35,7 +35,7 @@
 #include <utils/variant-utils.h>
 #include <utils/str-utils.h>
 
-#include <cmath> // TODO: tmp?
+#include <cmath>
 
 #define unless(x) if(!(x))
 
@@ -103,16 +103,16 @@ void performStatement(const VarStatement& varStmt, Environment& env) {
     env.symbolTable[varStmt.name.value] = Environment::ConstValue{value};
 }
 
-void performStatement(const ReturnStatement&, Environment& env) {
-    TODO();
+void performStatement(const ReturnStatement&, Environment&) {
+    SHOULD_NOT_HAPPEN(); // not a top-level statement
 }
 
-void performStatement(const BreakStatement&, Environment& env) {
-    TODO();
+void performStatement(const BreakStatement&, Environment&) {
+    SHOULD_NOT_HAPPEN(); // not a top-level statement
 }
 
-void performStatement(const ContinueStatement&, Environment& env) {
-    TODO();
+void performStatement(const ContinueStatement&, Environment&) {
+    SHOULD_NOT_HAPPEN(); // not a top-level statement
 }
 
 void performStatement(const DieStatement&, Environment& env) {
@@ -249,7 +249,7 @@ value_t evaluateValue(const Numeral& numeral, const Environment& env) {
     if (numeral.type == "fix_only") {
         auto int_part = std::stoll(numeral.int1);
         auto numerator = std::stoll(numeral.fixed);
-        auto denominator = numeral.fixed.size() * 10;
+        auto denominator = std::powl(10, numeral.fixed.size());
         auto division = (double)numerator / denominator;
         return new prim_value_t(Float(division));
     }
@@ -257,7 +257,7 @@ value_t evaluateValue(const Numeral& numeral, const Environment& env) {
     if (numeral.type == "per_only") {
         auto int_part = std::stoll(numeral.int1);
         auto numerator = std::stoll(numeral.periodic);
-        auto denominator = numeral.periodic.size() * 10 - 1;
+        auto denominator = std::powl(10, numeral.periodic.size()) - 1;
         auto division = (double)numerator / denominator;
         return new prim_value_t(Float(division));
     }
@@ -265,10 +265,10 @@ value_t evaluateValue(const Numeral& numeral, const Environment& env) {
     if (numeral.type == "fix_and_per") {
         auto int_part = std::stoll(numeral.int1);
         auto fixed_part_numerator = std::stoll(numeral.fixed);
-        auto fixed_part_denominator = numeral.fixed.size() * 10;
+        auto fixed_part_denominator = std::powl(10, numeral.fixed.size());
         auto fixed_part_division = (double)fixed_part_numerator / fixed_part_denominator;
         auto periodic_part_numerator = std::stoll(numeral.periodic);
-        auto periodic_part_denominator = (numeral.periodic.size() * 10 - 1) * fixed_part_denominator;
+        auto periodic_part_denominator = (std::powl(10, numeral.periodic.size()) - 1) * fixed_part_denominator;
         auto periodic_part_division = (double)periodic_part_numerator / periodic_part_denominator;
         auto sum = int_part + fixed_part_division + periodic_part_division;
         return new prim_value_t(Float(sum));
