@@ -1,18 +1,29 @@
+/*
+    standalone header, no .cpp
+
+    individual declarations in builtin/
+    operators declarations in builtin/operators.h
+*/
+
 #ifndef BUILTIN_H
 #define BUILTIN_H
 
 #include <monlang-interpreter/types.h>
 
-#include <utils/loop-utils.h>
+/* builtins */
+#include <monlang-interpreter/builtin/print.h>
+#include <monlang-interpreter/builtin/operators.h>
 
-#include <vector>
-#include <iostream>
+#include <map>
 
-namespace builtin
-{
+using builtin_fn = value_t(*)(const std::vector<value_t>&);
 
-void print(const std::vector<value_t>& varargs);
+static const std::map<std::string, builtin_fn>
+BUILTIN_TABLE = {
+    {"print", builtin::print},
 
-} // end of builtin namespace
+    /* operators */
+    {"+", builtin::op::plus},
+};
 
 #endif // BUILTIN_H

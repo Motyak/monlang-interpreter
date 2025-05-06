@@ -35,7 +35,7 @@ struct Environment {
     Environment* enclosingEnv = nullptr;
 
     bool contains(const SymbolName&) const;
-    SymbolValue at(const SymbolName&) const;
+    const SymbolValue& at(const SymbolName&) const;
     SymbolValue& at(const SymbolName&);
 };
 

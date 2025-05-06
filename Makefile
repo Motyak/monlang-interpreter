@@ -12,8 +12,9 @@ ARFLAGS = D -M < <(tools/aggregate-libs.mri.sh $@ $^); :
 
 OBJS := obj/interpret.o \
 obj/monlang_parser.o \
-obj/builtin.o \
-obj/Environment.o
+obj/Environment.o \
+obj/builtin/print.o \
+obj/builtin/operators/plus.o
 DEPS := $(OBJS:obj/%.o=.deps/%.d)
 
 LIB_ARTIFACT_DIRS := ${foreach lib,${wildcard lib/*/},$(lib:%/=%)/{.deps,obj,dist,bin}}# for cleaning
@@ -75,7 +76,7 @@ lib/monlang-parser/dist/monlang-parser.a:
 ###########################################################
 
 # will create all necessary directories after the Makefile is parsed
-$(call shell_onrun, mkdir -p .deps obj bin dist)
+$(call shell_onrun, mkdir -p .deps/builtin/operators obj/builtin/operators bin dist)
 
 ## shall not rely on these ##
 # .DELETE_ON_ERROR:

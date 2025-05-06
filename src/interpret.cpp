@@ -83,12 +83,27 @@ value_t* evaluateLvalue(const Lvalue& lvalue, const Environment& env) {
 // performStatement
 //==============================================================
 
-void performStatement(const Assignment&, Environment& env) {
-    TODO();
+void performStatement(const Assignment& assignment, Environment& env) {
+    auto* lvalue = evaluateLvalue(assignment.variable, env);
+    auto old_value = evaluateValue(assignment.variable, env);
+    auto new_value = evaluateValue(assignment.value, env);
+    *lvalue = new_value;
+    env.symbolTable["$old"] = Environment::ConstValue{old_value};
 }
 
-void performStatement(const Accumulation&, Environment& env) {
-    TODO();
+void performStatement(const Accumulation& acc, Environment& env) {
+    auto op = (Expression)new Symbol{acc.operator_};
+    auto lhs = (Expression)acc.variable;
+    auto rhs = acc.value;
+    auto fnCall = (Expression)new FunctionCall{op, {lhs, rhs}};
+
+    auto variable = acc.variable;
+    auto assignment = Assignment{variable, fnCall};
+
+    performStatement(assignment, env);
+
+    delete std::get<Symbol*>(op);
+    delete std::get<FunctionCall*>(fnCall);
 }
 
 void performStatement(const LetStatement&, Environment& env) {
@@ -96,23 +111,24 @@ void performStatement(const LetStatement&, Environment& env) {
 }
 
 void performStatement(const VarStatement& varStmt, Environment& env) {
-    if (env.symbolTable.contains(varStmt.name.value)) {
-        SHOULD_NOT_HAPPEN(); // TODO: die with a stacktrace
-    }
+    // caught during static analysis
+    ASSERT (!env.symbolTable.contains(varStmt.name.value));
+
     auto value = evaluateValue(varStmt.value, env);
-    env.symbolTable[varStmt.name.value] = Environment::ConstValue{value};
+    auto* var = new value_t(value);
+    env.symbolTable[varStmt.name.value] = Environment::Variable{var};
 }
 
 void performStatement(const ReturnStatement&, Environment&) {
-    SHOULD_NOT_HAPPEN(); // not a top-level statement
+    SHOULD_NOT_HAPPEN(); // not a top-level statement, caught during static analysis
 }
 
 void performStatement(const BreakStatement&, Environment&) {
-    SHOULD_NOT_HAPPEN(); // not a top-level statement
+    SHOULD_NOT_HAPPEN(); // not a top-level statement, caught during static analysis
 }
 
 void performStatement(const ContinueStatement&, Environment&) {
-    SHOULD_NOT_HAPPEN(); // not a top-level statement
+    SHOULD_NOT_HAPPEN(); // not a top-level statement, caught during static analysis
 }
 
 void performStatement(const DieStatement&, Environment& env) {
@@ -152,13 +168,17 @@ value_t evaluateValue(const Operation&, const Environment& env) {
 value_t evaluateValue(const FunctionCall& fnCall, const Environment& env) {
 
     /* TODO: tmp */
-    std::vector<value_t> printArgs;
+    ASSERT (std::holds_alternative<Symbol*>(fnCall.function));
+    auto symbol = *std::get<Symbol*>(fnCall.function);
+    ASSERT (BUILTIN_TABLE.contains(symbol.value));
+    auto fn = BUILTIN_TABLE.at(symbol.value);
+    std::vector<value_t> fnArgs;
     for (auto arg: fnCall.arguments) {
         auto argVal = evaluateValue(arg.expr, env);
-        printArgs.push_back(argVal);
+        fnArgs.push_back(argVal);
     }
-    builtin::print(printArgs);
-    return nil_value_t();
+    return fn(fnArgs);
+
 
     // value_t function;
 
@@ -211,8 +231,18 @@ value_t evaluateValue(const MapLiteral&, const Environment& env) {
     TODO();
 }
 
-value_t evaluateValue(const SpecialSymbol&, const Environment& env) {
-    TODO();
+value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment& env) {
+    // should throw a runtime error here
+    ASSERT (env.contains(specialSymbol.value));
+
+    auto specialSymbolVal = env.at(specialSymbol.value);
+    return std::visit(overload{
+        [](Environment::ConstValue const_) -> value_t {return const_;},
+        [](Environment::Variable) -> value_t {SHOULD_NOT_HAPPEN();},
+        [](Environment::LabelToNonConst) -> value_t {SHOULD_NOT_HAPPEN();},
+        [](Environment::LabelToLvalue /*or PassByRef*/) -> value_t {SHOULD_NOT_HAPPEN();},
+        [](Environment::PassByDelayed) -> value_t {SHOULD_NOT_HAPPEN();},
+    }, specialSymbolVal);
 }
 
 value_t evaluateValue(const Numeral& numeral, const Environment& env) {
@@ -251,7 +281,8 @@ value_t evaluateValue(const Numeral& numeral, const Environment& env) {
         auto numerator = std::stoll(numeral.fixed);
         auto denominator = std::powl(10, numeral.fixed.size());
         auto division = (double)numerator / denominator;
-        return new prim_value_t(Float(division));
+        auto sum = int_part + division;
+        return new prim_value_t(Float(sum));
     }
 
     if (numeral.type == "per_only") {
@@ -259,7 +290,8 @@ value_t evaluateValue(const Numeral& numeral, const Environment& env) {
         auto numerator = std::stoll(numeral.periodic);
         auto denominator = std::powl(10, numeral.periodic.size()) - 1;
         auto division = (double)numerator / denominator;
-        return new prim_value_t(Float(division));
+        auto sum = int_part + division;
+        return new prim_value_t(Float(sum));
     }
 
     if (numeral.type == "fix_and_per") {
@@ -274,7 +306,7 @@ value_t evaluateValue(const Numeral& numeral, const Environment& env) {
         return new prim_value_t(Float(sum));
     }
 
-    SHOULD_NOT_HAPPEN();
+    SHOULD_NOT_HAPPEN(); // BUG unknown numeral type
 }
 
 value_t evaluateValue(const StrLiteral& strLiteral, const Environment& env) {
@@ -315,6 +347,19 @@ value_t* evaluateLvalue(const Subscript&, const Environment& env) {
     TODO();
 }
 
-value_t* evaluateLvalue(const Symbol&, const Environment& env) {
-    TODO();
+value_t* evaluateLvalue(const Symbol& symbol, const Environment& env) {
+    // variable unbound, caught during static analysis
+    ASSERT (env.contains(symbol.value));
+
+    auto symbolVal = env.at(symbol.value);
+    return std::visit(overload{
+        [](const Environment::Variable& var) -> value_t* {return var;},
+        [](Environment::LabelToLvalue& /*or PassByRef*/ var) -> value_t* {return var();},
+
+        /* caught during static analysis */
+        [](Environment::ConstValue /*or LabelToConst*/) -> value_t* {SHOULD_NOT_HAPPEN();},
+        [](Environment::LabelToNonConst) -> value_t* {SHOULD_NOT_HAPPEN();},
+        [](Environment::PassByDelayed) -> value_t* {SHOULD_NOT_HAPPEN();},
+    }, symbolVal);
+
 }

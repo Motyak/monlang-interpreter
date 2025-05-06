@@ -1,13 +1,11 @@
-#include <monlang-interpreter/builtin.h>
-
-/* impl only */
-
-#include <monlang-interpreter/Environment.h>
+#include <monlang-interpreter/builtin/print.h>
 
 #include <utils/variant-utils.h>
+#include <utils/loop-utils.h>
 
 #include <iostream>
 #include <iomanip>
+#include <vector>
 
 static void print(const value_t&);
 static void print(const prim_value_t&);
@@ -15,7 +13,7 @@ static void print(const type_value_t&);
 static void print(const struct_value_t&);
 static void print(const enum_value_t&);
 
-void builtin::print(const std::vector<value_t>& varargs) {
+value_t builtin::print(const std::vector<value_t>& varargs) {
     LOOP for (auto arg: varargs) {
         if (!__first_it) {
             std::cout << " ";
@@ -24,6 +22,7 @@ void builtin::print(const std::vector<value_t>& varargs) {
         ENDLOOP
     }
     std::cout << "\n";
+    return nil_value_t();
 }
 
 static void print(const value_t& val) {

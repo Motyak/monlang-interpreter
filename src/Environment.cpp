@@ -13,7 +13,7 @@ bool Environment::contains(const SymbolName& symbolName) const {
     return false;
 }
 
-Environment::SymbolValue
+const Environment::SymbolValue&
 Environment::at(const SymbolName& symbolName) const {
     auto* curEnv = this;
     while (curEnv) {
