@@ -112,11 +112,11 @@ void performStatement(const LetStatement&, Environment& env) {
 
 void performStatement(const VarStatement& varStmt, Environment& env) {
     // caught during static analysis
-    ASSERT (!env.symbolTable.contains(varStmt.name.value));
+    ASSERT (!env.symbolTable.contains(varStmt.variable.name));
 
     auto value = evaluateValue(varStmt.value, env);
     auto* var = new value_t(value);
-    env.symbolTable[varStmt.name.value] = Environment::Variable{var};
+    env.symbolTable[varStmt.variable.name] = Environment::Variable{var};
 }
 
 void performStatement(const ReturnStatement&, Environment&) {
@@ -170,8 +170,8 @@ value_t evaluateValue(const FunctionCall& fnCall, const Environment& env) {
     /* TODO: tmp */
     ASSERT (std::holds_alternative<Symbol*>(fnCall.function));
     auto symbol = *std::get<Symbol*>(fnCall.function);
-    ASSERT (BUILTIN_TABLE.contains(symbol.value));
-    auto fn = BUILTIN_TABLE.at(symbol.value);
+    ASSERT (BUILTIN_TABLE.contains(symbol.name));
+    auto fn = BUILTIN_TABLE.at(symbol.name);
     std::vector<value_t> fnArgs;
     for (auto arg: fnCall.arguments) {
         auto argVal = evaluateValue(arg.expr, env);
@@ -233,9 +233,9 @@ value_t evaluateValue(const MapLiteral&, const Environment& env) {
 
 value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment& env) {
     // should throw a runtime error here
-    ASSERT (env.contains(specialSymbol.value));
+    ASSERT (env.contains(specialSymbol.name));
 
-    auto specialSymbolVal = env.at(specialSymbol.value);
+    auto specialSymbolVal = env.at(specialSymbol.name);
     return std::visit(overload{
         [](Environment::ConstValue const_) -> value_t {return const_;},
         [](Environment::Variable) -> value_t {SHOULD_NOT_HAPPEN();},
@@ -314,8 +314,8 @@ value_t evaluateValue(const StrLiteral& strLiteral, const Environment& env) {
 }
 
 value_t evaluateValue(const Symbol& symbol, const Environment& env) {
-    if (env.contains(symbol.value)) {
-        auto symbol_val = env.at(symbol.value);
+    if (env.contains(symbol.name)) {
+        auto symbol_val = env.at(symbol.name);
         return std::visit(overload{
             [](Environment::ConstValue /*or LabelToConst*/ const_){return const_;},
             [](Environment::Variable var){return *var;},
@@ -330,7 +330,7 @@ value_t evaluateValue(const Symbol& symbol, const Environment& env) {
            before interpreting it
            => will return the symbol as a Str
         */
-       return new prim_value_t(Str(symbol.value));
+       return new prim_value_t(Str(symbol.name));
     }
 }
 
@@ -349,9 +349,9 @@ value_t* evaluateLvalue(const Subscript&, const Environment& env) {
 
 value_t* evaluateLvalue(const Symbol& symbol, const Environment& env) {
     // variable unbound, caught during static analysis
-    ASSERT (env.contains(symbol.value));
+    ASSERT (env.contains(symbol.name));
 
-    auto symbolVal = env.at(symbol.value);
+    auto symbolVal = env.at(symbol.name);
     return std::visit(overload{
         [](const Environment::Variable& var) -> value_t* {return var;},
         [](Environment::LabelToLvalue& /*or PassByRef*/ var) -> value_t* {return var();},
