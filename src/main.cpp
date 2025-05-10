@@ -55,7 +55,7 @@ int repl_main(int argc, char* argv[]) {
         goto Read;
     }
     for (auto stmt: prog.statements) {
-        performStatement(stmt, /*OUT*/env);
+        performStatement(stmt, &env);
     }
 
     Loop: goto Read

@@ -15,6 +15,8 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <monlang-LV2/ast/expr/FunctionCall.h>
+
 #include <variant>
 #include <cstdint>
 #include <string>
@@ -48,7 +50,7 @@ struct prim_value_t {
     using Str = std::string;
     using List = std::vector<value_t>;
     using Map = std::map<value_t, value_t>;
-    using Lambda = std::function<value_t(const Environment&)>;
+    using Lambda = std::function<value_t(const std::vector<FunctionCall::Argument>&, Environment*)>;
 
     using Variant = std::variant<
         Byte,

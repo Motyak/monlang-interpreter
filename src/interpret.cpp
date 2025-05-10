@@ -4,33 +4,6 @@
 
 #include <monlang-interpreter/builtin.h>
 
-/* statements */
-#include <monlang-LV2/ast/stmt/Assignment.h>
-#include <monlang-LV2/ast/stmt/Accumulation.h>
-#include <monlang-LV2/ast/stmt/LetStatement.h>
-#include <monlang-LV2/ast/stmt/VarStatement.h>
-#include <monlang-LV2/ast/stmt/ReturnStatement.h>
-#include <monlang-LV2/ast/stmt/BreakStatement.h>
-#include <monlang-LV2/ast/stmt/ContinueStatement.h>
-#include <monlang-LV2/ast/stmt/DieStatement.h>
-#include <monlang-LV2/ast/stmt/ForeachStatement.h>
-#include <monlang-LV2/ast/stmt/WhileStatement.h>
-#include <monlang-LV2/ast/stmt/ExpressionStatement.h>
-
-/* expressions */
-#include <monlang-LV2/ast/expr/Operation.h>
-#include <monlang-LV2/ast/expr/FunctionCall.h>
-#include <monlang-LV2/ast/expr/Lambda.h>
-#include <monlang-LV2/ast/expr/BlockExpression.h>
-#include <monlang-LV2/ast/expr/FieldAccess.h>
-#include <monlang-LV2/ast/expr/Subscript.h>
-#include <monlang-LV2/ast/expr/ListLiteral.h>
-#include <monlang-LV2/ast/expr/MapLiteral.h>
-#include <monlang-LV2/ast/expr/SpecialSymbol.h>
-#include <monlang-LV2/ast/expr/Numeral.h>
-#include <monlang-LV2/ast/expr/StrLiteral.h>
-#include <monlang-LV2/ast/expr/Symbol.h>
-
 #include <utils/assert-utils.h>
 #include <utils/variant-utils.h>
 #include <utils/str-utils.h>
@@ -49,30 +22,29 @@ using Float = prim_value_t::Float;
 using Str = prim_value_t::Str;
 using List = prim_value_t::List;
 using Map = prim_value_t::Map;
-using Lambda_ = prim_value_t::Lambda;
+namespace LV2 {using Lambda = Lambda;}
 
-void interpretProgram(const Program& prog) {
-    Environment env;
+void interpretProgram(const Program& prog, Environment* env) {
     for (auto stmt: prog.statements) {
-        performStatement(stmt, /*OUT*/env);
+        performStatement(stmt, env);
     }
 }
 
-void performStatement(const Statement& stmt, Environment& env) {
+void performStatement(const Statement& stmt, Environment* env) {
     std::visit(
-        [&env](auto* stmt){performStatement(*stmt, /*OUT*/env);},
+        [&env](auto* stmt){performStatement(*stmt, env);},
         stmt
     );
 }
 
-value_t evaluateValue(const Expression& expr, const Environment& env) {
-    return std::visit(
+value_t evaluateValue(const Expression& expr, Environment* env) {
+    return std::visit(overload{
+        [&env](Lambda* lambda){return evaluateValue(*lambda, env);},
         [&env](auto* expr){return evaluateValue(*expr, env);},
-        expr
-    );
+    }, expr);
 }
 
-value_t* evaluateLvalue(const Lvalue& lvalue, const Environment& env) {
+value_t* evaluateLvalue(const Lvalue& lvalue, const Environment* env) {
     return std::visit(
         [&env](auto* expr){return evaluateLvalue(*expr, env);},
         lvalue.variant
@@ -83,15 +55,15 @@ value_t* evaluateLvalue(const Lvalue& lvalue, const Environment& env) {
 // performStatement
 //==============================================================
 
-void performStatement(const Assignment& assignment, Environment& env) {
+void performStatement(const Assignment& assignment, Environment* env) {
     auto* lvalue = evaluateLvalue(assignment.variable, env);
     auto old_value = evaluateValue(assignment.variable, env);
     auto new_value = evaluateValue(assignment.value, env);
     *lvalue = new_value;
-    env.symbolTable["$old"] = Environment::ConstValue{old_value};
+    env->symbolTable["$old"] = Environment::ConstValue{old_value};
 }
 
-void performStatement(const Accumulation& acc, Environment& env) {
+void performStatement(const Accumulation& acc, Environment* env) {
     auto op = (Expression)new Symbol{acc.operator_};
     auto lhs = (Expression)acc.variable;
     auto rhs = acc.value;
@@ -106,52 +78,52 @@ void performStatement(const Accumulation& acc, Environment& env) {
     delete std::get<FunctionCall*>(fnCall);
 }
 
-void performStatement(const LetStatement&, Environment& env) {
+void performStatement(const LetStatement&, const Environment* env) {
     TODO();
 }
 
-void performStatement(const VarStatement& varStmt, Environment& env) {
+void performStatement(const VarStatement& varStmt, Environment* env) {
     // caught during static analysis
-    ASSERT (!env.symbolTable.contains(varStmt.variable.name));
+    ASSERT (!env->symbolTable.contains(varStmt.variable.name));
 
     auto value = evaluateValue(varStmt.value, env);
     auto* var = new value_t(value);
-    env.symbolTable[varStmt.variable.name] = Environment::Variable{var};
+    env->symbolTable[varStmt.variable.name] = Environment::Variable{var};
 }
 
-void performStatement(const ReturnStatement&, Environment&) {
+void performStatement(const ReturnStatement&, const Environment*) {
     SHOULD_NOT_HAPPEN(); // not a top-level statement, caught during static analysis
 }
 
-void performStatement(const BreakStatement&, Environment&) {
+void performStatement(const BreakStatement&, const Environment*) {
     SHOULD_NOT_HAPPEN(); // not a top-level statement, caught during static analysis
 }
 
-void performStatement(const ContinueStatement&, Environment&) {
+void performStatement(const ContinueStatement&, const Environment*) {
     SHOULD_NOT_HAPPEN(); // not a top-level statement, caught during static analysis
 }
 
-void performStatement(const DieStatement&, Environment& env) {
+void performStatement(const DieStatement&, const Environment* env) {
     TODO();
 }
 
-void performStatement(const ForeachStatement&, Environment& env) {
+void performStatement(const ForeachStatement&, const Environment* env) {
     TODO();
 }
 
-void performStatement(const WhileStatement&, Environment& env) {
+void performStatement(const WhileStatement&, const Environment* env) {
     TODO();
 }
 
-void performStatement(const DoWhileStatement&, Environment& env) {
+void performStatement(const DoWhileStatement&, const Environment* env) {
     TODO();
 }
 
-void performStatement(const ExpressionStatement& exprStmt, Environment& env) {
+void performStatement(const ExpressionStatement& exprStmt, Environment* env) {
     auto value = evaluateValue(exprStmt.expression, env);
     if (INTERACTIVE_MODE) {
         if (!is_nil(value)) {
-            builtin::print({value});
+            builtin::print_({value});
         }
     }
 }
@@ -161,81 +133,112 @@ void performStatement(const ExpressionStatement& exprStmt, Environment& env) {
 // evaluateValue
 //==============================================================
 
-value_t evaluateValue(const Operation&, const Environment& env) {
+value_t evaluateValue(const Operation&, const Environment* env) {
     TODO();
 }
 
-value_t evaluateValue(const FunctionCall& fnCall, const Environment& env) {
+value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
+    auto fnVal = evaluateValue(fnCall.function, env);
+    ASSERT (std::holds_alternative<prim_value_t*>(fnVal)); // TODO: tmp
+    auto fnPrimVal = *std::get<prim_value_t*>(fnVal);
+    ASSERT (std::holds_alternative<prim_value_t::Lambda>(fnPrimVal.variant)); // TODO: tmp
+    auto function = std::get<prim_value_t::Lambda>(fnPrimVal.variant);
+    return function(fnCall.arguments, env); // TODO: ugly
+}
 
-    /* TODO: tmp */
-    ASSERT (std::holds_alternative<Symbol*>(fnCall.function));
-    auto symbol = *std::get<Symbol*>(fnCall.function);
-    ASSERT (BUILTIN_TABLE.contains(symbol.name));
-    auto fn = BUILTIN_TABLE.at(symbol.name);
-    std::vector<value_t> fnArgs;
-    for (auto arg: fnCall.arguments) {
-        auto argVal = evaluateValue(arg.expr, env);
-        fnArgs.push_back(argVal);
+// non-const env param?
+value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
+    Environment* envAtCreation = env;
+    auto lambdaVal = prim_value_t::Lambda{
+        [envAtCreation, &lambda](const std::vector<FunctionCall::Argument>& args, Environment* envAtApp) -> value_t {
+            /*
+                create a temporary new environment, based on the captured-one,
+                in which we resolve each fn call arg with respect with the environment at application time,
+                and then bind each value to its argument-associated lambda parameter..
+            */
+            auto parametersBinding = std::map<Environment::SymbolName, Environment::SymbolValue>{};
+            // TODO: variadic functions
+            for (size_t i = 0; i < args.size(); ++i) {
+                auto& currParam = lambda.parameters.at(i);
+                auto& currArg = args.at(i);
+
+                if (currArg.passByRef) {
+                    auto currArg_ = Lvalue{currArg.expr};
+                    parametersBinding[currParam.name] = Environment::PassByRef{
+                        [&currArg_, envAtApp]() -> value_t* {
+                            return evaluateLvalue(currArg_, envAtApp);
+                        }
+                    };
+                }
+                else {
+                    auto var = new value_t{evaluateValue(currArg.expr, envAtApp)}; // TODO: leak
+                    parametersBinding[currParam.name] = Environment::Variable{var};
+                }
+            }
+            auto lambdaEnv = Environment{.symbolTable = parametersBinding, .enclosingEnv = envAtCreation};
+
+            /*
+
+                ..then interpret the lambda's body with respect with this freshly-created
+                environment.
+            */
+            return evaluateValue(lambda.body, &lambdaEnv);
+        }
+    };
+    return new prim_value_t{lambdaVal};
+}
+
+value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
+    if (blockExpr.statements.size() == 0) {
+        return nil_value_t();
     }
-    return fn(fnArgs);
+    auto newEnv = new Environment{{}, env};
 
+    size_t i = 0;
+    for (; i < blockExpr.statements.size() - 1; ++i) {
+        performStatement(blockExpr.statements.at(i), newEnv);
+    }
 
-    // value_t function;
-
-    // /*BREAKABLE BLOCK*/ for (int i = 1; i <= 1; ++i)
-    // {
-    //     unless (std::holds_alternative<Symbol*>(fnCall.function)) break;
-    //     auto symbol = *std::get<Symbol*>(fnCall.function);
-    //     if (env.enclosingEnv->symbolTable.contains(symbol.value)) {
-    //         function = evaluateValue(symbol, env);
-    //     }
-    //     else if (symbol.value == "print") {
-    //         std::vector<value_t> printArgs;
-    //         for (auto arg: fnCall.arguments) {
-    //             auto argVal = evaluateValue(arg.expr, env);
-    //             printArgs.push_back(argVal);
-    //         }
-    //         builtin::print(printArgs);
-    //         return nullptr;
-    //     }
-    //     // else if (...){...}
-    //     else {
-    //         // die: unbound symbol
-    //     }
-    // }
-
-    // auto fnEnv = new Environment{{}, env};
+    if (std::holds_alternative<ExpressionStatement*>(blockExpr.statements.at(i))) {
+        auto exprStmt = *std::get<ExpressionStatement*>(blockExpr.statements.at(i));
+        return evaluateValue(exprStmt.expression, newEnv);
+    }
+    performStatement(blockExpr.statements.at(i), newEnv);
+    return nil_value_t();
 }
 
-value_t evaluateValue(const Lambda&, const Environment& env) {
+value_t evaluateValue(const FieldAccess&, const Environment* env) {
     TODO();
 }
 
-value_t evaluateValue(const BlockExpression&, const Environment& env) {
+value_t evaluateValue(const Subscript&, const Environment* env) {
     TODO();
 }
 
-value_t evaluateValue(const FieldAccess&, const Environment& env) {
+value_t evaluateValue(const ListLiteral&, const Environment* env) {
     TODO();
 }
 
-value_t evaluateValue(const Subscript&, const Environment& env) {
+value_t evaluateValue(const MapLiteral&, const Environment* env) {
     TODO();
 }
 
-value_t evaluateValue(const ListLiteral&, const Environment& env) {
-    TODO();
-}
+value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env) {
+    static auto Bool_true = prim_value_t(Bool(true));
+    static auto Bool_false = prim_value_t(Bool(false));
 
-value_t evaluateValue(const MapLiteral&, const Environment& env) {
-    TODO();
-}
+    if (specialSymbol.name == "$true") {
+        return &Bool_true;
+    }
 
-value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment& env) {
+    if (specialSymbol.name == "$false") {
+        return &Bool_false;
+    }
+
     // should throw a runtime error here
-    ASSERT (env.contains(specialSymbol.name));
+    ASSERT (env->contains(specialSymbol.name));
 
-    auto specialSymbolVal = env.at(specialSymbol.name);
+    auto specialSymbolVal = env->at(specialSymbol.name);
     return std::visit(overload{
         [](Environment::ConstValue const_) -> value_t {return const_;},
         [](Environment::Variable) -> value_t {SHOULD_NOT_HAPPEN();},
@@ -245,7 +248,7 @@ value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment& env
     }, specialSymbolVal);
 }
 
-value_t evaluateValue(const Numeral& numeral, const Environment& env) {
+value_t evaluateValue(const Numeral& numeral, const Environment* env) {
     if (numeral.type == "int") {
         return new prim_value_t(Int(std::stoll(numeral.int1)));
     }
@@ -309,13 +312,13 @@ value_t evaluateValue(const Numeral& numeral, const Environment& env) {
     SHOULD_NOT_HAPPEN(); // BUG unknown numeral type
 }
 
-value_t evaluateValue(const StrLiteral& strLiteral, const Environment& env) {
+value_t evaluateValue(const StrLiteral& strLiteral, const Environment* env) {
     return new prim_value_t(Str(strLiteral.str));
 }
 
-value_t evaluateValue(const Symbol& symbol, const Environment& env) {
-    if (env.contains(symbol.name)) {
-        auto symbol_val = env.at(symbol.name);
+value_t evaluateValue(const Symbol& symbol, const Environment* env) {
+    if (env->contains(symbol.name)) {
+        auto symbol_val = env->at(symbol.name);
         return std::visit(overload{
             [](Environment::ConstValue /*or LabelToConst*/ const_){return const_;},
             [](Environment::Variable var){return *var;},
@@ -323,6 +326,10 @@ value_t evaluateValue(const Symbol& symbol, const Environment& env) {
             [](Environment::LabelToLvalue /*or PassByRef*/ label_ref){return *label_ref();},
             [](Environment::PassByDelayed delayed){return delayed();},
         }, symbol_val);
+    }
+    else if (BUILTIN_TABLE.contains(symbol.name)) {
+        auto builtin_fn = BUILTIN_TABLE.at(symbol.name);
+        return new prim_value_t{builtin_fn};
     }
     else {
         /* technically it can't happen, so let's add a hidden feature
@@ -339,19 +346,19 @@ value_t evaluateValue(const Symbol& symbol, const Environment& env) {
 // evaluateLvalue
 //==============================================================
 
-value_t* evaluateLvalue(const FieldAccess&, const Environment& env) {
+value_t* evaluateLvalue(const FieldAccess&, const Environment* env) {
     TODO();
 }
 
-value_t* evaluateLvalue(const Subscript&, const Environment& env) {
+value_t* evaluateLvalue(const Subscript&, const Environment* env) {
     TODO();
 }
 
-value_t* evaluateLvalue(const Symbol& symbol, const Environment& env) {
+value_t* evaluateLvalue(const Symbol& symbol, const Environment* env) {
     // variable unbound, caught during static analysis
-    ASSERT (env.contains(symbol.name));
+    ASSERT (env->contains(symbol.name));
 
-    auto symbolVal = env.at(symbol.name);
+    auto symbolVal = env->at(symbol.name);
     return std::visit(overload{
         [](const Environment::Variable& var) -> value_t* {return var;},
         [](Environment::LabelToLvalue& /*or PassByRef*/ var) -> value_t* {return var();},

@@ -1,0 +1,6 @@
+At the moment, the intialization dependencies are the following:
+
+[init_priority(6000)] BUILTIN_TABLE in builtin.h
+<depends on>
+[init_priority(3000)] builtin::print in print.cpp
+[init_priority(3000)] builtin::op::plus in plus.cpp

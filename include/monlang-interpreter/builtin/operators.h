@@ -12,7 +12,8 @@
 namespace builtin {
 namespace op {
 
-    value_t plus(const std::vector<value_t>& varargs);
+    extern const prim_value_t::Lambda plus;
+    extern const prim_value_t::Lambda logical_and;
 
 }} // end of builtin::op::
 

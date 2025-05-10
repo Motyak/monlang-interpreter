@@ -1,5 +1,9 @@
 #include <monlang-interpreter/builtin/print.h>
 
+/* impl only */
+
+#include <monlang-interpreter/interpret.h>
+
 #include <utils/variant-utils.h>
 #include <utils/loop-utils.h>
 
@@ -13,17 +17,19 @@ static void print(const type_value_t&);
 static void print(const struct_value_t&);
 static void print(const enum_value_t&);
 
-value_t builtin::print(const std::vector<value_t>& varargs) {
+const prim_value_t::Lambda builtin::print __attribute__((init_priority(3000))) =
+[](const std::vector<FunctionCall::Argument>& varargs, Environment* env) -> value_t {
     LOOP for (auto arg: varargs) {
         if (!__first_it) {
             std::cout << " ";
         }
-        print(arg);
+        auto argValue = evaluateValue(arg.expr, env);
+        ::print(argValue);
         ENDLOOP
     }
     std::cout << "\n";
     return nil_value_t();
-}
+};
 
 static void print(const value_t& val) {
     std::visit(
@@ -97,3 +103,15 @@ static void print(const enum_value_t& enum_val) {
     print(enum_val.enumerate_value);
     std::cout << ")";
 }
+
+value_t builtin::print_(const std::vector<value_t>& varargs) {
+    LOOP for (auto arg: varargs) {
+        if (!__first_it) {
+            std::cout << " ";
+        }
+        ::print(arg);
+        ENDLOOP
+    }
+    std::cout << "\n";
+    return nil_value_t();
+};

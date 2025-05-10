@@ -76,7 +76,7 @@ lib/monlang-parser/dist/monlang-parser.a:
 ###########################################################
 
 # will create all necessary directories after the Makefile is parsed
-$(call shell_onrun, mkdir -p .deps/builtin/operators obj/builtin/operators bin dist)
+${call shell_onrun, mkdir -p {.deps,obj}/builtin/operators bin dist}
 
 ## shall not rely on these ##
 # .DELETE_ON_ERROR:
