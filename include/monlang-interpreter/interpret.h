@@ -40,41 +40,41 @@ using namespace LV2;
 extern thread_local bool INTERACTIVE_MODE;
 
 void interpretProgram(const Program&, Environment* = nullptr);
-void performStatement(const Statement&, Environment* = nullptr);
-value_t evaluateValue(const Expression&, Environment* = nullptr);
-value_t* evaluateLvalue(const Lvalue&, const Environment* = nullptr);
+void performStatement(const Statement&, Environment*);
+value_t evaluateValue(const Expression&, Environment*);
+value_t* evaluateLvalue(const Lvalue&, const Environment*);
 
 /* performStatement */
-void performStatement(const Assignment&, Environment* = nullptr);
-void performStatement(const Accumulation&, Environment* = nullptr);
-void performStatement(const LetStatement&, const Environment* = nullptr);
-void performStatement(const VarStatement&, Environment* = nullptr);
-void performStatement(const ReturnStatement&, const Environment* = nullptr);
-void performStatement(const BreakStatement&, const Environment* = nullptr);
-void performStatement(const ContinueStatement&, const Environment* = nullptr);
-void performStatement(const DieStatement&, const Environment* = nullptr);
-void performStatement(const ForeachStatement&, const Environment* = nullptr);
-void performStatement(const WhileStatement&, const Environment* = nullptr);
-void performStatement(const DoWhileStatement&, const Environment* = nullptr);
-void performStatement(const ExpressionStatement&, Environment* = nullptr);
+void performStatement(const Assignment&, Environment*);
+void performStatement(const Accumulation&, Environment*);
+void performStatement(const LetStatement&, const Environment*);
+void performStatement(const VarStatement&, Environment*);
+void performStatement(const ReturnStatement&, const Environment*);
+void performStatement(const BreakStatement&, const Environment*);
+void performStatement(const ContinueStatement&, const Environment*);
+void performStatement(const DieStatement&, const Environment*);
+void performStatement(const ForeachStatement&, const Environment*);
+void performStatement(const WhileStatement&, const Environment*);
+void performStatement(const DoWhileStatement&, const Environment*);
+void performStatement(const ExpressionStatement&, Environment*);
 
 /* evaluateValue */
-value_t evaluateValue(const Operation&, const Environment* = nullptr);
-value_t evaluateValue(const FunctionCall&, Environment* = nullptr);
-value_t evaluateValue(const Lambda&, Environment* = nullptr);
-value_t evaluateValue(const BlockExpression&, Environment* = nullptr);
-value_t evaluateValue(const FieldAccess&, const Environment* = nullptr);
-value_t evaluateValue(const Subscript&, const Environment* = nullptr);
-value_t evaluateValue(const ListLiteral&, const Environment* = nullptr);
-value_t evaluateValue(const MapLiteral&, const Environment* = nullptr);
-value_t evaluateValue(const SpecialSymbol&, const Environment* = nullptr);
-value_t evaluateValue(const Numeral&, const Environment* = nullptr);
-value_t evaluateValue(const StrLiteral&, const Environment* = nullptr);
-value_t evaluateValue(const Symbol&, const Environment* = nullptr);
+value_t evaluateValue(const Operation&, const Environment*);
+value_t evaluateValue(const FunctionCall&, Environment*);
+value_t evaluateValue(const Lambda&, Environment*);
+value_t evaluateValue(const BlockExpression&, Environment*);
+value_t evaluateValue(const FieldAccess&, const Environment*);
+value_t evaluateValue(const Subscript&, const Environment*);
+value_t evaluateValue(const ListLiteral&, const Environment*);
+value_t evaluateValue(const MapLiteral&, const Environment*);
+value_t evaluateValue(const SpecialSymbol&, const Environment*);
+value_t evaluateValue(const Numeral&, const Environment*);
+value_t evaluateValue(const StrLiteral&, const Environment*);
+value_t evaluateValue(const Symbol&, const Environment*);
 
 /* evaluateLvalue */
-value_t* evaluateLvalue(const FieldAccess&, const Environment* = nullptr);
-value_t* evaluateLvalue(const Subscript&, const Environment* = nullptr);
-value_t* evaluateLvalue(const Symbol&, const Environment* = nullptr);
+value_t* evaluateLvalue(const FieldAccess&, const Environment*);
+value_t* evaluateLvalue(const Subscript&, const Environment*);
+value_t* evaluateLvalue(const Symbol&, const Environment*);
 
 #endif // INTERPRET_H

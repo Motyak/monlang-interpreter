@@ -51,7 +51,7 @@ static value_t addInt(prim_value_t::Int firstArgValue, const std::vector<Functio
     auto sum = firstArgValue;
 
     for (auto arg: args) {
-        auto argValue = evaluateValue(arg.expr);
+        auto argValue = evaluateValue(arg.expr, env);
 
         // should throw runtime error
         unless (std::holds_alternative<prim_value_t*>(argValue)) SHOULD_NOT_HAPPEN();
