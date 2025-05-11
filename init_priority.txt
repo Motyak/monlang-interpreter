@@ -4,3 +4,4 @@ At the moment, the intialization dependencies are the following:
 <depends on>
 [init_priority(3000)] builtin::print in print.cpp
 [init_priority(3000)] builtin::op::plus in plus.cpp
+[init_priority(3000)] builtin::op::logical_and in logical_and.cpp

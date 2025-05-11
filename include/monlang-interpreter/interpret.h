@@ -59,7 +59,7 @@ void performStatement(const DoWhileStatement&, const Environment*);
 void performStatement(const ExpressionStatement&, Environment*);
 
 /* evaluateValue */
-value_t evaluateValue(const Operation&, const Environment*);
+value_t evaluateValue(const Operation&, Environment*);
 value_t evaluateValue(const FunctionCall&, Environment*);
 value_t evaluateValue(const Lambda&, Environment*);
 value_t evaluateValue(const BlockExpression&, Environment*);

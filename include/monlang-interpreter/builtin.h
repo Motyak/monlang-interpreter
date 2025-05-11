@@ -22,7 +22,8 @@ BUILTIN_TABLE __attribute__((init_priority(6000))) = {
 
     /* operators */
     {"+", builtin::op::plus},
-    // {"&&", builtin::op::logical_and},
+    {"&&", builtin::op::logical_and},
+    {"||", builtin::op::logical_or},
 };
 
 #endif // BUILTIN_H

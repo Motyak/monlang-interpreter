@@ -14,6 +14,7 @@ namespace op {
 
     extern const prim_value_t::Lambda plus;
     extern const prim_value_t::Lambda logical_and;
+    extern const prim_value_t::Lambda logical_or;
 
 }} // end of builtin::op::
 

@@ -10,12 +10,21 @@
 
 #define unless(x) if (!(x))
 
-static value_t addByte(prim_value_t::Byte firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
-static value_t addInt(prim_value_t::Int firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
-static value_t addFloat(prim_value_t::Float firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
-static value_t concatStr(const prim_value_t::Str& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
-static value_t concatList(const prim_value_t::List& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
-static value_t concatMap(const prim_value_t::Map& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
+using Int = prim_value_t::Int;
+using Byte = prim_value_t::Byte;
+using Bool = prim_value_t::Bool;
+using Int = prim_value_t::Int;
+using Float = prim_value_t::Float;
+using Str = prim_value_t::Str;
+using List = prim_value_t::List;
+using Map = prim_value_t::Map;
+
+static value_t addByte(Byte firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
+static value_t addInt(Int firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
+static value_t addFloat(Float firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
+static value_t concatStr(const Str& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
+static value_t concatList(const List& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
+static value_t concatMap(const Map& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
 
 const prim_value_t::Lambda builtin::op::plus __attribute__((init_priority(3000))) =
 [](const std::vector<FunctionCall::Argument>& args, Environment* env) -> value_t {
@@ -30,24 +39,24 @@ const prim_value_t::Lambda builtin::op::plus __attribute__((init_priority(3000))
 
     // dispatch impl based on first argument type
     return std::visit(overload{
-        [&otherArgs, env](prim_value_t::Byte byte) -> value_t {return addByte(byte, otherArgs, env);},
-        [&otherArgs, env](prim_value_t::Int int_) -> value_t {return addInt(int_, otherArgs, env);},
-        [&otherArgs, env](prim_value_t::Float float_) -> value_t {return addFloat(float_, otherArgs, env);},
-        [&otherArgs, env](const prim_value_t::Str& str) -> value_t {return concatStr(str, otherArgs, env);},
-        [&otherArgs, env](const prim_value_t::List& list) -> value_t {return concatList(list, otherArgs, env);},
-        [&otherArgs, env](const prim_value_t::Map& map) -> value_t {return concatMap(map, otherArgs, env);},
+        [&otherArgs, env](Byte byte) -> value_t {return addByte(byte, otherArgs, env);},
+        [&otherArgs, env](Int int_) -> value_t {return addInt(int_, otherArgs, env);},
+        [&otherArgs, env](Float float_) -> value_t {return addFloat(float_, otherArgs, env);},
+        [&otherArgs, env](const Str& str) -> value_t {return concatStr(str, otherArgs, env);},
+        [&otherArgs, env](const List& list) -> value_t {return concatList(list, otherArgs, env);},
+        [&otherArgs, env](const Map& map) -> value_t {return concatMap(map, otherArgs, env);},
 
         /* should throw runtime error */
-        [](prim_value_t::Bool) -> value_t {SHOULD_NOT_HAPPEN();},
+        [](Bool) -> value_t {SHOULD_NOT_HAPPEN();},
         [](const prim_value_t::Lambda&) -> value_t {SHOULD_NOT_HAPPEN();},
     }, firstArgValue_.variant);
 };
 
-static value_t addByte(prim_value_t::Byte firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
+static value_t addByte(Byte firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
     TODO();
 }
 
-static value_t addInt(prim_value_t::Int firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
+static value_t addInt(Int firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
     auto sum = firstArgValue;
 
     for (auto arg: args) {
@@ -58,8 +67,8 @@ static value_t addInt(prim_value_t::Int firstArgValue, const std::vector<Functio
         auto primVal = *std::get<prim_value_t*>(argValue);
 
         // should throw runtime error
-        unless (std::holds_alternative<prim_value_t::Int>(primVal.variant)) SHOULD_NOT_HAPPEN();
-        auto intVal = std::get<prim_value_t::Int>(primVal.variant);
+        unless (std::holds_alternative<Int>(primVal.variant)) SHOULD_NOT_HAPPEN();
+        auto intVal = std::get<Int>(primVal.variant);
 
         sum += intVal;
     }
@@ -67,19 +76,19 @@ static value_t addInt(prim_value_t::Int firstArgValue, const std::vector<Functio
     return new prim_value_t{sum};
 }
 
-static value_t addFloat(prim_value_t::Float firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
+static value_t addFloat(Float firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
     TODO();
 }
 
-static value_t concatStr(const prim_value_t::Str& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
+static value_t concatStr(const Str& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
     TODO();
 }
 
-static value_t concatList(const prim_value_t::List& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
+static value_t concatList(const List& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
     TODO();
 }
 
-static value_t concatMap(const prim_value_t::Map& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
+static value_t concatMap(const Map& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
     TODO();
 }
 

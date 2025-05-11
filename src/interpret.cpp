@@ -26,7 +26,7 @@ namespace LV2 {using Lambda = Lambda;}
 
 void interpretProgram(const Program& prog, Environment* env) {
     if (!env) {
-        env = new Environment{};
+        env = new Environment{}; // TODO: leak?
     }
 
     for (auto stmt: prog.statements) {
@@ -61,7 +61,7 @@ value_t* evaluateLvalue(const Lvalue& lvalue, const Environment* env) {
 
 void performStatement(const Assignment& assignment, Environment* env) {
     auto* lvalue = evaluateLvalue(assignment.variable, env);
-    auto old_value = evaluateValue(assignment.variable, env);
+    auto old_value = *lvalue;
     auto new_value = evaluateValue(assignment.value, env);
     *lvalue = new_value;
     env->symbolTable["$old"] = Environment::ConstValue{old_value};
@@ -137,8 +137,18 @@ void performStatement(const ExpressionStatement& exprStmt, Environment* env) {
 // evaluateValue
 //==============================================================
 
-value_t evaluateValue(const Operation&, const Environment* env) {
-    TODO();
+value_t evaluateValue(const Operation& optor, Environment* env) {
+    auto op = (Expression)new Symbol{optor.operator_};
+    auto lhs = optor.leftOperand;
+    auto rhs = optor.rightOperand;
+    auto fnCall = (Expression)new FunctionCall{op, {lhs, rhs}};
+
+    auto res = evaluateValue(fnCall, env);
+
+    delete std::get<Symbol*>(op);
+    delete std::get<FunctionCall*>(fnCall);
+
+    return res;
 }
 
 value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
@@ -147,7 +157,7 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
     auto fnPrimVal = *std::get<prim_value_t*>(fnVal);
     ASSERT (std::holds_alternative<prim_value_t::Lambda>(fnPrimVal.variant)); // TODO: tmp
     auto function = std::get<prim_value_t::Lambda>(fnPrimVal.variant);
-    return function(fnCall.arguments, env); // TODO: ugly
+    return function(fnCall.arguments, env);
 }
 
 // non-const env param?

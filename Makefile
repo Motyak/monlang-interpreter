@@ -14,7 +14,9 @@ OBJS := obj/interpret.o \
 obj/monlang_parser.o \
 obj/Environment.o \
 obj/builtin/print.o \
-obj/builtin/operators/plus.o
+obj/builtin/operators/plus.o \
+obj/builtin/operators/logical_and.o \
+obj/builtin/operators/logical_or.o
 DEPS := $(OBJS:obj/%.o=.deps/%.d)
 
 LIB_ARTIFACT_DIRS := ${foreach lib,${wildcard lib/*/},$(lib:%/=%)/{.deps,obj,dist,bin}}# for cleaning
