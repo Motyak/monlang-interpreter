@@ -42,13 +42,13 @@ void performStatement(const Statement& stmt, Environment* env) {
 }
 
 value_t evaluateValue(const Expression& expr, Environment* env) {
-    return std::visit(overload{
-        [&env](Lambda* lambda){return evaluateValue(*lambda, env);},
+    return std::visit(
         [&env](auto* expr){return evaluateValue(*expr, env);},
-    }, expr);
+        expr
+    );
 }
 
-value_t* evaluateLvalue(const Lvalue& lvalue, const Environment* env) {
+value_t* evaluateLvalue(const Lvalue& lvalue, Environment* env) {
     return std::visit(
         [&env](auto* expr){return evaluateLvalue(*expr, env);},
         lvalue.variant
@@ -160,7 +160,6 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
     return function(fnCall.arguments, env);
 }
 
-// non-const env param?
 value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
     Environment* envAtCreation = env;
     auto lambdaVal = prim_value_t::Lambda{
@@ -185,8 +184,10 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                     };
                 }
                 else {
-                    auto var = new value_t{evaluateValue(currArg.expr, envAtApp)}; // TODO: leak
-                    parametersBinding[currParam.name] = Environment::Variable{var};
+                    std::function<value_t()> delayed = [&currArg, &envAtApp]() -> value_t {
+                        return evaluateValue(currArg.expr, envAtApp);
+                    };
+                    parametersBinding[currParam.name] = Environment::PassByDelayed{delayed};
                 }
             }
             auto lambdaEnv = Environment{.symbolTable = parametersBinding, .enclosingEnv = envAtCreation};
@@ -360,27 +361,31 @@ value_t evaluateValue(const Symbol& symbol, const Environment* env) {
 // evaluateLvalue
 //==============================================================
 
-value_t* evaluateLvalue(const FieldAccess&, const Environment* env) {
+value_t* evaluateLvalue(const FieldAccess&, Environment* env) {
     TODO();
 }
 
-value_t* evaluateLvalue(const Subscript&, const Environment* env) {
+value_t* evaluateLvalue(const Subscript&, Environment* env) {
     TODO();
 }
 
-value_t* evaluateLvalue(const Symbol& symbol, const Environment* env) {
+value_t* evaluateLvalue(const Symbol& symbol, Environment* env) {
     // variable unbound, caught during static analysis
     ASSERT (env->contains(symbol.name));
 
-    auto symbolVal = env->at(symbol.name);
+    auto& symbolVal = env->at(symbol.name);
     return std::visit(overload{
         [](const Environment::Variable& var) -> value_t* {return var;},
         [](Environment::LabelToLvalue& /*or PassByRef*/ var) -> value_t* {return var();},
+        [&symbolVal](Environment::PassByDelayed& delayed) -> value_t* {
+            auto* var = new value_t{delayed()};
+            symbolVal = Environment::Variable{var};
+            return var;
+        },
 
         /* caught during static analysis */
         [](Environment::ConstValue /*or LabelToConst*/) -> value_t* {SHOULD_NOT_HAPPEN();},
         [](Environment::LabelToNonConst) -> value_t* {SHOULD_NOT_HAPPEN();},
-        [](Environment::PassByDelayed) -> value_t* {SHOULD_NOT_HAPPEN();},
     }, symbolVal);
 
 }
