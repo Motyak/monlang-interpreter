@@ -54,7 +54,15 @@ const prim_value_t::Lambda builtin::op::plus __attribute__((init_priority(3000))
 };
 
 static value_t addByte(Byte firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
-    TODO();
+    auto sum = firstArgValue;
+
+    for (auto arg: args) {
+        auto argValue = evaluateValue(arg.expr, env);
+        auto intVal = builtin::prim_ctor::Byte_(argValue);
+        sum += intVal;
+    }
+
+    return new prim_value_t{sum};
 }
 
 static value_t addInt(Int firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
@@ -70,7 +78,15 @@ static value_t addInt(Int firstArgValue, const std::vector<FunctionCall::Argumen
 }
 
 static value_t addFloat(Float firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
-    TODO();
+    auto sum = firstArgValue;
+
+    for (auto arg: args) {
+        auto argValue = evaluateValue(arg.expr, env);
+        auto intVal = builtin::prim_ctor::Float_(argValue);
+        sum += intVal;
+    }
+
+    return new prim_value_t{sum};
 }
 
 static value_t concatStr(const Str& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {

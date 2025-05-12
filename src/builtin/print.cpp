@@ -47,7 +47,7 @@ static void print(const value_t& val, std::ostream& out) {
 
 static void print(const prim_value_t& primVal, std::ostream& out) {
     std::visit(overload{
-        [&out](prim_value_t::Byte byte){out << "Byte(" << byte << ")";},
+        [&out](prim_value_t::Byte byte){out << (unsigned)byte;},
         [&out](prim_value_t::Bool bool_){out << (bool_ == true? "$true" : "$false");},
         [&out](prim_value_t::Int int_){out << int_;},
         [&out](prim_value_t::Float float_){out << std::setprecision(std::numeric_limits<double>::digits10) << float_;},

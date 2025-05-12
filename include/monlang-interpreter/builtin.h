@@ -28,10 +28,10 @@ BUILTIN_TABLE __attribute__((init_priority(6000))) = {
     {"||", builtin::op::logical_or},
 
     /* primitive constructors */
-    // {"Byte", builtin::prim_ctor::Byte},
+    {"Byte", builtin::prim_ctor::Byte},
     {"Bool", builtin::prim_ctor::Bool},
     {"Int", builtin::prim_ctor::Int},
-    // {"Float", builtin::prim_ctor::Float},
+    {"Float", builtin::prim_ctor::Float},
     {"Str", builtin::prim_ctor::Str},
     // {"List", builtin::prim_ctor::List},
     // {"Map", builtin::prim_ctor::Map},

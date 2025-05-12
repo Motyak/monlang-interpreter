@@ -10,16 +10,29 @@ ARFLAGS = D -M < <(tools/aggregate-libs.mri.sh $@ $^); :
 
 ###########################################################
 
-OBJS := obj/interpret.o \
+OBJS = \
+obj/interpret.o \
 obj/monlang_parser.o \
 obj/Environment.o \
+$(BUILTIN_OBJS)
+
+BUILTIN_OBJS = \
 obj/builtin/print.o \
+$(OPERATORS_OBJS) \
+$(PRIM_CTORS_OBJS)
+
+OPERATORS_OBJS = \
 obj/builtin/operators/plus.o \
 obj/builtin/operators/logical_and.o \
-obj/builtin/operators/logical_or.o \
+obj/builtin/operators/logical_or.o
+
+PRIM_CTORS_OBJS = \
+obj/builtin/prim_ctors/Byte.o \
 obj/builtin/prim_ctors/Bool.o \
 obj/builtin/prim_ctors/Int.o \
+obj/builtin/prim_ctors/Float.o \
 obj/builtin/prim_ctors/Str.o
+
 DEPS := $(OBJS:obj/%.o=.deps/%.d)
 
 LIB_ARTIFACT_DIRS := ${foreach lib,${wildcard lib/*/},$(lib:%/=%)/{.deps,obj,dist,bin}}# for cleaning
