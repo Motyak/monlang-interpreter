@@ -16,7 +16,10 @@ obj/Environment.o \
 obj/builtin/print.o \
 obj/builtin/operators/plus.o \
 obj/builtin/operators/logical_and.o \
-obj/builtin/operators/logical_or.o
+obj/builtin/operators/logical_or.o \
+obj/builtin/prim_ctors/Bool.o \
+obj/builtin/prim_ctors/Int.o \
+obj/builtin/prim_ctors/Str.o
 DEPS := $(OBJS:obj/%.o=.deps/%.d)
 
 LIB_ARTIFACT_DIRS := ${foreach lib,${wildcard lib/*/},$(lib:%/=%)/{.deps,obj,dist,bin}}# for cleaning
@@ -78,7 +81,7 @@ lib/monlang-parser/dist/monlang-parser.a:
 ###########################################################
 
 # will create all necessary directories after the Makefile is parsed
-${call shell_onrun, mkdir -p {.deps,obj}/builtin/operators bin dist}
+${call shell_onrun, mkdir -p {.deps,obj}/builtin/{operators,prim_ctors} bin dist}
 
 ## shall not rely on these ##
 # .DELETE_ON_ERROR:

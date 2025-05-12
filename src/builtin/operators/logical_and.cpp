@@ -2,6 +2,7 @@
 
 /* impl only */
 
+#include <monlang-interpreter/builtin/prim_ctors.h>
 #include <monlang-interpreter/interpret.h>
 
 #include <utils/assert-utils.h>
@@ -22,9 +23,7 @@ const prim_value_t::Lambda builtin::op::logical_and __attribute__((init_priority
         if (argPrimValPtr == nullptr) {
             return new prim_value_t(Bool(false));
         }
-        // should throw runtime error
-        unless (std::holds_alternative<Bool>(argPrimValPtr->variant)) SHOULD_NOT_HAPPEN();
-        auto argBool = std::get<Bool>(argPrimValPtr->variant);
+        auto argBool = builtin::prim_ctor::Bool_(argPrimValPtr);
         if (!argBool) {
             return new prim_value_t(Bool(false));
         }

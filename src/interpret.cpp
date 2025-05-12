@@ -242,6 +242,10 @@ value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env
     static auto Bool_true = prim_value_t(Bool(true));
     static auto Bool_false = prim_value_t(Bool(false));
 
+    if (specialSymbol.name == "$nil") {
+        return nil_value_t();
+    }
+
     if (specialSymbol.name == "$true") {
         return &Bool_true;
     }

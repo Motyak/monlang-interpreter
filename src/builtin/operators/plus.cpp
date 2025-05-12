@@ -3,6 +3,7 @@
 /* impl only */
 
 #include <monlang-interpreter/interpret.h>
+#include <monlang-interpreter/builtin/prim_ctors.h>
 
 #include <utils/assert-utils.h>
 #include <utils/variant-utils.h>
@@ -61,15 +62,7 @@ static value_t addInt(Int firstArgValue, const std::vector<FunctionCall::Argumen
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, env);
-
-        // should throw runtime error
-        unless (std::holds_alternative<prim_value_t*>(argValue)) SHOULD_NOT_HAPPEN();
-        auto primVal = *std::get<prim_value_t*>(argValue);
-
-        // should throw runtime error
-        unless (std::holds_alternative<Int>(primVal.variant)) SHOULD_NOT_HAPPEN();
-        auto intVal = std::get<Int>(primVal.variant);
-
+        auto intVal = builtin::prim_ctor::Int_(argValue);
         sum += intVal;
     }
 
@@ -81,7 +74,15 @@ static value_t addFloat(Float firstArgValue, const std::vector<FunctionCall::Arg
 }
 
 static value_t concatStr(const Str& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
-    TODO();
+    auto res = firstArgValue;
+
+    for (auto arg: args) {
+        auto argValue = evaluateValue(arg.expr, env);
+        auto strVal = builtin::prim_ctor::Str_(argValue);
+        res += strVal;
+    }
+
+    return new prim_value_t{res};
 }
 
 static value_t concatList(const List& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {

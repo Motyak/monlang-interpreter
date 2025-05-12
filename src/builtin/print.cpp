@@ -11,11 +11,11 @@
 #include <iomanip>
 #include <vector>
 
-static void print(const value_t&);
-static void print(const prim_value_t&);
-static void print(const type_value_t&);
-static void print(const struct_value_t&);
-static void print(const enum_value_t&);
+static void print(const value_t&, std::ostream& = std::cout);
+static void print(const prim_value_t&, std::ostream& = std::cout);
+static void print(const type_value_t&, std::ostream& = std::cout);
+static void print(const struct_value_t&, std::ostream& = std::cout);
+static void print(const enum_value_t&, std::ostream& = std::cout);
 
 const prim_value_t::Lambda builtin::print __attribute__((init_priority(3000))) =
 [](const std::vector<FunctionCall::Argument>& varargs, Environment* env) -> value_t {
@@ -31,87 +31,87 @@ const prim_value_t::Lambda builtin::print __attribute__((init_priority(3000))) =
     return nil_value_t();
 };
 
-static void print(const value_t& val) {
+static void print(const value_t& val, std::ostream& out) {
     std::visit(
-        [](auto* val){
+        [&out](auto* val){
             if (val == nullptr){
-                std::cout << "$nil";
+                out << "$nil";
             }
             else {
-                print(*val);
+                print(*val, out);
             }
         }
         , val
     );
 }
 
-static void print(const prim_value_t& prim_val) {
+static void print(const prim_value_t& primVal, std::ostream& out) {
     std::visit(overload{
-        [](prim_value_t::Byte byte){std::cout << "Byte(" << byte << ")";},
-        [](prim_value_t::Bool bool_){std::cout << (bool_ == true? "$true" : "$false");},
-        [](prim_value_t::Int int_){std::cout << int_;},
-        [](prim_value_t::Float float_){std::cout << std::setprecision(std::numeric_limits<double>::digits10) << float_;},
-        [](const prim_value_t::Str& str){std::cout << str;},
-        [](const prim_value_t::List& list){
-            std::cout << "[";
+        [&out](prim_value_t::Byte byte){out << "Byte(" << byte << ")";},
+        [&out](prim_value_t::Bool bool_){out << (bool_ == true? "$true" : "$false");},
+        [&out](prim_value_t::Int int_){out << int_;},
+        [&out](prim_value_t::Float float_){out << std::setprecision(std::numeric_limits<double>::digits10) << float_;},
+        [&out](const prim_value_t::Str& str){out << str;},
+        [&out](const prim_value_t::List& list){
+            out << "[";
             LOOP for (auto val: list) {
                 if (!__first_it) {
-                    std::cout << ", ";
+                    out << ", ";
                 }
                 print(val);
                 ENDLOOP
             }
-            std::cout << "]";
+            out << "]";
         },
-        [](const prim_value_t::Map& map){
-            std::cout << "[";
+        [&out](const prim_value_t::Map& map){
+            out << "[";
             LOOP for (auto [key, val]: map) {
                 if (!__first_it) {
-                    std::cout << ", ";
+                    out << ", ";
                 }
                 print(key);
-                std::cout << ":";
+                out << ":";
                 print(val);
                 ENDLOOP
             }
-            std::cout << "]";
+            out << "]";
         },
-        [](const prim_value_t::Lambda&){std::cout << "<lambda>";},
-    }, prim_val.variant);
+        [&out](const prim_value_t::Lambda&){out << "<lambda>";},
+    }, primVal.variant);
 }
 
-static void print(const type_value_t& type_val) {
-    std::cout << "(" << type_val.type;
+static void print(const type_value_t& type_val, std::ostream& out) {
+    out << type_val.type << "(";
     print(type_val.value);
-    std::cout << ")";
+    out << ")";
 }
 
-static void print(const struct_value_t& struct_val) {
-    std::cout << struct_val.type << "(";
+static void print(const struct_value_t& struct_val, std::ostream& out) {
+    out << struct_val.type << "(";
     LOOP for (auto [_field_name, field_value]: struct_val.fields) {
         if (!__first_it) {
-            std::cout << ", ";
+            out << ", ";
         }
         print(field_value);
         ENDLOOP
     }
-    std::cout << ")";
+    out << ")";
 }
 
-static void print(const enum_value_t& enum_val) {
-    std::cout << enum_val.type << "(";
+static void print(const enum_value_t& enum_val, std::ostream& out) {
+    out << enum_val.type << "(";
     print(enum_val.enumerate_value);
-    std::cout << ")";
+    out << ")";
 }
 
-value_t builtin::print_(const std::vector<value_t>& varargs) {
+value_t builtin::print_(const std::vector<value_t>& varargs, std::ostream& out) {
     LOOP for (auto arg: varargs) {
         if (!__first_it) {
-            std::cout << " ";
+            out << " ";
         }
-        ::print(arg);
+        ::print(arg, out);
         ENDLOOP
     }
-    std::cout << "\n";
+    out << "\n";
     return nil_value_t();
 };
