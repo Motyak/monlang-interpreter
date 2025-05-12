@@ -40,6 +40,7 @@ mrproper:
 
 ###########################################################
 
+obj/builtin/prim_ctors/Bool.o: CXXFLAGS += -D TOGGLE_NIL_CAST_TO_BOOL
 $(OBJS) obj/main.o: obj/%.o: src/%.cpp
 	$(CXX) -o $@ -c $< $(CXXFLAGS) $(DEPFLAGS)
 

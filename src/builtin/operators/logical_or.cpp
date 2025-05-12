@@ -20,9 +20,6 @@ const prim_value_t::Lambda builtin::op::logical_or __attribute__((init_priority(
         // should throw runtime error
         unless (std::holds_alternative<prim_value_t*>(argVal)) SHOULD_NOT_HAPPEN();
         auto argPrimValPtr = std::get<prim_value_t*>(argVal);
-        if (argPrimValPtr == nullptr) {
-            continue;
-        }
         auto argBool = builtin::prim_ctor::Bool_(argPrimValPtr);
         if (argBool) {
             return new prim_value_t(Bool(true));

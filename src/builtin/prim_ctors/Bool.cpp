@@ -20,7 +20,13 @@ static prim_value_t::Bool to_bool(const prim_value_t&);
 prim_value_t::Bool builtin::prim_ctor::Bool_(const value_t& val) {
     return std::visit(overload{
         [](prim_value_t* primVal) -> prim_value_t::Bool {
-            return primVal == nullptr? false : to_bool(*primVal);
+            if (primVal == nullptr) {
+                #ifdef TOGGLE_NIL_CAST_TO_BOOL
+                return false;
+                #endif
+                SHOULD_NOT_HAPPEN();
+            }
+            return to_bool(*primVal);
         },
         [](auto*) -> prim_value_t::Bool {SHOULD_NOT_HAPPEN();},
     }, val);
