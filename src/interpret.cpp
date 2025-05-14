@@ -161,7 +161,7 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
 }
 
 value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
-    Environment* envAtCreation = env;
+    Environment* envAtCreation = new Environment{*env};
     auto lambdaVal = prim_value_t::Lambda{
         [envAtCreation, &lambda](const std::vector<FunctionCall::Argument>& args, Environment* envAtApp) -> value_t {
             /*
@@ -196,8 +196,26 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
 
                 ..then interpret the lambda's body with respect with this freshly-created
                 environment.
+
+                NOTE: lambda's parameters must be in the same environment
+                as lambda's body local variables.
+                Therefore we can't just call `return evaluateValue(lambda.body, &lambdaEnv);`
             */
-            return evaluateValue(lambda.body, &lambdaEnv);
+
+            if (lambda.body.statements.size() == 0) {
+                return nil_value_t();
+            }
+            size_t i = 0;
+            for (; i < lambda.body.statements.size() - 1; ++i) {
+                performStatement(lambda.body.statements.at(i), &lambdaEnv);
+            }
+
+            if (std::holds_alternative<ExpressionStatement*>(lambda.body.statements.at(i))) {
+                auto exprStmt = *std::get<ExpressionStatement*>(lambda.body.statements.at(i));
+                return evaluateValue(exprStmt.expression, &lambdaEnv);
+            }
+            performStatement(lambda.body.statements.at(i), &lambdaEnv);
+            return nil_value_t();
         }
     };
     return new prim_value_t{lambdaVal};
