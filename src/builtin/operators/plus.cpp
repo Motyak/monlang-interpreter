@@ -3,6 +3,7 @@
 /* impl only */
 
 #include <monlang-interpreter/interpret.h>
+#include <monlang-interpreter/InterpretError.h>
 #include <monlang-interpreter/builtin/prim_ctors.h>
 
 #include <utils/assert-utils.h>
@@ -48,7 +49,7 @@ const prim_value_t::Lambda builtin::op::plus __attribute__((init_priority(3000))
         [&otherArgs, env](const Map& map) -> value_t {return concatMap(map, otherArgs, env);},
 
         /* should throw runtime error */
-        [](Bool) -> value_t {SHOULD_NOT_HAPPEN();},
+        [](Bool) -> value_t {throw InterpretError("+() first arg cannot be Bool");},
         [](const prim_value_t::Lambda&) -> value_t {SHOULD_NOT_HAPPEN();},
     }, firstArgValue_.variant);
 };

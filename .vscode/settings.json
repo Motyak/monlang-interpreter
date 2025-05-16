@@ -1,4 +1,7 @@
 {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
     "explorer.autoReveal": false,
     "search.quickOpen.includeHistory": false,
     "C_Cpp.autoAddFileAssociations": false,

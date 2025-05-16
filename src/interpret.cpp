@@ -2,17 +2,21 @@
 
 /* impl only */
 
+#include <monlang-interpreter/InterpretError.h>
 #include <monlang-interpreter/builtin.h>
 
 #include <utils/assert-utils.h>
 #include <utils/variant-utils.h>
 #include <utils/str-utils.h>
+#include <utils/defer-util.h>
 
 #include <cmath>
+#include <vector>
 
 #define unless(x) if(!(x))
 
 thread_local bool INTERACTIVE_MODE = false;
+thread_local std::vector<LV2::Ast> activeCallStack;
 
 using Int = prim_value_t::Int;
 using Byte = prim_value_t::Byte;
@@ -42,10 +46,24 @@ void performStatement(const Statement& stmt, Environment* env) {
 }
 
 value_t evaluateValue(const Expression& expr, Environment* env) {
-    return std::visit(
-        [&env](auto* expr){return evaluateValue(*expr, env);},
-        expr
-    );
+    return std::visit(overload{
+        [&expr, &env](FunctionCall* fnCall){
+            bool should_pop = false;
+            if (!std::holds_alternative<Lambda*>(fnCall->function)) {
+                ::activeCallStack.push_back(expr);
+                should_pop = true;
+            }
+            defer {
+                if (should_pop) {
+                    ::activeCallStack.pop_back();
+                }
+            };
+            return evaluateValue(*fnCall, env);
+        },
+        [&env](auto* expr){
+            return evaluateValue(*expr, env);
+        },
+    }, expr);
 }
 
 value_t* evaluateLvalue(const Lvalue& lvalue, Environment* env) {
@@ -137,16 +155,17 @@ void performStatement(const ExpressionStatement& exprStmt, Environment* env) {
 // evaluateValue
 //==============================================================
 
-value_t evaluateValue(const Operation& optor, Environment* env) {
-    auto op = (Expression)new Symbol{optor.operator_};
-    auto lhs = optor.leftOperand;
-    auto rhs = optor.rightOperand;
-    auto fnCall = (Expression)new FunctionCall{op, {lhs, rhs}};
+value_t evaluateValue(const Operation& operation, Environment* env) {
+    auto opPtr = new Symbol{operation.operator_};
+    auto lhs = operation.leftOperand;
+    auto rhs = operation.rightOperand;
+    auto fnCallPtr = new FunctionCall{(Expression)opPtr, {lhs, rhs}};
+    fnCallPtr->_tokenId = operation._tokenId;
 
-    auto res = evaluateValue(fnCall, env);
+    auto res = evaluateValue((Expression)fnCallPtr, env);
 
-    delete std::get<Symbol*>(op);
-    delete std::get<FunctionCall*>(fnCall);
+    delete opPtr;
+    delete fnCallPtr;
 
     return res;
 }
