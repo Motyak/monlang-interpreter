@@ -30,12 +30,11 @@ static value_t concatMap(const Map& firstArgValue, const std::vector<FunctionCal
 
 const prim_value_t::Lambda builtin::op::plus __attribute__((init_priority(3000))) =
 [](const std::vector<FunctionCall::Argument>& args, Environment* env) -> value_t {
-    // should throw runtime error
-    unless (args.size() >= 2) SHOULD_NOT_HAPPEN();
+    unless (args.size() >= 2) throw InterpretError("+() accepts 2+ args");
 
     auto firstArgValue = evaluateValue(args.at(0).expr, env);
     // should throw runtime error
-    unless (std::holds_alternative<prim_value_t*>(firstArgValue)) SHOULD_NOT_HAPPEN();
+    unless (std::holds_alternative<prim_value_t*>(firstArgValue)) SHOULD_NOT_HAPPEN(); // TODO: tmp
     auto firstArgValue_ = *std::get<prim_value_t*>(firstArgValue);
     auto otherArgs = std::vector<FunctionCall::Argument>{args.begin() + 1, args.end()};
 
@@ -48,9 +47,8 @@ const prim_value_t::Lambda builtin::op::plus __attribute__((init_priority(3000))
         [&otherArgs, env](const List& list) -> value_t {return concatList(list, otherArgs, env);},
         [&otherArgs, env](const Map& map) -> value_t {return concatMap(map, otherArgs, env);},
 
-        /* should throw runtime error */
         [](Bool) -> value_t {throw InterpretError("+() first arg cannot be Bool");},
-        [](const prim_value_t::Lambda&) -> value_t {SHOULD_NOT_HAPPEN();},
+        [](const prim_value_t::Lambda&) -> value_t {throw InterpretError("+() first arg cannot be Lambda");},
     }, firstArgValue_.variant);
 };
 

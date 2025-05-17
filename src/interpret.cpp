@@ -160,7 +160,7 @@ value_t evaluateValue(const Operation& operation, Environment* env) {
     auto lhs = operation.leftOperand;
     auto rhs = operation.rightOperand;
     auto fnCallPtr = new FunctionCall{(Expression)opPtr, {lhs, rhs}};
-    fnCallPtr->_tokenId = operation._tokenId;
+    fnCallPtr->_tokenId = operation.operator_._tokenId;
 
     auto res = evaluateValue((Expression)fnCallPtr, env);
 

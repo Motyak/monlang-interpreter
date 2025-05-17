@@ -66,12 +66,12 @@ int repl_main(int argc, char* argv[]) {
         // TODO: careful, might need rollback ?
 
         std::cerr << "Runtime error: " << e.what() << "\n";
-        std::cerr << "Call stack:\n";
-        for (auto entity: e.callStack) {
+        for (int i = e.callStack.size() - 1; i >= 0; --i) {
+            auto& entity = e.callStack[i];
             auto token = tokens[token_id(entity)];
             // TODO: tmp
             auto fnName = std::get<Symbol*>(std::get<FunctionCall*>(std::get<Expression>(entity))->function)->name;
-            std::cerr << "  " << fnName << "(line " << token.start.line;
+            std::cerr << "    at " << fnName << "(line " << token.start.line;
             std::cerr << " column " << token.start.column << ")\n";
         }
         goto Read;
@@ -100,12 +100,12 @@ int stdinput_main(int argc, char* argv[]) {
     }
     catch (const InterpretError& e) {
         std::cerr << "Runtime error: " << e.what() << "\n";
-        std::cerr << "Call stack:\n";
-        for (auto entity: e.callStack) {
+        for (int i = e.callStack.size() - 1; i >= 0; --i) {
+            auto& entity = e.callStack[i];
             auto token = tokens[token_id(entity)];
             // TODO: tmp
             auto fnName = std::get<Symbol*>(std::get<FunctionCall*>(std::get<Expression>(entity))->function)->name;
-            std::cerr << "  " << fnName << "(line " << token.start.line;
+            std::cerr << "    at " << fnName << "(line " << token.start.line;
             std::cerr << " column " << token.start.column << ")\n";
         }
         return 1;
@@ -140,12 +140,12 @@ int fileinput_main(int argc, char* argv[]) {
     }
     catch (const InterpretError& e) {
         std::cerr << "Runtime error: " << e.what() << "\n";
-        std::cerr << "Call stack:\n";
-        for (auto entity: e.callStack) {
+        for (int i = e.callStack.size() - 1; i >= 0; --i) {
+            auto& entity = e.callStack[i];
             auto token = tokens[token_id(entity)];
             // TODO: tmp
             auto fnName = std::get<Symbol*>(std::get<FunctionCall*>(std::get<Expression>(entity))->function)->name;
-            std::cerr << "  " << fnName << "(";
+            std::cerr << "    at " << fnName << "(";
             std::cerr << filename << ":" << token.start.line << ":" << token.start.column;
             std::cerr << ")\n";
         }
