@@ -13,6 +13,7 @@
 
 /* builtins */
 #include <monlang-interpreter/builtin/print.h>
+#include <monlang-interpreter/builtin/exit.h>
 #include <monlang-interpreter/builtin/operators.h>
 #include <monlang-interpreter/builtin/prim_ctors.h>
 
@@ -21,6 +22,7 @@
 static const std::map<std::string, prim_value_t::Lambda>
 BUILTIN_TABLE __attribute__((init_priority(6000))) = {
     {"print", builtin::print},
+    {"exit", builtin::exit},
 
     /* operators */
     {"+", builtin::op::plus},

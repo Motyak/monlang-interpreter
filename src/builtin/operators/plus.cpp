@@ -30,7 +30,7 @@ static value_t concatMap(const Map& firstArgValue, const std::vector<FunctionCal
 
 const prim_value_t::Lambda builtin::op::plus __attribute__((init_priority(3000))) =
 [](const std::vector<FunctionCall::Argument>& args, Environment* env) -> value_t {
-    unless (args.size() >= 2) throw InterpretError("+() accepts 2+ args");
+    unless (args.size() >= 2) throw InterpretError("+() takes 2+ args");
 
     auto firstArgValue = evaluateValue(args.at(0).expr, env);
     // should throw runtime error

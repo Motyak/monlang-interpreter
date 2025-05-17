@@ -36,6 +36,12 @@ int main(int argc, char* argv[])
     return fileinput_main(argc, argv);
 }
 
+static void reportCallStack(
+    const std::vector<Expression>& callStack,
+    const Tokens&,
+    const std::string& filename = "<str>"
+);
+
 int repl_main(int argc, char* argv[]) {
     (void)argc;
     (void)argv;
@@ -63,17 +69,13 @@ int repl_main(int argc, char* argv[]) {
         }
     }
     catch (const InterpretError& e) {
-        // TODO: careful, might need rollback ?
-
         std::cerr << "Runtime error: " << e.what() << "\n";
-        for (int i = e.callStack.size() - 1; i >= 0; --i) {
-            auto& entity = e.callStack[i];
-            auto token = tokens[token_id(entity)];
-            // TODO: tmp
-            auto fnName = std::get<Symbol*>(std::get<FunctionCall*>(std::get<Expression>(entity))->function)->name;
-            std::cerr << "    at " << fnName << "(line " << token.start.line;
-            std::cerr << " column " << token.start.column << ")\n";
-        }
+
+        // we can't report the call stack because each new..
+        // ..user prompt is interpreted as an individual program..
+        // ..therefore we can't point to a previous prompt token
+
+        activeCallStack = {}; // discard it
         goto Read;
     }
 
@@ -100,14 +102,7 @@ int stdinput_main(int argc, char* argv[]) {
     }
     catch (const InterpretError& e) {
         std::cerr << "Runtime error: " << e.what() << "\n";
-        for (int i = e.callStack.size() - 1; i >= 0; --i) {
-            auto& entity = e.callStack[i];
-            auto token = tokens[token_id(entity)];
-            // TODO: tmp
-            auto fnName = std::get<Symbol*>(std::get<FunctionCall*>(std::get<Expression>(entity))->function)->name;
-            std::cerr << "    at " << fnName << "(line " << token.start.line;
-            std::cerr << " column " << token.start.column << ")\n";
-        }
+        reportCallStack(e.callStack, tokens);
         return 1;
     }
 
@@ -140,17 +135,45 @@ int fileinput_main(int argc, char* argv[]) {
     }
     catch (const InterpretError& e) {
         std::cerr << "Runtime error: " << e.what() << "\n";
-        for (int i = e.callStack.size() - 1; i >= 0; --i) {
-            auto& entity = e.callStack[i];
-            auto token = tokens[token_id(entity)];
-            // TODO: tmp
-            auto fnName = std::get<Symbol*>(std::get<FunctionCall*>(std::get<Expression>(entity))->function)->name;
-            std::cerr << "    at " << fnName << "(";
-            std::cerr << filename << ":" << token.start.line << ":" << token.start.column;
-            std::cerr << ")\n";
-        }
+        reportCallStack(e.callStack, tokens, filename);
         return 1;
     }
 
     return 0;
+}
+
+static void reportCallStack(
+    const std::vector<Expression>& callStack,
+    const Tokens& tokens,
+    const std::string& filename
+)
+{
+    // maps fnName to token location in source
+    std::vector<std::pair<std::string, std::string>>
+    fixedCallStack; // for reporting
+
+    auto prevIterFnName = std::string("<program>");
+    for (auto expr: callStack) {
+        auto token = tokens.get(token_id(expr));
+        auto fnName = prevIterFnName;
+        auto tokenLocation = filename
+                + ":" + std::to_string(token.start.line)
+                + ":" + std::to_string(token.start.column);
+        fixedCallStack.push_back({fnName, tokenLocation});
+
+        // setup prevIterFnName for next iteration
+        if (std::holds_alternative<FunctionCall*>(expr)) {
+            auto fnCall = *std::get<FunctionCall*>(expr);
+            auto fnName = std::get<Symbol*>(std::get<FunctionCall*>(expr)->function)->name;
+            prevIterFnName = fnName;
+        }
+        else {
+            prevIterFnName = "<program>";
+        }
+    }
+
+    for (int i = fixedCallStack.size() - 1; i >= 0; --i) {
+        auto [fnName, tokenLocation] = fixedCallStack[i];
+        std::cerr << "    at " << fnName << "(" << tokenLocation << ")\n";
+    }
 }

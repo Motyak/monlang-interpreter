@@ -26,7 +26,7 @@ print("end")
     calling +
     Runtime error: +() first arg cannot be Lambda (src/builtin/operators/plus.cpp:51)
         at +(bin/in/stacktrace.ml:7:11)
-        at +(bin/in/stacktrace.ml:7:15)
-        at a(bin/in/stacktrace.ml:12:5)
-        at b(bin/in/stacktrace.ml:16:1)
+        at a(bin/in/stacktrace.ml:7:15)
+        at b(bin/in/stacktrace.ml:12:5)
+        at <program>(bin/in/stacktrace.ml:16:1)
 ```

@@ -16,7 +16,7 @@
 #define unless(x) if(!(x))
 
 thread_local bool INTERACTIVE_MODE = false;
-thread_local std::vector<LV2::Ast> activeCallStack;
+thread_local std::vector<Expression> activeCallStack;
 
 using Int = prim_value_t::Int;
 using Byte = prim_value_t::Byte;
@@ -40,18 +40,21 @@ void interpretProgram(const Program& prog, Environment* env) {
 
 void performStatement(const Statement& stmt, Environment* env) {
     std::visit(
-        [&env](auto* stmt){performStatement(*stmt, env);},
+        [env](auto* stmt){performStatement(*stmt, env);},
         stmt
     );
 }
 
 value_t evaluateValue(const Expression& expr, Environment* env) {
     return std::visit(overload{
-        [&expr, &env](FunctionCall* fnCall){
+        [&expr, env](FunctionCall* fnCall){
             bool should_pop = false;
-            if (!std::holds_alternative<Lambda*>(fnCall->function)) {
-                ::activeCallStack.push_back(expr);
-                should_pop = true;
+            if (std::holds_alternative<Symbol*>(fnCall->function)) {
+                auto symbolName = std::get<Symbol*>(fnCall->function)->name;
+                if (env->contains(symbolName) || BUILTIN_TABLE.contains(symbolName)) {
+                    ::activeCallStack.push_back(expr);
+                    should_pop = true;
+                }
             }
             defer {
                 if (should_pop) {
@@ -60,7 +63,12 @@ value_t evaluateValue(const Expression& expr, Environment* env) {
             };
             return evaluateValue(*fnCall, env);
         },
-        [&env](auto* expr){
+        [env](Operation* op){
+            return evaluateValue(*op, env);
+        },
+        [env](auto* expr){
+            ::activeCallStack.push_back(expr);
+            defer {::activeCallStack.pop_back();};
             return evaluateValue(*expr, env);
         },
     }, expr);
@@ -68,7 +76,7 @@ value_t evaluateValue(const Expression& expr, Environment* env) {
 
 value_t* evaluateLvalue(const Lvalue& lvalue, Environment* env) {
     return std::visit(
-        [&env](auto* expr){return evaluateLvalue(*expr, env);},
+        [env](auto* expr){return evaluateLvalue(*expr, env);},
         lvalue.variant
     );
 }
@@ -387,14 +395,16 @@ value_t evaluateValue(const Symbol& symbol, const Environment* env) {
         auto builtin_fn = BUILTIN_TABLE.at(symbol.name);
         return new prim_value_t{builtin_fn};
     }
-    else {
-        /* technically it can't happen, so let's add a hidden feature
-           for those who don't run the static analysis on prog
-           before interpreting it
-           => will return the symbol as a Str
-        */
-       return new prim_value_t(Str(symbol.name));
-    }
+    #ifdef TOGGLE_UNBOUND_SYM_AS_STR
+    /* technically it can't happen, so let's add a hidden feature
+        for those who don't run the static analysis on prog
+        before interpreting it
+        => will return the symbol as a Str
+    */
+    return new prim_value_t(Str(symbol.name));
+    #else
+    throw InterpretError("Unbound symbol `" + symbol.name + "`");
+    #endif
 }
 
 
