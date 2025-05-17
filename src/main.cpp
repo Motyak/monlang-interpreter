@@ -54,10 +54,9 @@ int repl_main(int argc, char* argv[]) {
 
     Eval:
     Print:
-    LV2::Program prog;
-    Tokens tokens;
+    Program prog;
     try {
-        prog = parse(text, &tokens);
+        prog = parse(text); // we don't reconstruct tokens in REPL
     }
     catch (const ParseError&) {
         std::cerr << "Parsing error" << std::endl;
@@ -88,7 +87,7 @@ int stdinput_main(int argc, char* argv[]) {
     (void)argv;
 
     auto text = slurp_stdin(/*repeatable*/false);
-    LV2::Program prog;
+    Program prog;
     Tokens tokens;
     try {
         prog = parse(text, &tokens);
@@ -121,7 +120,7 @@ int fileinput_main(int argc, char* argv[]) {
         std::cerr << "Failed to open file `" << filename << "`" << std::endl;
         return 3;
     }
-    LV2::Program prog;
+    Program prog;
     Tokens tokens;
     try {
         prog = parse(text, &tokens);

@@ -8,7 +8,9 @@
 
 #include <string>
 
-LV2::Program parse(const std::string& text, Tokens* = nullptr);
+using namespace LV2;
+
+Program parse(const std::string& text, Tokens* = nullptr);
 
 // basically check if LV1 module is used, if so => ERR
 #ifdef AST_COMMON_H
