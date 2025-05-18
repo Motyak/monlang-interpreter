@@ -21,7 +21,7 @@ extern thread_local std::vector<Expression> activeCallStack;
             + (params_vec.size() <= 1? " param" : " params") \
             + ", but called with " \
             + std::to_string(args_vec.size()) \
-            + (args_vec.size() <= 1? " arg" : "args") \
+            + (args_vec.size() <= 1? " arg" : " args") \
     }
 
 class InterpretError : public std::exception {

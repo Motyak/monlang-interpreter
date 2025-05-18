@@ -29,13 +29,10 @@ using List = prim_value_t::List;
 using Map = prim_value_t::Map;
 namespace LV2 {using Lambda = Lambda;}
 
-void interpretProgram(const Program& prog, Environment* env) {
-    if (!env) {
-        env = new Environment{}; // TODO: leak?
-    }
-
+void interpretProgram(const Program& prog) {
+    Environment env;
     for (auto stmt: prog.statements) {
-        performStatement(stmt, env);
+        performStatement(stmt, &env);
     }
 }
 

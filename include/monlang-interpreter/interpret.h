@@ -40,7 +40,7 @@ using namespace LV2;
 extern thread_local bool INTERACTIVE_MODE;
 extern thread_local bool top_level_stmt;
 
-void interpretProgram(const Program&, Environment* = nullptr);
+void interpretProgram(const Program&);
 void performStatement(const Statement&, Environment*);
 value_t evaluateValue(const Expression&, Environment*);
 value_t* evaluateLvalue(const Lvalue&, Environment*);
