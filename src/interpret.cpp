@@ -16,6 +16,7 @@
 #define unless(x) if(!(x))
 
 thread_local bool INTERACTIVE_MODE = false;
+thread_local bool top_level_stmt = true;
 thread_local std::vector<Expression> activeCallStack;
 
 using Int = prim_value_t::Int;
@@ -151,7 +152,7 @@ void performStatement(const DoWhileStatement&, const Environment* env) {
 
 void performStatement(const ExpressionStatement& exprStmt, Environment* env) {
     auto value = evaluateValue(exprStmt.expression, env);
-    if (INTERACTIVE_MODE) {
+    if (INTERACTIVE_MODE && ::top_level_stmt) {
         if (!is_nil(value)) {
             builtin::print_({value});
         }
@@ -236,6 +237,11 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
             if (lambda.body.statements.size() == 0) {
                 return nil_value_t();
             }
+
+            auto backup_top_level_stmt = ::top_level_stmt;
+            ::top_level_stmt = false;
+            defer {::top_level_stmt = backup_top_level_stmt;};
+
             size_t i = 0;
             for (; i < lambda.body.statements.size() - 1; ++i) {
                 performStatement(lambda.body.statements.at(i), &lambdaEnv);
@@ -253,6 +259,10 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
 }
 
 value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
+    auto backup_top_level_stmt = ::top_level_stmt;
+    ::top_level_stmt = false;
+    defer {::top_level_stmt = backup_top_level_stmt;};
+
     if (blockExpr.statements.size() == 0) {
         return nil_value_t();
     }

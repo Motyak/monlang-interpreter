@@ -38,6 +38,7 @@
 using namespace LV2;
 
 extern thread_local bool INTERACTIVE_MODE;
+extern thread_local bool top_level_stmt;
 
 void interpretProgram(const Program&, Environment* = nullptr);
 void performStatement(const Statement&, Environment*);

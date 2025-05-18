@@ -24,7 +24,7 @@ var fact {
     var fact (n):{}
 
     fact := (n):{
-        tern(n + -1, 1, {
+        tern(n + -2, 2, {
             n * fact(n + -1)
         })
     }
