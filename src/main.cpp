@@ -74,7 +74,7 @@ int repl_main(int argc, char* argv[]) {
         // ..user prompt is interpreted as an individual program..
         // ..therefore we can't point to a previous prompt token
 
-        activeCallStack = {}; // discard it
+        ::activeCallStack = {}; // discard it
         goto Read;
     }
 
@@ -167,7 +167,7 @@ static void reportCallStack(
             prevIterFnName = fnName;
         }
         else {
-            prevIterFnName = "<program>";
+            prevIterFnName = "<block>";
         }
     }
 

@@ -198,6 +198,10 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
             */
             auto parametersBinding = std::map<Environment::SymbolName, Environment::SymbolValue>{};
             // TODO: variadic functions
+            if (lambda.parameters.size() < args.size()) {
+                ::activeCallStack.push_back(const_cast<Lambda*>(&lambda));
+                throw TooMuchArgsError(lambda.parameters, args);
+            }
             for (size_t i = 0; i < args.size(); ++i) {
                 auto& currParam = lambda.parameters.at(i);
                 auto& currArg = args.at(i);

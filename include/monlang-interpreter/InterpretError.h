@@ -15,13 +15,22 @@ extern thread_local std::vector<Expression> activeCallStack;
 
 #define InterpretError(...) InterpretError{__FILE__, __LINE__ __VA_OPT__(,) __VA_ARGS__}
 
+#define TooMuchArgsError(params_vec, args_vec) \
+    InterpretError{__FILE__, __LINE__, "Lambda defined with " \
+            + std::to_string(params_vec.size()) \
+            + (params_vec.size() <= 1? " param" : " params") \
+            + ", but called with " \
+            + std::to_string(args_vec.size()) \
+            + (args_vec.size() <= 1? " arg" : "args") \
+    }
+
 class InterpretError : public std::exception {
   public:
     std::vector<Expression> callStack;
     std::string msg;
 
     (InterpretError)(const char* _cpp_file, int _cpp_line, std::string msg = "")
-            : callStack(activeCallStack)
+            : callStack(::activeCallStack)
     {
         this->msg += msg;
         if (msg.size() > 0) this->msg += " (";
