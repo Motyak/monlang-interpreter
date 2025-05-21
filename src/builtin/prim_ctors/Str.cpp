@@ -2,6 +2,7 @@
 
 /* impl only */
 #include <monlang-interpreter/interpret.h>
+#include <monlang-interpreter/InterpretError.h>
 #include <monlang-interpreter/builtin/print.h>
 
 #include <utils/assert-utils.h>
@@ -12,7 +13,7 @@
 
 const prim_value_t::Lambda builtin::prim_ctor::Str __attribute__((init_priority(3000))) =
 [](const std::vector<FunctionCall::Argument>& args, Environment* env) -> value_t {
-    unless (args.size() == 1) SHOULD_NOT_HAPPEN();
+    unless (args.size() == 1) throw InterpretError("Str() takes 1 argument");
     auto argVal = evaluateValue(args.at(0).expr, env);
     return new prim_value_t(Str_(argVal));
 };

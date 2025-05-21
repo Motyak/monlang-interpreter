@@ -213,7 +213,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                     };
                 }
                 else {
-                    std::function<value_t()> delayed = [&currArg, &envAtApp]() -> value_t {
+                    std::function<value_t()> delayed = [&currArg, envAtApp]() -> value_t {
                         return evaluateValue(currArg.expr, envAtApp);
                     };
                     parametersBinding[currParam.name] = Environment::PassByDelayed{delayed};

@@ -74,7 +74,6 @@ int repl_main(int argc, char* argv[]) {
         // ..user prompt is interpreted as an individual program..
         // ..therefore we can't point to a previous prompt token
 
-        ::activeCallStack = {}; // discard it
         goto Read;
     }
 
@@ -94,7 +93,7 @@ int stdinput_main(int argc, char* argv[]) {
     }
     catch (const ParseError&) {
         std::cerr << "Parsing error" << std::endl;
-        return 2;
+        return 102;
     }
     try {
         interpretProgram(prog);
@@ -102,7 +101,7 @@ int stdinput_main(int argc, char* argv[]) {
     catch (const InterpretError& e) {
         std::cerr << "Runtime error: " << e.what() << "\n";
         reportCallStack(e.callStack, tokens);
-        return 1;
+        return 101;
     }
 
     return 0;
@@ -118,7 +117,7 @@ int fileinput_main(int argc, char* argv[]) {
     }
     catch (const CantOpenFileException&) {
         std::cerr << "Failed to open file `" << filename << "`" << std::endl;
-        return 3;
+        return 103;
     }
     Program prog;
     Tokens tokens;
@@ -127,7 +126,7 @@ int fileinput_main(int argc, char* argv[]) {
     }
     catch (const ParseError&) {
         std::cerr << "Parsing error" << std::endl;
-        return 2;
+        return 102;
     }
     try {
         interpretProgram(prog);
@@ -135,7 +134,7 @@ int fileinput_main(int argc, char* argv[]) {
     catch (const InterpretError& e) {
         std::cerr << "Runtime error: " << e.what() << "\n";
         reportCallStack(e.callStack, tokens, filename);
-        return 1;
+        return 101;
     }
 
     return 0;
