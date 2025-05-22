@@ -25,7 +25,7 @@ prim_value_t::Byte builtin::prim_ctor::Byte_(const value_t& val) {
     return std::visit(
         [](auto* val){
             if (val == nullptr){
-                throw InterpretError("Int() arg cannot be $nil");
+                throw InterpretError("Byte() arg cannot be $nil");
             }
             else {
                 return to_byte(*val);

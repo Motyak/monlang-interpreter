@@ -33,9 +33,11 @@ const prim_value_t::Lambda builtin::op::plus __attribute__((init_priority(3000))
     unless (args.size() >= 2) throw InterpretError("+() takes 2+ args");
 
     auto firstArgValue = evaluateValue(args.at(0).expr, env);
-    // should throw runtime error
     unless (std::holds_alternative<prim_value_t*>(firstArgValue)) SHOULD_NOT_HAPPEN(); // TODO: tmp
-    auto firstArgValue_ = *std::get<prim_value_t*>(firstArgValue);
+    auto firstArgPrimValuePtr = std::get<prim_value_t*>(firstArgValue);
+    if (firstArgPrimValuePtr == nullptr) {
+        throw InterpretError("+() first arg cannot be $nil");
+    }
     auto otherArgs = std::vector<FunctionCall::Argument>{args.begin() + 1, args.end()};
 
     // dispatch impl based on first argument type
@@ -49,7 +51,7 @@ const prim_value_t::Lambda builtin::op::plus __attribute__((init_priority(3000))
 
         [](Bool) -> value_t {throw InterpretError("+() first arg cannot be Bool");},
         [](const prim_value_t::Lambda&) -> value_t {throw InterpretError("+() first arg cannot be Lambda");},
-    }, firstArgValue_.variant);
+    }, firstArgPrimValuePtr->variant);
 };
 
 static value_t addByte(Byte firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
