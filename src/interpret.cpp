@@ -46,19 +46,27 @@ void performStatement(const Statement& stmt, Environment* env) {
 value_t evaluateValue(const Expression& expr, Environment* env) {
     return std::visit(overload{
         [&expr, env](FunctionCall* fnCall){
+
             bool should_pop = false;
-            if (std::holds_alternative<Symbol*>(fnCall->function)) {
-                auto symbolName = std::get<Symbol*>(fnCall->function)->name;
-                if (env->contains(symbolName) || BUILTIN_TABLE.contains(symbolName)) {
-                    ::activeCallStack.push_back(expr);
-                    should_pop = true;
+            /*breakable block*/for (int i = 1; i <= 1; ++i)
+            {
+                if (std::holds_alternative<Symbol*>(fnCall->function)) {
+                    auto symbolName = std::get<Symbol*>(fnCall->function)->name;
+                    if (!env->contains(symbolName) && !BUILTIN_TABLE.contains(symbolName)) {
+                        break;
+                    }
                 }
+
+                ::activeCallStack.push_back(expr);
+                should_pop = true;
             }
+
             defer {
                 if (should_pop) {
                     ::activeCallStack.pop_back();
                 }
             };
+
             return evaluateValue(*fnCall, env);
         },
         [env](Operation* op){
@@ -188,7 +196,7 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
 value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
     Environment* envAtCreation = new Environment{*env};
     auto lambdaVal = prim_value_t::Lambda{
-        [envAtCreation, &lambda](const std::vector<FunctionCall::Argument>& args, Environment* envAtApp) -> value_t {
+        [envAtCreation, lambda](const std::vector<FunctionCall::Argument>& args, Environment* envAtApp) -> value_t {
             /*
                 create a temporary new environment, based on the captured-one,
                 in which we resolve each fn call arg with respect with the environment at application time,
@@ -207,7 +215,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 if (currArg.passByRef) {
                     auto currArg_ = Lvalue{currArg.expr};
                     parametersBinding[currParam.name] = Environment::PassByRef{
-                        [&currArg_, envAtApp]() -> value_t* {
+                        [currArg_, envAtApp]() -> value_t* {
                             return evaluateLvalue(currArg_, envAtApp);
                         }
                     };
