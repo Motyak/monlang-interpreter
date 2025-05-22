@@ -13,8 +13,6 @@
 #include <cmath>
 #include <vector>
 
-#define unless(x) if(!(x))
-
 thread_local bool INTERACTIVE_MODE = false;
 thread_local bool top_level_stmt = true;
 thread_local std::vector<Expression> activeCallStack;
@@ -45,8 +43,7 @@ void performStatement(const Statement& stmt, Environment* env) {
 
 value_t evaluateValue(const Expression& expr, Environment* env) {
     return std::visit(overload{
-        [&expr, env](FunctionCall* fnCall){
-
+        [expr, env](FunctionCall* fnCall){
             bool should_pop = false;
             /*breakable block*/for (int i = 1; i <= 1; ++i)
             {
@@ -82,7 +79,11 @@ value_t evaluateValue(const Expression& expr, Environment* env) {
 
 value_t* evaluateLvalue(const Lvalue& lvalue, Environment* env) {
     return std::visit(
-        [env](auto* expr){return evaluateLvalue(*expr, env);},
+        [lvalue, env](auto* expr){
+            ::activeCallStack.push_back(lvalue);
+            defer {::activeCallStack.pop_back();};
+            return evaluateLvalue(*expr, env);
+        },
         lvalue.variant
     );
 }
@@ -119,8 +120,17 @@ void performStatement(const LetStatement&, const Environment* env) {
 }
 
 void performStatement(const VarStatement& varStmt, Environment* env) {
-    // caught during static analysis
-    ASSERT (!env->symbolTable.contains(varStmt.variable.name));
+    if (varStmt.variable.name == "_") {
+        ::activeCallStack.push_back(const_cast<Symbol*>(&varStmt.variable));
+        defer {::activeCallStack.pop_back();};
+        throw InterpretError("Redefinition of a special name");
+    }
+
+    if (env->symbolTable.contains(varStmt.variable.name)) {
+        ::activeCallStack.push_back(const_cast<Symbol*>(&varStmt.variable));
+        defer {::activeCallStack.pop_back();};
+        throw SymbolRedefinitionError(varStmt.variable.name);
+    }
 
     auto value = evaluateValue(varStmt.value, env);
     auto* var = new value_t(value);
@@ -194,6 +204,16 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
 }
 
 value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
+    for (size_t i = 0; i < lambda.parameters.size(); ++i) {
+        if (lambda.parameters[i].name == "_") continue;
+        for (size_t j = i + 1; j < lambda.parameters.size(); ++j) {
+            if (lambda.parameters[j].name == "_") continue;
+            if (lambda.parameters[i].name == lambda.parameters[j].name) {
+                throw DuplicateParamError(lambda.parameters[j].name);
+            }
+        }
+    }
+
     Environment* envAtCreation = new Environment{*env};
     auto lambdaVal = prim_value_t::Lambda{
         [envAtCreation, lambda](const std::vector<FunctionCall::Argument>& args, Environment* envAtApp) -> value_t {
@@ -204,9 +224,9 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
             */
             auto parametersBinding = std::map<Environment::SymbolName, Environment::SymbolValue>{};
             // TODO: variadic functions
-            if (lambda.parameters.size() < args.size()) {
+            if (args.size() != lambda.parameters.size()) {
                 ::activeCallStack.push_back(const_cast<Lambda*>(&lambda));
-                throw TooMuchArgsError(lambda.parameters, args);
+                throw WrongNbOfArgsError(lambda.parameters, args);
             }
             for (size_t i = 0; i < args.size(); ++i) {
                 auto& currParam = lambda.parameters.at(i);
@@ -400,6 +420,10 @@ value_t evaluateValue(const StrLiteral& strLiteral, const Environment* env) {
 }
 
 value_t evaluateValue(const Symbol& symbol, const Environment* env) {
+    if (symbol.name == "_") {
+        return nil_value_t();
+    }
+
     if (env->contains(symbol.name)) {
         auto symbol_val = env->at(symbol.name);
         return std::visit(overload{
@@ -440,8 +464,15 @@ value_t* evaluateLvalue(const Subscript&, Environment* env) {
 }
 
 value_t* evaluateLvalue(const Symbol& symbol, Environment* env) {
-    // variable unbound, caught during static analysis
-    ASSERT (env->contains(symbol.name));
+    static value_t DISPOSABLE_LVALUE = nil_value_t();
+    if (symbol.name == "_") {
+        return &DISPOSABLE_LVALUE;
+    }
+
+    if (!env->contains(symbol.name))
+    {
+        throw InterpretError("Unbound symbol `" + symbol.name + "`");
+    }
 
     auto& symbolVal = env->at(symbol.name);
     return std::visit(overload{
@@ -453,7 +484,11 @@ value_t* evaluateLvalue(const Symbol& symbol, Environment* env) {
             return var;
         },
 
-        /* caught during static analysis */
+        /*
+            TODO: runtime error: Not an lvalue
+              -> when non-lvalue is passed by ref, or assigned a value
+                -> at this time, we can't trigger it, we need the let stmt
+        */
         [](Environment::ConstValue /*or LabelToConst*/) -> value_t* {SHOULD_NOT_HAPPEN();},
         [](Environment::LabelToNonConst) -> value_t* {SHOULD_NOT_HAPPEN();},
     }, symbolVal);

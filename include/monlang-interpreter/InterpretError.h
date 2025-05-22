@@ -15,7 +15,7 @@ extern thread_local std::vector<Expression> activeCallStack;
 
 #define InterpretError(...) InterpretError{__FILE__, __LINE__ __VA_OPT__(,) __VA_ARGS__}
 
-#define TooMuchArgsError(params_vec, args_vec) \
+#define WrongNbOfArgsError(params_vec, args_vec) \
     InterpretError{__FILE__, __LINE__, "Lambda defined with " \
             + std::to_string(params_vec.size()) \
             + (params_vec.size() <= 1? " param" : " params") \
@@ -23,6 +23,12 @@ extern thread_local std::vector<Expression> activeCallStack;
             + std::to_string(args_vec.size()) \
             + (args_vec.size() <= 1? " arg" : " args") \
     }
+
+#define DuplicateParamError(param_name) \
+    InterpretError{__FILE__, __LINE__, "Duplicate Lambda parameter `" + param_name + "`"}
+
+#define SymbolRedefinitionError(symbol_name) \
+    InterpretError{__FILE__, __LINE__, "Redefinition of symbol `" + symbol_name + "`"}
 
 class InterpretError : public std::exception {
   public:
