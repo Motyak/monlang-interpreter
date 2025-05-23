@@ -33,15 +33,16 @@ var Queue ():{
     var m_back List($nil, $nil)
 
     var push (x):{
-        var merge (merge, list1, list2):{
-            tern(left(list1), list2, {
-                List(left(list1), merge(merge, right(list1), list2))
-            })
+        print('push)
+        var merge (list1, list2):{
+            List(list1, 37)
         }
-        m_back := merge(merge, m_back, List(x, $nil))
+        print('ok)
+        m_back := merge(m_back, List(13, 37))
     }
 
     var front ():{
+        print('front)
         left(m_back)
     }
 
@@ -53,13 +54,20 @@ var Queue ():{
         })
     }
 
-    (msg_id):{
+    '-----------------------
+
+    var dispatcher (msg_id):{
         tern(msg_id, push, {
             tern(msg_id + -1, front, {
-                tern(msg_id + -2, pop)
+                tern(msg_id + -2, pop, {
+                    print("ERR invalid msg_id in dispatcher: `" + msg_id + "`")
+                    exit(1)
+                })
             })
         })
     }
+    
+    dispatcher
 }
 
 '---------------------------------------
@@ -72,8 +80,10 @@ var queue Queue()
 print(queue(front)())
 
 queue(push)(91)
-queue(front)()
+print("test")
+print(queue(front)())
 exit(0)
 print(res)
+
 
 

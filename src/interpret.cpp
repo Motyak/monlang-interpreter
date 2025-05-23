@@ -198,7 +198,9 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
     auto fnVal = evaluateValue(fnCall.function, env);
     ASSERT (std::holds_alternative<prim_value_t*>(fnVal)); // TODO: tmp
     auto fnPrimVal = *std::get<prim_value_t*>(fnVal);
-    ASSERT (std::holds_alternative<prim_value_t::Lambda>(fnPrimVal.variant)); // TODO: tmp
+    if (!std::holds_alternative<prim_value_t::Lambda>(fnPrimVal.variant)) {
+        throw InterpretError("Calling a non-Lambda");
+    }
     auto function = std::get<prim_value_t::Lambda>(fnPrimVal.variant);
     return function(fnCall.arguments, env);
 }

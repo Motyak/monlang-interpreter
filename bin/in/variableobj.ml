@@ -1,18 +1,4 @@
 
-var Pair (left, right):{
-    (selector):{selector(left, right)}
-}
-
-var left (pair):{
-    var left-selector (left, right):{left}
-    pair(left-selector)
-}
-
-var right (pair):{
-    var right-selector (left, right):{right}
-    pair(right-selector)
-}
-
 var tern (cond, if_false, if_true):{
     var res $nil
     cond || {res := if_false}
@@ -48,11 +34,8 @@ var Variable (start):{
 var get 0
 var set 1
 
-var myvar Variable(Pair(13, 37))
-left(myvar(get)())
-right(myvar(get)())
-
-myvar(set)(Pair(37, 13))
-left(myvar(get)())
-right(myvar(get)())
+var myvar Variable(13)
+myvar(get)()
+myvar(set)(37)
+myvar(get)()
 

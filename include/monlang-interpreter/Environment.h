@@ -30,7 +30,7 @@ struct Environment {
         LabelToLvalue /*or PassByRef*/,
         PassByDelayed
     >;
-    std::map<SymbolName, SymbolValue> symbolTable;
+    std::map<SymbolName, SymbolValue> symbolTable = {};
 
     Environment* enclosingEnv = nullptr;
 
