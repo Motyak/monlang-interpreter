@@ -1,4 +1,20 @@
 
+'===Pair==============================
+
+var Pair (left, right):{
+    (selector):{selector(left, right)}
+}
+
+var left (pair):{
+    pair((left, right):{left})
+}
+
+var right (pair):{
+    pair((left, right):{right})
+}
+
+'=====================================
+
 var tern (cond, if_false, if_true):{
     var res $nil
     cond || {res := if_false}
@@ -20,15 +36,15 @@ var make-account (initial):{
     var bank initial
 
     var balance ():{
-        bank
+        left(bank)
     }
 
     var deposit (n):{
-        bank += n
+        bank := Pair(left(bank) + n, _)
     }
 
     var withdraw (n):{
-        bank -= n
+        bank := Pair(left(bank) - n, _)
     }
 
     '-----------------------
@@ -55,7 +71,7 @@ var make-account (initial):{
     var deposit 1
     var withdraw 2
 
-    var acc make-account(10)
+    var acc make-account(Pair(10, _))
 
     print('acc10, acc(balance)())
 
@@ -65,6 +81,7 @@ var make-account (initial):{
     acc(withdraw)(10)
     print('acc3, acc(balance)())
 }
+exit(0)
 
 ```
     using procedural-like paradigm

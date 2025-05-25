@@ -101,18 +101,19 @@ void performStatement(const Assignment& assignment, Environment* env) {
 }
 
 void performStatement(const Accumulation& acc, Environment* env) {
-    auto op = (Expression)new Symbol{acc.operator_};
+    auto opPtr = new Symbol{acc.operator_};
     auto lhs = (Expression)acc.variable;
     auto rhs = acc.value;
-    auto fnCall = (Expression)new FunctionCall{op, {lhs, rhs}};
+    auto fnCallPtr = new FunctionCall{(Expression)opPtr, {lhs, rhs}};
+    fnCallPtr->_tokenId = acc.operator_._tokenId;
 
     auto variable = acc.variable;
-    auto assignment = Assignment{variable, fnCall};
+    auto assignment = Assignment{variable, (Expression)fnCallPtr};
 
     performStatement(assignment, env);
 
-    delete std::get<Symbol*>(op);
-    delete std::get<FunctionCall*>(fnCall);
+    delete opPtr;
+    delete fnCallPtr;
 }
 
 void performStatement(const LetStatement&, const Environment* env) {
@@ -209,7 +210,6 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
     for (size_t i = 0; i < lambda.parameters.size(); ++i) {
         if (lambda.parameters[i].name == "_") continue;
         for (size_t j = i + 1; j < lambda.parameters.size(); ++j) {
-            if (lambda.parameters[j].name == "_") continue;
             if (lambda.parameters[i].name == lambda.parameters[j].name) {
                 throw DuplicateParamError(lambda.parameters[j].name);
             }
@@ -231,22 +231,29 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 throw WrongNbOfArgsError(lambda.parameters, args);
             }
             for (size_t i = 0; i < args.size(); ++i) {
-                auto& currParam = lambda.parameters.at(i);
-                auto& currArg = args.at(i);
+                auto currParam = lambda.parameters.at(i);
+                auto currArg = args.at(i);
 
                 if (currArg.passByRef) {
                     auto currArg_ = Lvalue{currArg.expr};
+                    auto* thunkEnv = new Environment{*envAtApp};
                     parametersBinding[currParam.name] = Environment::PassByRef{
-                        [currArg_, envAtApp]() -> value_t* {
-                            return evaluateLvalue(currArg_, envAtApp);
+                        [currArg_, thunkEnv]() -> value_t* {
+                            return evaluateLvalue(currArg_, thunkEnv);
                         }
                     };
                 }
                 else {
-                    std::function<value_t()> delayed = [&currArg, envAtApp]() -> value_t {
-                        return evaluateValue(currArg.expr, envAtApp);
+                    #ifdef TOGGLE_PASS_BY_VALUE
+                    auto var = new value_t{evaluateValue(currArg.expr, envAtApp)}; // TODO: leak
+                    parametersBinding[currParam.name] = Environment::Variable{var};
+                    #else // lazy passing a.k.a pass by delayed
+                    auto* thunkEnv = new Environment{*envAtApp};
+                    std::function<value_t()> delayed = [currArg, thunkEnv]() -> value_t {
+                        return evaluateValue(currArg.expr, thunkEnv);
                     };
                     parametersBinding[currParam.name] = Environment::PassByDelayed{delayed};
+                    #endif
                 }
             }
             auto lambdaEnv = Environment{.symbolTable = parametersBinding, .enclosingEnv = envAtCreation};
@@ -340,8 +347,9 @@ value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env
         return &Bool_false;
     }
 
-    // should throw a runtime error here
-    ASSERT (env->contains(specialSymbol.name));
+    if (!env->contains(specialSymbol.name)) {
+        throw InterpretError("Unbound symbol `" + specialSymbol.name + "`");
+    }
 
     auto specialSymbolVal = env->at(specialSymbol.name);
     return std::visit(overload{
@@ -427,24 +435,23 @@ value_t evaluateValue(const Symbol& symbol, const Environment* env) {
     }
 
     if (env->contains(symbol.name)) {
-        auto symbol_val = env->at(symbol.name);
+        auto symbolVal = env->at(symbol.name);
         return std::visit(overload{
             [](Environment::ConstValue /*or LabelToConst*/ const_){return const_;},
             [](Environment::Variable var){return *var;},
             [](Environment::LabelToNonConst label){return label();},
             [](Environment::LabelToLvalue /*or PassByRef*/ label_ref){return *label_ref();},
             [](Environment::PassByDelayed delayed){return delayed();},
-        }, symbol_val);
+        }, symbolVal);
     }
     else if (BUILTIN_TABLE.contains(symbol.name)) {
         auto builtin_fn = BUILTIN_TABLE.at(symbol.name);
         return new prim_value_t{builtin_fn};
     }
     #ifdef TOGGLE_UNBOUND_SYM_AS_STR
-    /* technically it can't happen, so let's add a hidden feature
-        for those who don't run the static analysis on prog
-        before interpreting it
-        => will return the symbol as a Str
+    /*
+        useful for checking in-code whether a symbol is unbound or not
+        (for testing purposes)
     */
     return new prim_value_t(Str(symbol.name));
     #else
