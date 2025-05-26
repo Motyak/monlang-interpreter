@@ -487,8 +487,7 @@ value_t* evaluateLvalue(const Symbol& symbol, Environment* env) {
         return &DISPOSABLE_LVALUE;
     }
 
-    if (!env->contains(symbol.name))
-    {
+    if (!env->contains(symbol.name)) {
         throw InterpretError("Unbound symbol `" + symbol.name + "`");
     }
 
