@@ -93,9 +93,9 @@ value_t* evaluateLvalue(const Lvalue& lvalue, Environment* env) {
 //==============================================================
 
 void performStatement(const Assignment& assignment, Environment* env) {
+    auto new_value = evaluateValue(assignment.value, env);
     auto* lvalue = evaluateLvalue(assignment.variable, env);
     auto old_value = *lvalue;
-    auto new_value = evaluateValue(assignment.value, env);
     *lvalue = new_value;
     env->symbolTable["$old"] = Environment::ConstValue{old_value};
 }
