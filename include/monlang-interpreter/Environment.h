@@ -18,7 +18,7 @@ struct Environment {
     using LabelToLvalue = thunk_t<value_t*>;
 
     // argument passed by delayed value (lazy pass by value)
-    using PassByDelayed = thunk_with_memoization_t<value_t>;
+    using PassByDelayed = thunk_with_memoization_t<value_t>* const;
     // argument passed by reference
     using PassByRef = LabelToLvalue;
 

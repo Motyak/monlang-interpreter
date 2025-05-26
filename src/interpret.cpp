@@ -237,6 +237,11 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 auto currParam = lambda.parameters.at(i);
                 auto currArg = args.at(i);
 
+                if (parametersBinding.contains(currParam.name)
+                        && currParam.name != "_") {
+                    SHOULD_NOT_HAPPEN(); // BUG: Lambda had two parameters with the same name
+                }
+
                 if (currArg.passByRef) {
                     auto currArg_ = Lvalue{currArg.expr};
                     auto* thunkEnv = new Environment{*envAtApp};
@@ -252,10 +257,12 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                     parametersBinding[currParam.name] = Environment::Variable{var};
                     #else // lazy passing a.k.a pass by delayed
                     auto* thunkEnv = new Environment{*envAtApp};
-                    std::function<value_t()> delayed = [currArg, thunkEnv]() -> value_t {
-                        return evaluateValue(currArg.expr, thunkEnv);
+                    auto* delayed = new thunk_with_memoization_t<value_t>{
+                        [currArg, thunkEnv]() -> value_t {
+                            return evaluateValue(currArg.expr, thunkEnv);
+                        }
                     };
-                    parametersBinding[currParam.name] = Environment::PassByDelayed{delayed};
+                    parametersBinding.insert({currParam.name, Environment::PassByDelayed{delayed}});
                     #endif
                 }
             }
@@ -432,7 +439,7 @@ value_t evaluateValue(const StrLiteral& strLiteral, const Environment* env) {
     return new prim_value_t(Str(strLiteral.str));
 }
 
-value_t evaluateValue(const Symbol& symbol, const Environment* env) {
+value_t evaluateValue(const Symbol& symbol, Environment* env) {
     if (symbol.name == "_") {
         return nil_value_t();
     }
@@ -444,7 +451,7 @@ value_t evaluateValue(const Symbol& symbol, const Environment* env) {
             [](Environment::Variable var){return *var;},
             [](Environment::LabelToNonConst label){return label();},
             [](Environment::LabelToLvalue /*or PassByRef*/ label_ref){return *label_ref();},
-            [](Environment::PassByDelayed delayed){return delayed();},
+            [](Environment::PassByDelayed delayed){return (*delayed)();},
         }, symbolVal);
     }
     else if (BUILTIN_TABLE.contains(symbol.name)) {
@@ -476,7 +483,7 @@ value_t* evaluateLvalue(const Subscript&, Environment* env) {
 }
 
 value_t* evaluateLvalue(const Symbol& symbol, Environment* env) {
-    static value_t DISPOSABLE_LVALUE = nil_value_t();
+    static value_t DISPOSABLE_LVALUE;
     if (symbol.name == "_") {
         return &DISPOSABLE_LVALUE;
     }
@@ -491,7 +498,7 @@ value_t* evaluateLvalue(const Symbol& symbol, Environment* env) {
         [](const Environment::Variable& var) -> value_t* {return var;},
         [](Environment::LabelToLvalue& /*or PassByRef*/ var) -> value_t* {return var();},
         [&symbolVal](Environment::PassByDelayed& delayed) -> value_t* {
-            auto* var = new value_t{delayed()};
+            auto* var = new value_t{};
             symbolVal = Environment::Variable{var};
             return var;
         },
