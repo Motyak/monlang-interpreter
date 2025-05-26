@@ -244,10 +244,9 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
 
                 if (currArg.passByRef) {
                     auto currArg_ = Lvalue{currArg.expr};
-                    auto* thunkEnv = new Environment{*envAtApp};
                     parametersBinding[currParam.name] = Environment::PassByRef{
-                        [currArg_, thunkEnv]() -> value_t* {
-                            return evaluateLvalue(currArg_, thunkEnv);
+                        [currArg_, envAtApp]() -> value_t* {
+                            return evaluateLvalue(currArg_, envAtApp);
                         }
                     };
                 }
@@ -499,6 +498,7 @@ value_t* evaluateLvalue(const Symbol& symbol, Environment* env) {
         [](Environment::LabelToLvalue& /*or PassByRef*/ var) -> value_t* {return var();},
         [&symbolVal](Environment::PassByDelayed& delayed) -> value_t* {
             auto* var = new value_t{};
+            // auto* var = new value_t{(*delayed)()};
             symbolVal = Environment::Variable{var};
             return var;
         },
