@@ -44,8 +44,8 @@ struct Environment {
 
 class Environment::DelayedPassedByRef {
   public:
-    std::function<value_t(const Expression&, Environment*)> pull;
-    Environment::SymbolValue& 
+    std::function<value_t()> pull;
+    value_t* _variable = nullptr;
 
     DelayedPassedByRef(const std::function<value_t()>&);
 

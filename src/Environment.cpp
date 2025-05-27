@@ -2,8 +2,8 @@
 
 #include <utils/assert-utils.h>
 
-Environment::DelayedPassedByRef::DelayedPassedByRef(const std::function<value_t()>& pull, const Lvalue& arg, Environment* envAtApp)
-        : pull(pull), arg(arg), envAtApp(envAtApp){}
+Environment::DelayedPassedByRef::DelayedPassedByRef(const std::function<value_t()>& pull)
+        : pull(pull){}
 
 
 value_t Environment::DelayedPassedByRef::value() {
