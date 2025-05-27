@@ -2,6 +2,24 @@
 
 #include <utils/assert-utils.h>
 
+Environment::DelayedPassedByRef::DelayedPassedByRef(const std::function<value_t()>& pull, const Lvalue& arg, Environment* envAtApp)
+        : pull(pull), arg(arg), envAtApp(envAtApp){}
+
+
+value_t Environment::DelayedPassedByRef::value() {
+    if (this->_variable == nullptr) {
+        this->_variable = new value_t{this->pull()};
+    }
+    return *this->_variable;
+}
+    
+value_t* Environment::DelayedPassedByRef::lvalue() {
+    if (this->_variable == nullptr) {
+        this->_variable = new value_t{};
+    }
+    return this->_variable;
+}
+
 bool Environment::contains(const SymbolName& symbolName) const {
     const Environment* curEnv = this;
     while (curEnv) {

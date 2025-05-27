@@ -7,6 +7,7 @@ var fn2 (OUT x):{
         discard x,
         transform it to a nonlocal variable
     ```
+    print(x)
     x := 0
 }
 
