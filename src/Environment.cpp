@@ -9,18 +9,11 @@ Environment::DelayedPassedByRef::DelayedPassedByRef(
 
 
 value_t Environment::DelayedPassedByRef::value() {
-    if (this->_variable == nullptr) {
-        this->_variable = this->pull_variable();
-        // *this->_variable = this->pull_value();
-    }
-    return *this->_variable;
+    return this->pull_value();
 }
     
 value_t* Environment::DelayedPassedByRef::lvalue() {
-    if (this->_variable == nullptr) {
-        this->_variable = new value_t{};
-    }
-    return this->_variable;
+    return this->pull_variable();
 }
 
 bool Environment::contains(const SymbolName& symbolName) const {

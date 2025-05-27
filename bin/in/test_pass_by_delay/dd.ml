@@ -4,9 +4,10 @@
 var fn2 (OUT x):{
     print('fn2)
     ```
-        discard x,
-        transform it to a nonlocal variable
+        uses x indirectly (gets evaluated),
+        mutates it
     ```
+    print(x)
     x := 0
 }
 
@@ -26,9 +27,10 @@ var id (x):{
 
 fn1(id(91))
 ```
-    `id` is never printed
+    `id` is printed once
     =>
-    id() is never evaluated
+    id() is evaluated only once,
+    when printing it in fn(2)
     =>
     pass by delay + pass by ref works
 ```
