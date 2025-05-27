@@ -2,13 +2,16 @@
 
 #include <utils/assert-utils.h>
 
-Environment::DelayedPassedByRef::DelayedPassedByRef(const std::function<value_t()>& pull)
-        : pull(pull){}
+Environment::DelayedPassedByRef::DelayedPassedByRef(
+    const std::function<value_t()>& pull_value,
+    const std::function<value_t*()>& pull_variable
+) : pull_value(pull_value), pull_variable(pull_variable){}
 
 
 value_t Environment::DelayedPassedByRef::value() {
     if (this->_variable == nullptr) {
-        this->_variable = new value_t{this->pull()};
+        this->_variable = this->pull_variable();
+        // *this->_variable = this->pull_value();
     }
     return *this->_variable;
 }

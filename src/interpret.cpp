@@ -249,12 +249,15 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                     {
                         if (std::holds_alternative<Symbol*>(currArg.expr)) {
                             auto symbol = *std::get<Symbol*>(currArg.expr);
-                            if (envAtApp->contains(symbol.name)) {
-                                auto symbolVal = envAtApp->at(symbol.name);
+                            if (symbol.name != "_" && envAtApp->contains(symbol.name)) {
+                                auto& symbolVal = envAtApp->at(symbol.name);
                                 if (std::holds_alternative<Environment::PassByDelayed>(symbolVal)) {
                                     parametersBinding[currParam.name] = Environment::DelayedPassedByRef{
                                         [currArg_, envAtApp]() -> value_t {
                                             return evaluateValue(currArg_, envAtApp);
+                                        },
+                                        [currArg_, envAtApp]() -> value_t* {
+                                            return evaluateLvalue(currArg_, envAtApp);
                                         }
                                     };
                                     break;

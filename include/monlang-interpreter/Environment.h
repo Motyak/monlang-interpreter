@@ -44,10 +44,14 @@ struct Environment {
 
 class Environment::DelayedPassedByRef {
   public:
-    std::function<value_t()> pull;
+    std::function<value_t()> pull_value;
+    std::function<value_t*()> pull_variable;
     value_t* _variable = nullptr;
 
-    DelayedPassedByRef(const std::function<value_t()>&);
+    DelayedPassedByRef(
+        const std::function<value_t()>& pull_value,
+        const std::function<value_t*()>& pull_variable
+    );
 
     value_t value();
     value_t* lvalue();
