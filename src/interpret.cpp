@@ -244,33 +244,14 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
 
                 if (currArg.passByRef) {
                     auto currArg_ = Lvalue{currArg.expr};
-
-                    /*brekable block*/for (int i = 1; i <= 1; ++i)
-                    {
-                        if (std::holds_alternative<Symbol*>(currArg.expr)) {
-                            auto symbol = *std::get<Symbol*>(currArg.expr);
-                            if (symbol.name != "_" && envAtApp->contains(symbol.name)) {
-                                auto& symbolVal = envAtApp->at(symbol.name);
-                                if (std::holds_alternative<Environment::PassByDelayed>(symbolVal)) {
-                                    parametersBinding[currParam.name] = Environment::DelayedPassedByRef{
-                                        [currArg_, envAtApp]() -> value_t {
-                                            return evaluateValue(currArg_, envAtApp);
-                                        },
-                                        [currArg_, envAtApp]() -> value_t* {
-                                            return evaluateLvalue(currArg_, envAtApp);
-                                        }
-                                    };
-                                    break;
-                                }
-                            }
+                    parametersBinding[currParam.name] = Environment::PassByRef{
+                        [currArg_, envAtApp]() -> value_t {
+                            return evaluateValue(currArg_, envAtApp);
+                        },
+                        [currArg_, envAtApp]() -> value_t* {
+                            return evaluateLvalue(currArg_, envAtApp);
                         }
-
-                        parametersBinding[currParam.name] = Environment::PassByRef{
-                            [currArg_, envAtApp]() -> value_t* {
-                                return evaluateLvalue(currArg_, envAtApp);
-                            }
-                        };
-                    }
+                    };
                 }
                 else {
                     #ifdef TOGGLE_PASS_BY_VALUE
@@ -389,7 +370,7 @@ value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env
         [](Environment::LabelToNonConst) -> value_t {SHOULD_NOT_HAPPEN();},
         [](Environment::LabelToLvalue /*or PassByRef*/) -> value_t {SHOULD_NOT_HAPPEN();},
         [](Environment::PassByDelayed) -> value_t {SHOULD_NOT_HAPPEN();},
-        [](Environment::DelayedPassedByRef) -> value_t {SHOULD_NOT_HAPPEN();},
+        [](Environment::PassByRef) -> value_t {SHOULD_NOT_HAPPEN();},
     }, specialSymbolVal);
 }
 
@@ -474,7 +455,7 @@ value_t evaluateValue(const Symbol& symbol, Environment* env) {
             [](Environment::LabelToNonConst label){return label();},
             [](Environment::LabelToLvalue /*or PassByRef*/ label_ref){return *label_ref();},
             [](Environment::PassByDelayed delayed){return (*delayed)();},
-            [](Environment::DelayedPassedByRef delayed){return delayed.value();},
+            [](Environment::PassByRef ref){return ref.value();},
         }, symbolVal);
     }
     else if (BUILTIN_TABLE.contains(symbol.name)) {
@@ -525,7 +506,7 @@ value_t* evaluateLvalue(const Symbol& symbol, Environment* env) {
             symbolVal = Environment::Variable{var};
             return var;
         },
-        [](Environment::DelayedPassedByRef& delayed) -> value_t* {return delayed.lvalue();},
+        [](Environment::PassByRef& ref) -> value_t* {return ref.lvalue();},
 
         /*
             TODO: runtime error: Not an lvalue

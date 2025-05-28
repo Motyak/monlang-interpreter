@@ -2,20 +2,6 @@
 
 #include <utils/assert-utils.h>
 
-Environment::DelayedPassedByRef::DelayedPassedByRef(
-    const std::function<value_t()>& pull_value,
-    const std::function<value_t*()>& pull_variable
-) : pull_value(pull_value), pull_variable(pull_variable){}
-
-
-value_t Environment::DelayedPassedByRef::value() {
-    return this->pull_value();
-}
-    
-value_t* Environment::DelayedPassedByRef::lvalue() {
-    return this->pull_variable();
-}
-
 bool Environment::contains(const SymbolName& symbolName) const {
     const Environment* curEnv = this;
     while (curEnv) {

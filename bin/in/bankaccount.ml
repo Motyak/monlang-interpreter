@@ -1,58 +1,43 @@
 
-'===Pair==============================
-
-var Pair (left, right):{
-    (selector):{selector(left, right)}
-}
-
-var left (pair):{
-    pair((left, right):{left})
-}
-
-var right (pair):{
-    pair((left, right):{right})
-}
-
-'=====================================
-
-var tern (cond, if_false, if_true):{
+var tern (cond, if_true, if_false):{
     var res $nil
-    cond || {res := if_false}
     cond && {res := if_true}
+    cond || {res := if_false}
     res
 }
 
-var -' (-', lhs, rhs):{
-    tern(rhs, lhs, {
-        -1 + -'(-', lhs, rhs + -1)
-    })
+var !tern (cond, if_false, if_true):{
+    tern(cond, if_true, if_false)
 }
 
-var - (lhs, rhs):{
-    -'(-', lhs, rhs)
+var - _
+- := (lhs, rhs):{
+    !tern(rhs, lhs, {
+        -(lhs, rhs + -1) + -1
+    })
 }
 
 var make-account (initial):{
     var bank initial
 
     var balance ():{
-        left(bank)
+        bank
     }
 
     var deposit (n):{
-        bank := Pair(left(bank) + n, _)
+        bank += n
     }
 
     var withdraw (n):{
-        bank := Pair(left(bank) - n, _)
+        bank -= n
     }
 
     '-----------------------
 
     var dispatcher (msg_id):{
-        tern(msg_id, balance, {
-            tern(msg_id - 1, deposit, {
-                tern(msg_id - 2, withdraw, {
+        !tern(msg_id, balance, {
+            !tern(msg_id - 1, deposit, {
+                !tern(msg_id - 2, withdraw, {
                     print("ERR invalid msg_id in dispatcher: `" + msg_id + "`")
                     exit(1)
                 })
@@ -71,7 +56,7 @@ var make-account (initial):{
     var deposit 1
     var withdraw 2
 
-    var acc make-account(Pair(10, _))
+    var acc make-account(10)
 
     print('acc10, acc(balance)())
 
@@ -81,7 +66,6 @@ var make-account (initial):{
     acc(withdraw)(10)
     print('acc3, acc(balance)())
 }
-exit(0)
 
 ```
     using procedural-like paradigm
