@@ -19,16 +19,19 @@ struct Environment {
 
     // argument passed by delayed value (lazy pass by value)
     using PassByDelayed = thunk_with_memoization_t<value_t>* const;
-    // argument passed by reference
-    using PassByRef = LabelToLvalue;
+    struct PassByRef {
+        std::function<value_t()> value;
+        std::function<value_t*()> lvalue;
+    };
 
     using SymbolName = std::string;
     using SymbolValue = std::variant<
         ConstValue /*or LabelToConst*/,
         Variable,
         LabelToNonConst,
-        LabelToLvalue /*or PassByRef*/,
-        PassByDelayed
+        LabelToLvalue,
+        PassByDelayed,
+        PassByRef
     >;
     std::map<SymbolName, SymbolValue> symbolTable = {};
 

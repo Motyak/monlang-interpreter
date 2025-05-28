@@ -4,7 +4,7 @@ export CXX := ccache g++
 
 SHELL := /bin/bash
 RM := rm -rf
-CXXFLAGS = --std=c++23 -Wall -Wextra -Og -ggdb3 -I include
+CXXFLAGS := --std=c++23 -Wall -Wextra -Og -ggdb3 -I include
 DEPFLAGS = -MMD -MP -MF .deps/$*.d
 ARFLAGS = D -M < <(tools/aggregate-libs.mri.sh $@ $^); :
 

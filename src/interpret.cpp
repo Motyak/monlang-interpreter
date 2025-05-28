@@ -245,6 +245,9 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 if (currArg.passByRef) {
                     auto currArg_ = Lvalue{currArg.expr};
                     parametersBinding[currParam.name] = Environment::PassByRef{
+                        [currArg_, envAtApp]() -> value_t {
+                            return evaluateValue(currArg_, envAtApp);
+                        },
                         [currArg_, envAtApp]() -> value_t* {
                             return evaluateLvalue(currArg_, envAtApp);
                         }
@@ -367,6 +370,7 @@ value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env
         [](Environment::LabelToNonConst) -> value_t {SHOULD_NOT_HAPPEN();},
         [](Environment::LabelToLvalue /*or PassByRef*/) -> value_t {SHOULD_NOT_HAPPEN();},
         [](Environment::PassByDelayed) -> value_t {SHOULD_NOT_HAPPEN();},
+        [](Environment::PassByRef) -> value_t {SHOULD_NOT_HAPPEN();},
     }, specialSymbolVal);
 }
 
@@ -451,6 +455,7 @@ value_t evaluateValue(const Symbol& symbol, Environment* env) {
             [](Environment::LabelToNonConst label){return label();},
             [](Environment::LabelToLvalue /*or PassByRef*/ label_ref){return *label_ref();},
             [](Environment::PassByDelayed delayed){return (*delayed)();},
+            [](Environment::PassByRef ref){return ref.value();},
         }, symbolVal);
     }
     else if (BUILTIN_TABLE.contains(symbol.name)) {
@@ -501,6 +506,7 @@ value_t* evaluateLvalue(const Symbol& symbol, Environment* env) {
             symbolVal = Environment::Variable{var};
             return var;
         },
+        [](Environment::PassByRef& ref) -> value_t* {return ref.lvalue();},
 
         /*
             TODO: runtime error: Not an lvalue
