@@ -13,6 +13,8 @@
 #include <cmath>
 #include <vector>
 
+#define unless(x) if(!(x))
+
 thread_local bool INTERACTIVE_MODE = false;
 thread_local bool top_level_stmt = true;
 thread_local std::vector<Expression> activeCallStack;
@@ -120,7 +122,7 @@ void performStatement(const Accumulation& acc, Environment* env) {
     delete fnCallPtr;
 }
 
-void performStatement(const LetStatement&, const Environment* env) {
+void performStatement(const LetStatement&, const Environment*) {
     TODO();
 }
 
@@ -154,19 +156,19 @@ void performStatement(const ContinueStatement&, const Environment*) {
     SHOULD_NOT_HAPPEN(); // not a top-level statement, caught during static analysis
 }
 
-void performStatement(const DieStatement&, const Environment* env) {
+void performStatement(const DieStatement&, const Environment*) {
     TODO();
 }
 
-void performStatement(const ForeachStatement&, const Environment* env) {
+void performStatement(const ForeachStatement&, const Environment*) {
     TODO();
 }
 
-void performStatement(const WhileStatement&, const Environment* env) {
+void performStatement(const WhileStatement&, const Environment*) {
     TODO();
 }
 
-void performStatement(const DoWhileStatement&, const Environment* env) {
+void performStatement(const DoWhileStatement&, const Environment*) {
     TODO();
 }
 
@@ -226,20 +228,60 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
     Environment* envAtCreation = new Environment{*env};
     auto lambdaVal = prim_value_t::Lambda{
         [envAtCreation, lambda](const std::vector<FunctionCall::Argument>& args, Environment* envAtApp) -> value_t {
+
+            /*
+                transform `args` into `flatten_args`.
+
+                each "single" argument will get transformed
+                to a <arg, env> pair where env is envAtApp.
+
+                all arguments, whether from a "single" or a "variadic arguments",
+                are concatenated together
+            */
+            std::vector<std::pair<FunctionCall::Argument, Environment*>>
+            flatten_args;
+
+            for (auto arg: args) {
+                /* handle "variadic arguments" argument */
+                /* breakable block */for (int z = 1; z <= 1; ++z)
+                {
+                    unless (std::holds_alternative<Symbol*>(arg.expr)) break;
+                    auto symbol = std::get<Symbol*>(arg.expr);
+                    unless (envAtApp->contains(symbol->name)) break;
+                    auto symbolVal = envAtApp->at(symbol->name);
+                    unless (std::holds_alternative<Environment::VariadicArguments>(symbolVal)) break;
+                    auto varargs = std::get<Environment::VariadicArguments>(symbolVal);
+
+                    for (auto [arg, env]: varargs) {
+                        flatten_args.push_back({arg, env});
+                    }
+
+                    continue;
+                }
+                
+                /* handle "single" argument */
+                flatten_args.push_back({arg, envAtApp});
+            }
+
             /*
                 create a temporary new environment, based on the captured-one,
-                in which we resolve each fn call arg with respect with the environment at application time,
+                in which we resolve each flatten_args argument with respect with their associated environment,
                 and then bind each value to its argument-associated lambda parameter..
             */
             auto parametersBinding = std::map<Environment::SymbolName, Environment::SymbolValue>{};
-            // TODO: variadic functions
-            if (args.size() != lambda.parameters.size()) {
-                ::activeCallStack.push_back(const_cast<Lambda*>(&lambda));
-                throw WrongNbOfArgsError(lambda.parameters, args);
+            if (!lambda.variadicParameters && flatten_args.size() != lambda.parameters.size()) {
+                auto lambda_ = lambda; // mutable copy
+                ::activeCallStack.push_back(&lambda_);
+                throw WrongNbOfArgsError(lambda.parameters, flatten_args);
             }
-            for (size_t i = 0; i < args.size(); ++i) {
+            
+            size_t i = 0;
+
+            /* binding required parameters (<> variadic parameters) */
+            for (; i < lambda.parameters.size(); ++i) {
                 auto currParam = lambda.parameters.at(i);
-                auto currArg = args.at(i);
+                auto [currArg, _] = flatten_args.at(i);
+                auto [_, currArgEnv] = flatten_args.at(i);
 
                 if (parametersBinding.contains(currParam.name)
                         && currParam.name != "_") {
@@ -249,29 +291,42 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 if (currArg.passByRef) {
                     auto currArg_ = Lvalue{currArg.expr};
                     parametersBinding[currParam.name] = Environment::PassByRef{
-                        [currArg_, envAtApp]() -> value_t {
-                            return evaluateValue(currArg_, envAtApp);
+                        [currArg_, currArgEnv]() -> value_t {
+                            return evaluateValue(currArg_, currArgEnv);
                         },
-                        [currArg_, envAtApp]() -> value_t* {
-                            return evaluateLvalue(currArg_, envAtApp);
+                        [currArg_, currArgEnv]() -> value_t* {
+                            return evaluateLvalue(currArg_, currArgEnv);
                         }
                     };
                 }
                 else {
                     #ifdef TOGGLE_PASS_BY_VALUE
-                    auto var = new value_t{evaluateValue(currArg.expr, envAtApp)}; // TODO: leak
+                    auto var = new value_t{evaluateValue(currArg.expr, currArgEnv)}; // TODO: leak
                     parametersBinding[currParam.name] = Environment::Variable{var};
                     #else // lazy passing a.k.a pass by delayed
-                    auto* thunkEnv = new Environment{*envAtApp};
+                    auto* thunkEnv = new Environment{*currArgEnv};
                     auto* delayed = new thunk_with_memoization_t<value_t>{
                         [currArg, thunkEnv]() -> value_t {
                             return evaluateValue(currArg.expr, thunkEnv);
                         }
                     };
-                    parametersBinding.insert({currParam.name, Environment::PassByDelayed{delayed}});
+                    parametersBinding[currParam.name] = Environment::PassByDelayed{delayed};
                     #endif
                 }
             }
+
+            /* binding variadic parameters (if remains args and no error thrown yet) */
+            if (i < flatten_args.size()) {
+                ASSERT (lambda.variadicParameters); // otherwise BUG (due to earlier checks)
+                auto variadicParams = *lambda.variadicParameters;
+                auto varargs = Environment::VariadicArguments{
+                    flatten_args.begin() + i,
+                    flatten_args.end()
+                };
+                parametersBinding[variadicParams.name] = varargs;
+                parametersBinding["$#varargs"] = Environment::ConstValue{new prim_value_t{Int(varargs.size())}};
+            }
+
             auto lambdaEnv = Environment{.symbolTable = parametersBinding, .enclosingEnv = envAtCreation};
 
             /*
@@ -292,7 +347,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
             ::top_level_stmt = false;
             defer {::top_level_stmt = backup_top_level_stmt;};
 
-            size_t i = 0;
+            i = 0;
             for (; i < lambda.body.statements.size() - 1; ++i) {
                 performStatement(lambda.body.statements.at(i), &lambdaEnv);
             }
@@ -331,19 +386,19 @@ value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
     return nil_value_t();
 }
 
-value_t evaluateValue(const FieldAccess&, const Environment* env) {
+value_t evaluateValue(const FieldAccess&, const Environment*) {
     TODO();
 }
 
-value_t evaluateValue(const Subscript&, const Environment* env) {
+value_t evaluateValue(const Subscript&, const Environment*) {
     TODO();
 }
 
-value_t evaluateValue(const ListLiteral&, const Environment* env) {
+value_t evaluateValue(const ListLiteral&, const Environment*) {
     TODO();
 }
 
-value_t evaluateValue(const MapLiteral&, const Environment* env) {
+value_t evaluateValue(const MapLiteral&, const Environment*) {
     TODO();
 }
 
@@ -375,10 +430,11 @@ value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env
         [](Environment::LabelToLvalue /*or PassByRef*/) -> value_t {SHOULD_NOT_HAPPEN();},
         [](Environment::PassByDelayed) -> value_t {SHOULD_NOT_HAPPEN();},
         [](Environment::PassByRef) -> value_t {SHOULD_NOT_HAPPEN();},
+        [](Environment::VariadicArguments) -> value_t {SHOULD_NOT_HAPPEN();},
     }, specialSymbolVal);
 }
 
-value_t evaluateValue(const Numeral& numeral, const Environment* env) {
+value_t evaluateValue(const Numeral& numeral, const Environment*) {
     if (numeral.type == "int") {
         return new prim_value_t(Int(std::stoll(numeral.int1)));
     }
@@ -442,7 +498,7 @@ value_t evaluateValue(const Numeral& numeral, const Environment* env) {
     SHOULD_NOT_HAPPEN(); // BUG unknown numeral type
 }
 
-value_t evaluateValue(const StrLiteral& strLiteral, const Environment* env) {
+value_t evaluateValue(const StrLiteral& strLiteral, const Environment*) {
     return new prim_value_t(Str(strLiteral.str));
 }
 
@@ -454,12 +510,14 @@ value_t evaluateValue(const Symbol& symbol, Environment* env) {
     if (env->contains(symbol.name)) {
         auto symbolVal = env->at(symbol.name);
         return std::visit(overload{
-            [](Environment::ConstValue /*or LabelToConst*/ const_){return const_;},
-            [](Environment::Variable var){return *var;},
-            [](Environment::LabelToNonConst label){return label();},
-            [](Environment::LabelToLvalue /*or PassByRef*/ label_ref){return *label_ref();},
-            [](Environment::PassByDelayed delayed){return (*delayed)();},
-            [](Environment::PassByRef ref){return ref.value();},
+            [](Environment::ConstValue /*or LabelToConst*/ const_) -> value_t {return const_;},
+            [](Environment::Variable var) -> value_t {return *var;},
+            [](Environment::LabelToNonConst label) -> value_t {return label();},
+            [](Environment::LabelToLvalue /*or PassByRef*/ label_ref) -> value_t {return *label_ref();},
+            [](Environment::PassByDelayed delayed) -> value_t {return (*delayed)();},
+            [](Environment::PassByRef ref) -> value_t {return ref.value();},
+
+            [](Environment::VariadicArguments) -> value_t {SHOULD_NOT_HAPPEN();},
         }, symbolVal);
     }
     else if (BUILTIN_TABLE.contains(symbol.name)) {
@@ -482,11 +540,11 @@ value_t evaluateValue(const Symbol& symbol, Environment* env) {
 // evaluateLvalue
 //==============================================================
 
-value_t* evaluateLvalue(const FieldAccess&, Environment* env) {
+value_t* evaluateLvalue(const FieldAccess&, Environment*) {
     TODO();
 }
 
-value_t* evaluateLvalue(const Subscript&, Environment* env) {
+value_t* evaluateLvalue(const Subscript&, Environment*) {
     TODO();
 }
 
@@ -504,7 +562,7 @@ value_t* evaluateLvalue(const Symbol& symbol, Environment* env) {
     return std::visit(overload{
         [](const Environment::Variable& var) -> value_t* {return var;},
         [](Environment::LabelToLvalue& /*or PassByRef*/ var) -> value_t* {return var();},
-        [&symbolVal](Environment::PassByDelayed& delayed) -> value_t* {
+        [&symbolVal](Environment::PassByDelayed&) -> value_t* {
             auto* var = new value_t{};
             // auto* var = new value_t{(*delayed)()};
             symbolVal = Environment::Variable{var};
@@ -519,6 +577,7 @@ value_t* evaluateLvalue(const Symbol& symbol, Environment* env) {
         */
         [](Environment::ConstValue /*or LabelToConst*/) -> value_t* {SHOULD_NOT_HAPPEN();},
         [](Environment::LabelToNonConst) -> value_t* {SHOULD_NOT_HAPPEN();},
+        [](Environment::VariadicArguments) -> value_t* {SHOULD_NOT_HAPPEN();},
     }, symbolVal);
 
 }

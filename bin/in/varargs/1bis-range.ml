@@ -87,6 +87,19 @@ var END {
     Optional($false, _)
 }
 
+var merge {
+    var merge _
+
+    merge := (list1, list2):{
+        tern(none?(list1), list2, {
+            list1 := some(list1)
+            Pair?(left(list1), merge(right(list1), list2))
+        })
+    }
+
+    merge
+}
+
 var List {
     var List _
 
@@ -107,27 +120,65 @@ var foreach {
     var foreach _
 
     foreach := (list, do):{
-        tern(none?(list), {}, {
+        none?(list) || {
             do(left(some(list)))
             foreach(right(some(list)))
-        })
+        }
     }
 
-    foreach
+    (foreach)
 }
 
 var mylist List(1, 2, 3)
 foreach(mylist, (cur):{print(cur)})
 
-var Range List
+'===range================================
 
-foreach(Range(1 .. 5), (_){
+var while {
+    var while _
+
+    while := (cond, do):{
+        cond() && {
+            do()
+            while(cond, do)
+        }
+    }
+
+    (while)
+}
+
+var - {
+    var * _
+    * := (lhs, rhs):{
+        !tern(rhs, 0, {
+            !tern(rhs + -1, lhs, {
+                lhs + *(lhs, rhs + -1)
+            })
+        })
+    }
+
+    var - (n):{
+        n + -2 * n
+    }
+
+    -
+}
+
+var Range (from, to):{
+    var res List()
+    while(():{from + -(to)}, ():{
+        res := merge(res, from)
+        from += 1
+    })
+}
+
+foreach(Range(1, 5), (_):{
     print("hello")
 })
 
 {
     var sum 0
-    foreach(Range(1 .. 5), (cur):{
+    foreach(Range(1, 5), (cur):{
         sum += cur
     })
 
