@@ -166,9 +166,6 @@ static void reportCallStack(
                 prevIterFnName = std::get<Symbol*>(fnCall.function)->name;
             }
         }
-        else {
-            prevIterFnName = "<block>";
-        }
     }
 
     for (int i = fixedCallStack.size() - 1; i >= 0; --i) {

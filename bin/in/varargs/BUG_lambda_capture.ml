@@ -1,3 +1,8 @@
+```
+    # (doesn't stop at 92, like it should)
+    bin/main.elf bin/in/varargs/test2.ml | head -n10
+```
+
 var tern (cond, if_true, if_false):{
     var res _
     cond && {res := if_true}
@@ -9,7 +14,15 @@ var !tern (cond, if_false, if_true):{
     tern(cond, if_true, if_false)
 }
 
-var -len {
+var while _
+while := (cond, do):{
+    cond() && {
+        do()
+        while(cond, do)
+    }
+}
+
+var - {
     var * _
     * := (lhs, rhs):{
         !tern(rhs, 0, {
@@ -23,31 +36,14 @@ var -len {
         n + -2 * n
     }
 
-    var -len (n):{
-        -(len(n))
-    }
-
-    -len
+    -
 }
 
-var curry (fn):{
-    var curried _
-
-    curried := (args...):{
-        !tern($#varargs + -len(fn), fn(args...), {
-            (args2...):{curried(args..., args2...)}
-        })
-    }
-
-    curried
+var main (out):{
+    while(():{out + -93}, ():{
+        print(out)
+        out += 1
+    })
 }
 
-var add (a, b, c):{
-    a + b + c
-}
-
-var curried_add curry(add)
-curried_add(1)(2)(3)
-curried_add(1, 2)(3)
-curried_add(1)(2, 3)
-curried_add(1, 2, 3)
+main(91)

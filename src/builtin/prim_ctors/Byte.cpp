@@ -9,11 +9,13 @@
 
 #define unless(x) if(!(x))
 
-const prim_value_t::Lambda builtin::prim_ctor::Byte __attribute__((init_priority(3000))) =
-[](const std::vector<FunctionCall::Argument>& args, Environment* env) -> value_t {
-    unless (args.size() == 1) throw InterpretError("Byte() takes 1 argument");
-    auto argVal = evaluateValue(args.at(0).expr, env);
-    return new prim_value_t(Byte_(argVal));
+const prim_value_t::Lambda builtin::prim_ctor::Byte __attribute__((init_priority(3000))) = {
+    new prim_value_t{prim_value_t::Int(1)},
+    [](const std::vector<FunctionCall::Argument>& args, Environment* env) -> value_t {
+        unless (args.size() == 1) throw InterpretError("Byte() takes 1 argument");
+        auto argVal = evaluateValue(args.at(0).expr, env);
+        return new prim_value_t(Byte_(argVal));
+    }
 };
 
 static prim_value_t::Byte to_byte(const prim_value_t&);

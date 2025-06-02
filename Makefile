@@ -19,6 +19,7 @@ $(BUILTIN_OBJS)
 BUILTIN_OBJS = \
 obj/builtin/print.o \
 obj/builtin/exit.o \
+obj/builtin/len.o \
 $(OPERATORS_OBJS) \
 $(PRIM_CTORS_OBJS)
 

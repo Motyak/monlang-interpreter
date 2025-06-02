@@ -50,7 +50,16 @@ struct prim_value_t {
     using Str = std::string;
     using List = std::vector<value_t>;
     using Map = std::map<value_t, value_t>;
-    using Lambda = std::function<value_t(const std::vector<FunctionCall::Argument>&, Environment*)>;
+
+    struct Lambda {
+        value_t requiredParams;
+        std::function<value_t(const std::vector<FunctionCall::Argument>&, Environment*)> stdfunc;
+
+        Lambda(
+            value_t requiredParams,
+            const std::function<value_t(const std::vector<FunctionCall::Argument>&, Environment*)>& stdfunc
+        ) : requiredParams(requiredParams), stdfunc(stdfunc){}
+    };
 
     using Variant = std::variant<
         Byte,

@@ -14,6 +14,20 @@ var not (bool):{
     tern(bool, $false, $true)
 }
 
+var * {
+    var * _
+
+    * := (lhs, rhs):{
+        !tern(rhs, 0, {
+            !tern(rhs + -1, lhs, {
+                lhs + *(lhs, rhs + -1)
+            })
+        })
+    }
+
+    *
+}
+
 '===Pair==============================
 
 var Pair (left, right):{
@@ -108,7 +122,7 @@ var foreach {
     foreach := (list, do):{
         tern(none?(list), {}, {
             do(left(some(list)))
-            foreach(right(some(list)))
+            foreach(right(some(list)), do)
         })
     }
 

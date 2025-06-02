@@ -12,19 +12,21 @@
 
 using Bool = prim_value_t::Bool;
 
-const prim_value_t::Lambda builtin::op::logical_or __attribute__((init_priority(3000))) =
-[](const std::vector<FunctionCall::Argument>& args, Environment* env) -> value_t {
-    unless (args.size() >= 2) throw InterpretError("||() takes 2+ argument");
-    for (auto arg: args) {
-        auto argVal = evaluateValue(arg.expr, env);
-        // should throw runtime error
-        unless (std::holds_alternative<prim_value_t*>(argVal)) SHOULD_NOT_HAPPEN(); //TODO: tmp
-        auto argPrimValPtr = std::get<prim_value_t*>(argVal);
-        // Bool_ is responsible for $nil handling
-        auto argBool = builtin::prim_ctor::Bool_(argPrimValPtr);
-        if (argBool) {
-            return new prim_value_t(Bool(true));
+const prim_value_t::Lambda builtin::op::logical_or __attribute__((init_priority(3000))) = {
+    new prim_value_t{prim_value_t::Int(2)},
+    [](const std::vector<FunctionCall::Argument>& args, Environment* env) -> value_t {
+        unless (args.size() >= 2) throw InterpretError("||() takes 2+ argument");
+        for (auto arg: args) {
+            auto argVal = evaluateValue(arg.expr, env);
+            // should throw runtime error
+            unless (std::holds_alternative<prim_value_t*>(argVal)) SHOULD_NOT_HAPPEN(); //TODO: tmp
+            auto argPrimValPtr = std::get<prim_value_t*>(argVal);
+            // Bool_ is responsible for $nil handling
+            auto argBool = builtin::prim_ctor::Bool_(argPrimValPtr);
+            if (argBool) {
+                return new prim_value_t(Bool(true));
+            }
         }
+        return new prim_value_t(Bool(false));
     }
-    return new prim_value_t(Bool(false));
 };

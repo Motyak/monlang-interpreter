@@ -28,30 +28,32 @@ static value_t concatStr(const Str& firstArgValue, const std::vector<FunctionCal
 static value_t concatList(const List& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
 static value_t concatMap(const Map& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
 
-const prim_value_t::Lambda builtin::op::plus __attribute__((init_priority(3000))) =
-[](const std::vector<FunctionCall::Argument>& args, Environment* env) -> value_t {
-    unless (args.size() >= 2) throw InterpretError("+() takes 2+ args");
+const prim_value_t::Lambda builtin::op::plus __attribute__((init_priority(3000))) = {
+    new prim_value_t{prim_value_t::Int(2)},
+    [](const std::vector<FunctionCall::Argument>& args, Environment* env) -> value_t {
+        unless (args.size() >= 2) throw InterpretError("+() takes 2+ args");
 
-    auto firstArgValue = evaluateValue(args.at(0).expr, env);
-    unless (std::holds_alternative<prim_value_t*>(firstArgValue)) SHOULD_NOT_HAPPEN(); // TODO: tmp
-    auto firstArgPrimValuePtr = std::get<prim_value_t*>(firstArgValue);
-    if (firstArgPrimValuePtr == nullptr) {
-        throw InterpretError("+() first arg cannot be $nil");
+        auto firstArgValue = evaluateValue(args.at(0).expr, env);
+        unless (std::holds_alternative<prim_value_t*>(firstArgValue)) SHOULD_NOT_HAPPEN(); // TODO: tmp
+        auto firstArgPrimValuePtr = std::get<prim_value_t*>(firstArgValue);
+        if (firstArgPrimValuePtr == nullptr) {
+            throw InterpretError("+() first arg cannot be $nil");
+        }
+        auto otherArgs = std::vector<FunctionCall::Argument>{args.begin() + 1, args.end()};
+
+        // dispatch impl based on first argument type
+        return std::visit(overload{
+            [&otherArgs, env](Byte byte) -> value_t {return addByte(byte, otherArgs, env);},
+            [&otherArgs, env](Int int_) -> value_t {return addInt(int_, otherArgs, env);},
+            [&otherArgs, env](Float float_) -> value_t {return addFloat(float_, otherArgs, env);},
+            [&otherArgs, env](const Str& str) -> value_t {return concatStr(str, otherArgs, env);},
+            [&otherArgs, env](const List& list) -> value_t {return concatList(list, otherArgs, env);},
+            [&otherArgs, env](const Map& map) -> value_t {return concatMap(map, otherArgs, env);},
+
+            [](Bool) -> value_t {throw InterpretError("+() first arg cannot be Bool");},
+            [](const prim_value_t::Lambda&) -> value_t {throw InterpretError("+() first arg cannot be Lambda");},
+        }, firstArgPrimValuePtr->variant);
     }
-    auto otherArgs = std::vector<FunctionCall::Argument>{args.begin() + 1, args.end()};
-
-    // dispatch impl based on first argument type
-    return std::visit(overload{
-        [&otherArgs, env](Byte byte) -> value_t {return addByte(byte, otherArgs, env);},
-        [&otherArgs, env](Int int_) -> value_t {return addInt(int_, otherArgs, env);},
-        [&otherArgs, env](Float float_) -> value_t {return addFloat(float_, otherArgs, env);},
-        [&otherArgs, env](const Str& str) -> value_t {return concatStr(str, otherArgs, env);},
-        [&otherArgs, env](const List& list) -> value_t {return concatList(list, otherArgs, env);},
-        [&otherArgs, env](const Map& map) -> value_t {return concatMap(map, otherArgs, env);},
-
-        [](Bool) -> value_t {throw InterpretError("+() first arg cannot be Bool");},
-        [](const prim_value_t::Lambda&) -> value_t {throw InterpretError("+() first arg cannot be Lambda");},
-    }, firstArgPrimValuePtr->variant);
 };
 
 static value_t addByte(Byte firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {

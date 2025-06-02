@@ -17,18 +17,20 @@ static void print(const type_value_t&, std::ostream& = std::cout);
 static void print(const struct_value_t&, std::ostream& = std::cout);
 static void print(const enum_value_t&, std::ostream& = std::cout);
 
-const prim_value_t::Lambda builtin::print __attribute__((init_priority(3000))) =
-[](const std::vector<FunctionCall::Argument>& varargs, Environment* env) -> value_t {
-    LOOP for (auto arg: varargs) {
-        if (!__first_it) {
-            std::cout << " ";
+const prim_value_t::Lambda builtin::print __attribute__((init_priority(3000))) = {
+    new prim_value_t{prim_value_t::Int(0)},
+    [](const std::vector<FunctionCall::Argument>& varargs, Environment* env) -> value_t {
+        LOOP for (auto arg: varargs) {
+            if (!__first_it) {
+                std::cout << " ";
+            }
+            auto argValue = evaluateValue(arg.expr, env);
+            ::print(argValue);
+            ENDLOOP
         }
-        auto argValue = evaluateValue(arg.expr, env);
-        ::print(argValue);
-        ENDLOOP
+        std::cout << "\n";
+        return nil_value_t();
     }
-    std::cout << "\n";
-    return nil_value_t();
 };
 
 static void print(const value_t& val, std::ostream& out) {

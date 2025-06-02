@@ -109,7 +109,7 @@ var foreach {
     foreach := (list, do):{
         none?(list) || {
             do(left(some(list)))
-            foreach(right(some(list)))
+            foreach(right(some(list)), do)
         }
     }
 

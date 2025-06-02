@@ -101,16 +101,16 @@ var merge {
 }
 
 var List {
-    var List _
+    var List-1+ _
 
-    var List-1+ (x, xs...):{
-        Pair?(x, List(xs...))
-    }
-
-    List := (xs...):{
+    var List (xs...):{
         !tern($#varargs, END, {
             List-1+(xs...)
         })
+    }
+
+    List-1+ := (x, xs...):{
+        Pair?(x, List(xs...))
     }
 
     List
@@ -122,15 +122,12 @@ var foreach {
     foreach := (list, do):{
         none?(list) || {
             do(left(some(list)))
-            foreach(right(some(list)))
+            foreach(right(some(list)), do)
         }
     }
 
     (foreach)
 }
-
-var mylist List(1, 2, 3)
-foreach(mylist, (cur):{print(cur)})
 
 '===range================================
 

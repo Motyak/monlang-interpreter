@@ -212,7 +212,7 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
         throw InterpretError("Calling a non-Lambda");
     }
     auto function = std::get<prim_value_t::Lambda>(fnPrimValPtr->variant);
-    return function(fnCall.arguments, env);
+    return function.stdfunc(fnCall.arguments, env);
 }
 
 value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
@@ -227,6 +227,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
 
     Environment* envAtCreation = new Environment{*env};
     auto lambdaVal = prim_value_t::Lambda{
+        new prim_value_t{Int(lambda.parameters.size())},
         [envAtCreation, lambda](const std::vector<FunctionCall::Argument>& args, Environment* envAtApp) -> value_t {
 
             /*
@@ -256,11 +257,13 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                         flatten_args.push_back({arg, env});
                     }
 
-                    continue;
+                    goto CONTINUE;
                 }
                 
                 /* handle "single" argument */
                 flatten_args.push_back({arg, envAtApp});
+
+                CONTINUE:
             }
 
             /*
@@ -270,8 +273,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
             */
             auto parametersBinding = std::map<Environment::SymbolName, Environment::SymbolValue>{};
             if (!lambda.variadicParameters && flatten_args.size() != lambda.parameters.size()) {
-                auto lambda_ = lambda; // mutable copy
-                ::activeCallStack.push_back(&lambda_);
+                ::activeCallStack.push_back(const_cast<LV2::Lambda*>(&lambda));
                 throw WrongNbOfArgsError(lambda.parameters, flatten_args);
             }
             
@@ -315,15 +317,13 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 }
             }
 
-            /* binding variadic parameters (if remains args and no error thrown yet) */
-            if (i < flatten_args.size()) {
-                ASSERT (lambda.variadicParameters); // otherwise BUG (due to earlier checks)
-                auto variadicParams = *lambda.variadicParameters;
+            /* binding variadic parameters */
+            if (lambda.variadicParameters) {
                 auto varargs = Environment::VariadicArguments{
                     flatten_args.begin() + i,
                     flatten_args.end()
                 };
-                parametersBinding[variadicParams.name] = varargs;
+                parametersBinding[lambda.variadicParameters->name] = varargs;
                 parametersBinding["$#varargs"] = Environment::ConstValue{new prim_value_t{Int(varargs.size())}};
             }
 

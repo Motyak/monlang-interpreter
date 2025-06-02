@@ -13,6 +13,27 @@ var not (bool):{
     tern(bool, $false, $true)
 }
 
+var -len {
+    var * _
+    * := (lhs, rhs):{
+        !tern(rhs, 0, {
+            !tern(rhs + -1, lhs, {
+                lhs + *(lhs, rhs + -1)
+            })
+        })
+    }
+
+    var - (n):{
+        n + -2 * n
+    }
+
+    var -len (n):{
+        -(len(n))
+    }
+
+    -len
+}
+
 '===Pair==============================
 
 var Pair (left, right):{
@@ -85,6 +106,19 @@ var END {
     Optional($false, _)
 }
 
+var merge {
+    var merge _
+
+    merge := (list1, list2):{
+        tern(none?(list1), list2, {
+            list1 := some(list1)
+            Pair?(left(list1), merge(right(list1), list2))
+        })
+    }
+
+    merge
+}
+
 var List {
     var List-1+ _
 
@@ -107,7 +141,7 @@ var foreach {
     foreach := (list, do):{
         none?(list) || {
             do(left(some(list)))
-            foreach(right(some(list)))
+            foreach(right(some(list)), do)
         }
     }
 
@@ -163,7 +197,7 @@ var filter {
         var res List()
 
         foreach(list, (cur):{
-            pred() && {res := merge(res, List(cur))}
+            pred(cur) && {res := merge(res, List(cur))}
         })
 
         res
