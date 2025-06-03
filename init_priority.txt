@@ -3,3 +3,5 @@ At the moment, the intialization dependencies are the following:
 [init_priority(6000)] BUILTIN_TABLE in builtin.h
 <depends on>
 [init_priority(3000)] all builtins impl
+<depends on>
+[init_priority(2000)] all static constant value_t (xxxConst:: in prim_ctors.h)

@@ -2,6 +2,7 @@
 
 /* impl only */
 
+#include <monlang-interpreter/builtin/prim_ctors.h>
 #include <monlang-interpreter/interpret.h>
 
 #include <utils/variant-utils.h>
@@ -18,7 +19,7 @@ static void print(const struct_value_t&, std::ostream& = std::cout);
 static void print(const enum_value_t&, std::ostream& = std::cout);
 
 const prim_value_t::Lambda builtin::print __attribute__((init_priority(3000))) = {
-    new prim_value_t{prim_value_t::Int(0)},
+    IntConst::ZERO,
     [](const std::vector<FunctionCall::Argument>& varargs, Environment* env) -> value_t {
         LOOP for (auto arg: varargs) {
             if (!__first_it) {

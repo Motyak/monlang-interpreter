@@ -211,8 +211,8 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
     if (!std::holds_alternative<prim_value_t::Lambda>(fnPrimValPtr->variant)) {
         throw InterpretError("Calling a non-Lambda");
     }
-    auto function = std::get<prim_value_t::Lambda>(fnPrimValPtr->variant);
-    return function.stdfunc(fnCall.arguments, env);
+    auto function = std::get<prim_value_t::Lambda>(fnPrimValPtr->variant).stdfunc;
+    return function(fnCall.arguments, env);
 }
 
 value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {

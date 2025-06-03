@@ -54,11 +54,6 @@ struct prim_value_t {
     struct Lambda {
         value_t requiredParams;
         std::function<value_t(const std::vector<FunctionCall::Argument>&, Environment*)> stdfunc;
-
-        Lambda(
-            value_t requiredParams,
-            const std::function<value_t(const std::vector<FunctionCall::Argument>&, Environment*)>& stdfunc
-        ) : requiredParams(requiredParams), stdfunc(stdfunc){}
     };
 
     using Variant = std::variant<

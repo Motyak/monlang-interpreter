@@ -13,7 +13,7 @@
 using Bool = prim_value_t::Bool;
 
 const prim_value_t::Lambda builtin::op::logical_and __attribute__((init_priority(3000))) = {
-    new prim_value_t{prim_value_t::Int(2)},
+    IntConst::TWO,
     [](const std::vector<FunctionCall::Argument>& args, Environment* env) -> value_t {
         unless (args.size() >= 2) throw InterpretError("&&() takes 2+ argument");
         for (auto arg: args) {
@@ -24,9 +24,9 @@ const prim_value_t::Lambda builtin::op::logical_and __attribute__((init_priority
             // Bool_ is responsible for $nil handling
             auto argBool = builtin::prim_ctor::Bool_(argPrimValPtr);
             if (!argBool) {
-                return new prim_value_t(Bool(false));
+                return BoolConst::FALSE;
             }
         }
-        return new prim_value_t(Bool(true));
+        return BoolConst::TRUE;
     }
 };

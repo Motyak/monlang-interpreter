@@ -29,7 +29,7 @@ static value_t concatList(const List& firstArgValue, const std::vector<FunctionC
 static value_t concatMap(const Map& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
 
 const prim_value_t::Lambda builtin::op::plus __attribute__((init_priority(3000))) = {
-    new prim_value_t{prim_value_t::Int(2)},
+    IntConst::TWO,
     [](const std::vector<FunctionCall::Argument>& args, Environment* env) -> value_t {
         unless (args.size() >= 2) throw InterpretError("+() takes 2+ args");
 

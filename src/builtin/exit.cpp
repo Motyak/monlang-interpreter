@@ -11,7 +11,7 @@
 #define unless(x) if (!(x))
 
 const prim_value_t::Lambda builtin::exit __attribute__((init_priority(3000))) = {
-    new prim_value_t{prim_value_t::Int(1)},
+    IntConst::ONE,
     [] [[noreturn]] (const std::vector<FunctionCall::Argument>& args, Environment* env) -> value_t {
         unless (args.size() == 1) throw InterpretError("exit() takes 1 arg");
         auto argVal = evaluateValue(args.at(0).expr, env);
