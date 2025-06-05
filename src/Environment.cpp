@@ -36,3 +36,11 @@ Environment::at(const SymbolName& symbolName) {
     }
     SHOULD_NOT_HAPPEN(); // should call ::contains before calling ::at
 }
+
+// Environment* Environment::root() {
+    // Environment* curEnv = this;
+    // while (curEnv->enclosingEnv) {
+    //     curEnv = curEnv->enclosingEnv;
+    // }
+//     return curEnv;
+// }

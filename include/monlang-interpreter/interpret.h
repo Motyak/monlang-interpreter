@@ -71,7 +71,7 @@ value_t evaluateValue(const MapLiteral&, const Environment*);
 value_t evaluateValue(const SpecialSymbol&, const Environment*);
 value_t evaluateValue(const Numeral&, const Environment*);
 value_t evaluateValue(const StrLiteral&, const Environment*);
-value_t evaluateValue(const Symbol&, const Environment*);
+value_t evaluateValue(const Symbol&, Environment*);
 
 /* evaluateLvalue */
 value_t* evaluateLvalue(const FieldAccess&, Environment*);

@@ -43,6 +43,7 @@ struct Environment {
     bool contains(const SymbolName&) const;
     const SymbolValue& at(const SymbolName&) const;
     SymbolValue& at(const SymbolName&);
+    // Environment* root();
 };
 
 #endif // ENVIRONMENT_H

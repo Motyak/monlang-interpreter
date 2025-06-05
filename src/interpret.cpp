@@ -226,6 +226,48 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
     }
 
     Environment* envAtCreation = new Environment{*env};
+    // ajouter pass by ref pour chaque PassByDelay au dessus
+
+    // for (auto& [key, val]: envAtCreation->symbolTable) {
+    //     unless (std::holds_alternative<Environment::PassByDelayed>(val)) continue;
+    //     auto symbol = Symbol{key};
+    //     symbol._lvalue = true;
+    //     val = Environment::PassByRef{
+    //         [symbol, env]() -> value_t {
+    //             return evaluateValue(symbol, env);
+    //         },
+    //         [symbol, env]() -> value_t* {
+    //             return evaluateLvalue(symbol, env);
+    //         }
+    //     };
+    // }
+
+    // {
+    //     std::vector<Environment*> envs = {envAtCreation};
+    //     Environment* curEnv = envAtCreation;
+    //     while (curEnv->enclosingEnv) {
+    //         curEnv = curEnv->enclosingEnv;
+    //         envs.push_back(curEnv);
+    //     }
+
+    //     for (int i = envs.size() - 1; i >= 0; --i) {
+    //         curEnv = envs.at(i);
+    //         for (auto& [key, val]: curEnv->symbolTable) {
+    //             unless (std::holds_alternative<Environment::PassByDelayed>(val)) continue;
+    //             auto symbol = Symbol{key};
+    //             symbol._lvalue = true;
+    //             val = Environment::PassByRef{
+    //                 [symbol, curEnv]() -> value_t {
+    //                     return evaluateValue(symbol, curEnv);
+    //                 },
+    //                 [symbol, curEnv]() -> value_t* {
+    //                     return evaluateLvalue(symbol, curEnv);
+    //                 }
+    //             };
+    //         }
+    //     }
+    // }
+
     auto lambdaVal = prim_value_t::Lambda{
         new prim_value_t{Int(lambda.parameters.size())},
         [envAtCreation, lambda](const std::vector<FunctionCall::Argument>& args, Environment* envAtApp) -> value_t {
@@ -277,6 +319,63 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 throw WrongNbOfArgsError(lambda.parameters, flatten_args);
             }
             
+            // /* binding implicit parameters (captured PassByDelayed) */
+            // for (auto [key, val]: envAtCreation->symbolTable) {
+            //     unless (std::holds_alternative<Environment::PassByDelayed>(val)) continue;
+            //     auto symbol = Symbol{key};
+            //     symbol._lvalue = true;
+            //     parametersBinding[key] = Environment::PassByRef{
+            //         [symbol, envAtApp]() -> value_t {
+            //             return evaluateValue(symbol, envAtApp);
+            //         },
+            //         [symbol, envAtApp]() -> value_t* {
+            //             return evaluateLvalue(symbol, envAtApp);
+            //         }
+            //     };
+            // }
+
+            // /* binding implicit parameters (captured PassByDelayed) */
+            // {
+            //     std::vector<Environment*> envs;
+            //     Environment* curEnv = envAtCreation;
+            //     while (curEnv->enclosingEnv) {
+            //         envs.push_back(curEnv);
+            //         curEnv = curEnv->enclosingEnv;
+            //     }
+
+            //     for (int i = envs.size() - 1; i >= 0; --i) {
+            //         curEnv = envs.at(i);
+            //         for (auto [key, val]: curEnv->symbolTable) {
+            //             unless (std::holds_alternative<Environment::PassByDelayed>(val)) continue;
+            //             auto symbol = Symbol{key};
+            //             symbol._lvalue = true;
+            //             parametersBinding[key] = Environment::PassByRef{
+            //                 [symbol, curEnv]() -> value_t {
+            //                     return evaluateValue(symbol, curEnv);
+            //                 },
+            //                 [symbol, curEnv]() -> value_t* {
+            //                     return evaluateLvalue(symbol, curEnv);
+            //                 }
+            //             };
+            //         }
+            //     }
+            // }
+
+            // /* binding of all PassByDelayed captured at creation time */
+            // for (auto [key, val]: envAtCreation->symbolTable) {
+            //     unless (std::holds_alternative<Environment::PassByDelayed>(val)) continue;
+            //     auto symbol = Symbol{key};
+            //     symbol._lvalue = true;
+            //     parametersBinding[key] = Environment::PassByRef{
+            //         [symbol, envAtCreation]() -> value_t {
+            //             return evaluateValue(symbol, envAtCreation);
+            //         },
+            //         [symbol, envAtCreation]() -> value_t* {
+            //             return evaluateLvalue(symbol, envAtCreation);
+            //         }
+            //     };
+            // }
+
             size_t i = 0;
 
             /* binding required parameters (<> variadic parameters) */
@@ -306,6 +405,21 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                     auto var = new value_t{evaluateValue(currArg.expr, currArgEnv)}; // TODO: leak
                     parametersBinding[currParam.name] = Environment::Variable{var};
                     #else // lazy passing a.k.a pass by delayed
+
+                    // if (std::holds_alternative<Lambda*>(currArg.expr)) {
+                    //     auto var = new value_t{evaluateValue(currArg.expr, currArgEnv)}; // TODO: leak
+                    //     parametersBinding[currParam.name] = Environment::Variable{var};
+                    // }
+                    // else {
+                    //     auto* thunkEnv = new Environment{*currArgEnv};
+                    //     auto* delayed = new thunk_with_memoization_t<value_t>{
+                    //         [currArg, thunkEnv]() -> value_t {
+                    //             return evaluateValue(currArg.expr, thunkEnv);
+                    //         }
+                    //     };
+                    //     parametersBinding[currParam.name] = Environment::PassByDelayed{delayed};
+                    // }
+
                     auto* thunkEnv = new Environment{*currArgEnv};
                     auto* delayed = new thunk_with_memoization_t<value_t>{
                         [currArg, thunkEnv]() -> value_t {
