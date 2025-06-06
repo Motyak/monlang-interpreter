@@ -18,7 +18,7 @@ static void print(const type_value_t&, std::ostream& = std::cout);
 static void print(const struct_value_t&, std::ostream& = std::cout);
 static void print(const enum_value_t&, std::ostream& = std::cout);
 
-const prim_value_t::Lambda builtin::print __attribute__((init_priority(3000))) = {
+const value_t builtin::print __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     new prim_value_t{prim_value_t::Int(0)},
     [](const std::vector<FlattenArg>& varargs) -> value_t {
         LOOP for (auto arg: varargs) {
@@ -32,7 +32,7 @@ const prim_value_t::Lambda builtin::print __attribute__((init_priority(3000))) =
         std::cout << "\n";
         return nil_value_t();
     }
-};
+}};
 
 static void print(const value_t& val, std::ostream& out) {
     std::visit(

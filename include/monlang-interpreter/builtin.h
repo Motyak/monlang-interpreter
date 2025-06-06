@@ -20,7 +20,7 @@
 
 #include <map>
 
-static const std::map<std::string, prim_value_t::Lambda>
+static const std::map<std::string, value_t>
 BUILTIN_TABLE __attribute__((init_priority(6000))) = {
     {"print", builtin::print},
     {"exit", builtin::exit},

@@ -4,7 +4,7 @@
 #include <monlang-interpreter/types.h>
 
 namespace builtin {
-    extern const prim_value_t::Lambda exit;
+    extern const value_t exit;
 }
 
 #endif // BUILTIN_EXIT_H

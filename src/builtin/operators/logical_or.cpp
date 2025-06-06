@@ -12,7 +12,7 @@
 
 using Bool = prim_value_t::Bool;
 
-const prim_value_t::Lambda builtin::op::logical_or __attribute__((init_priority(3000))) = {
+const value_t builtin::op::logical_or __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     new prim_value_t{prim_value_t::Int(2)},
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() >= 2) throw InterpretError("||() takes 2+ argument");
@@ -29,4 +29,4 @@ const prim_value_t::Lambda builtin::op::logical_or __attribute__((init_priority(
         }
         return BoolConst::FALSE;
     }
-};
+}};

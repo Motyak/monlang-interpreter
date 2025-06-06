@@ -521,8 +521,7 @@ value_t evaluateValue(const Symbol& symbol, Environment* env) {
         }, symbolVal);
     }
     else if (BUILTIN_TABLE.contains(symbol.name)) {
-        auto builtin_fn = BUILTIN_TABLE.at(symbol.name);
-        return new prim_value_t{builtin_fn};
+        return BUILTIN_TABLE.at(symbol.name);
     }
     #ifdef TOGGLE_UNBOUND_SYM_AS_STR
     /*

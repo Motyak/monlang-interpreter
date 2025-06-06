@@ -28,7 +28,7 @@ static value_t concatStr(const Str& firstArgValue, const std::vector<FlattenArg>
 static value_t concatList(const List& firstArgValue, const std::vector<FlattenArg>& args);
 static value_t concatMap(const Map& firstArgValue, const std::vector<FlattenArg>& args);
 
-const prim_value_t::Lambda builtin::op::plus __attribute__((init_priority(3000))) = {
+const value_t builtin::op::plus __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     new prim_value_t{prim_value_t::Int(2)},
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() >= 2) throw InterpretError("+() takes 2+ args");
@@ -55,7 +55,7 @@ const prim_value_t::Lambda builtin::op::plus __attribute__((init_priority(3000))
             [](const prim_value_t::Lambda&) -> value_t {throw InterpretError("+() first arg cannot be Lambda");},
         }, firstArgPrimValuePtr->variant);
     }
-};
+}};
 
 static value_t addByte(Byte firstArgValue, const std::vector<FlattenArg>& args) {
     auto sum = firstArgValue;

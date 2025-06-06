@@ -4,7 +4,7 @@
 #include <monlang-interpreter/types.h>
 
 namespace builtin {
-    extern const prim_value_t::Lambda len;
+    extern const value_t len;
 }
 
 #endif // BUILTIN_LEN_H

@@ -10,7 +10,7 @@
 
 #define unless(x) if (!(x))
 
-const prim_value_t::Lambda builtin::exit __attribute__((init_priority(3000))) = {
+const value_t builtin::exit __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     new prim_value_t{prim_value_t::Int(1)},
     [] [[noreturn]] (const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() == 1) throw InterpretError("exit() takes 1 arg");
@@ -19,4 +19,4 @@ const prim_value_t::Lambda builtin::exit __attribute__((init_priority(3000))) = 
         auto exitCode = builtin::prim_ctor::Byte_(argVal);
         ::exit(exitCode);
     }
-};
+}};

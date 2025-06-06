@@ -17,14 +17,14 @@ namespace BoolConst {
 namespace builtin {
 namespace prim_ctor {
 
-    extern const prim_value_t::Lambda Byte;
-    extern const prim_value_t::Lambda Bool;
-    extern const prim_value_t::Lambda Int;
-    extern const prim_value_t::Lambda Float;
-    extern const prim_value_t::Lambda Str;
-    extern const prim_value_t::Lambda List;
-    extern const prim_value_t::Lambda Map;
-    extern const prim_value_t::Lambda Lambda;
+    extern const value_t Byte;
+    extern const value_t Bool;
+    extern const value_t Int;
+    extern const value_t Float;
+    extern const value_t Str;
+    extern const value_t List;
+    extern const value_t Map;
+    extern const value_t Lambda;
 
     /* for internal use, not part of the builtin table */
     prim_value_t::Byte Byte_(const value_t&);
