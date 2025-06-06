@@ -293,10 +293,10 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 if (currArg.passByRef) {
                     auto currArg_ = Lvalue{currArg.expr};
                     parametersBinding[currParam.name] = Environment::PassByRef{
-                        [currArg_, currArgEnv]() -> value_t {
+                        (thunk_t<value_t>)[currArg_, currArgEnv]() -> value_t {
                             return evaluateValue(currArg_, currArgEnv);
                         },
-                        [currArg_, currArgEnv]() -> value_t* {
+                        (thunk_t<value_t*>)[currArg_, currArgEnv]() -> value_t* {
                             return evaluateLvalue(currArg_, currArgEnv);
                         }
                     };
@@ -312,7 +312,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                             return evaluateValue(currArg.expr, thunkEnv);
                         }
                     };
-                    parametersBinding[currParam.name] = Environment::PassByDelayed{delayed};
+                    parametersBinding[currParam.name] = new Environment::PassByDelay_Variant{delayed};
                     #endif
                 }
             }
@@ -425,7 +425,7 @@ value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env
         [](Environment::Variable) -> value_t {SHOULD_NOT_HAPPEN();},
         [](Environment::LabelToNonConst) -> value_t {SHOULD_NOT_HAPPEN();},
         [](Environment::LabelToLvalue /*or PassByRef*/) -> value_t {SHOULD_NOT_HAPPEN();},
-        [](Environment::PassByDelayed) -> value_t {SHOULD_NOT_HAPPEN();},
+        [](Environment::PassByDelay) -> value_t {SHOULD_NOT_HAPPEN();},
         [](Environment::PassByRef) -> value_t {SHOULD_NOT_HAPPEN();},
         [](Environment::VariadicArguments) -> value_t {SHOULD_NOT_HAPPEN();},
     }, specialSymbolVal);
@@ -511,7 +511,14 @@ value_t evaluateValue(const Symbol& symbol, Environment* env) {
             [](Environment::Variable var) -> value_t {return *var;},
             [](Environment::LabelToNonConst label) -> value_t {return label();},
             [](Environment::LabelToLvalue /*or PassByRef*/ label_ref) -> value_t {return *label_ref();},
-            [](Environment::PassByDelayed delayed) -> value_t {return (*delayed)();},
+            [](Environment::PassByDelay delayed) -> value_t {
+                if (std::holds_alternative<value_t*>(*delayed)) {
+                    auto variable = std::get<value_t*>(*delayed);
+                    return *variable;
+                }
+                auto* thunk = std::get<thunk_with_memoization_t<value_t>*>(*delayed);
+                return (*thunk)();
+            },
             [](Environment::PassByRef ref) -> value_t {return ref.value();},
 
             [](Environment::VariadicArguments) -> value_t {SHOULD_NOT_HAPPEN();},
@@ -555,15 +562,15 @@ value_t* evaluateLvalue(const Symbol& symbol, Environment* env) {
         throw InterpretError("Unbound symbol `" + symbol.name + "`");
     }
 
-    auto& symbolVal = env->at(symbol.name);
+    auto symbolVal = env->at(symbol.name);
     return std::visit(overload{
-        [](const Environment::Variable& var) -> value_t* {return var;},
+        [](Environment::Variable var) -> value_t* {return var;},
         [](Environment::LabelToLvalue& /*or PassByRef*/ var) -> value_t* {return var();},
-        [&symbolVal](Environment::PassByDelayed&) -> value_t* {
-            auto* var = new value_t{};
-            // auto* var = new value_t{(*delayed)()};
-            symbolVal = Environment::Variable{var};
-            return var;
+        [](Environment::PassByDelay passByDelay) -> value_t* {
+            if (!std::holds_alternative<value_t*>(*passByDelay)) {
+                *passByDelay = new value_t(); // transform it
+            }
+            return std::get<value_t*>(*passByDelay);
         },
         [](Environment::PassByRef& ref) -> value_t* {return ref.lvalue();},
 

@@ -18,7 +18,7 @@ var check-nil (x):{
 var fn (x):{
     ```
         discards x,
-        transforms the PassByDelayed into a local Variable
+        transforms the PassByDelay into a local Variable
         (this is why we need to evaluate value before lvalue)
     ```
     x := check-nil(x)
