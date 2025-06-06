@@ -28,7 +28,7 @@ struct Environment {
         thunk_t<value_t*> lvalue;
     };
 
-    using VariadicArguments = std::vector<std::pair<FunctionCall::Argument, Environment*>>;
+    using VariadicArguments = std::vector<FlattenArg>;
 
     using SymbolName = std::string;
     using SymbolValue = std::variant<

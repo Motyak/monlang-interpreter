@@ -17,10 +17,11 @@ static value_t mapLength(const prim_value_t::Map&);
 static value_t requiredParams(const prim_value_t::Lambda&);
 
 const prim_value_t::Lambda builtin::len __attribute__((init_priority(3000))) = {
-    IntConst::ONE,
-    [](const std::vector<FunctionCall::Argument>& args, Environment* env) -> value_t {
+    new prim_value_t{prim_value_t::Int(1)},
+    [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() == 1) throw InterpretError("len() takes 1 arg");
-        auto argVal = evaluateValue(args.at(0).expr, env);
+        auto arg = args.at(0);
+        auto argVal = evaluateValue(arg.expr, arg.env);
         unless (std::holds_alternative<prim_value_t*>(argVal)) SHOULD_NOT_HAPPEN(); // TODO: tmp
         auto argPrimValPtr = std::get<prim_value_t*>(argVal);
         if (argPrimValPtr == nullptr) {

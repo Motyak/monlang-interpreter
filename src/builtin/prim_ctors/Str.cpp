@@ -12,10 +12,11 @@
 #define unless(x) if(!(x))
 
 const prim_value_t::Lambda builtin::prim_ctor::Str __attribute__((init_priority(3000))) = {
-    IntConst::ONE,
-    [](const std::vector<FunctionCall::Argument>& args, Environment* env) -> value_t {
+    new prim_value_t{prim_value_t::Int(1)},
+    [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() == 1) throw InterpretError("Str() takes 1 argument");
-        auto argVal = evaluateValue(args.at(0).expr, env);
+        auto arg = args.at(0);
+        auto argVal = evaluateValue(arg.expr, arg.env);
         return new prim_value_t(Str_(argVal));
     }
 };

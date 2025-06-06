@@ -211,8 +211,43 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
     if (!std::holds_alternative<prim_value_t::Lambda>(fnPrimValPtr->variant)) {
         throw InterpretError("Calling a non-Lambda");
     }
+
+    /*
+        transform `args` into `flattenArgs`.
+
+        each "single" argument will get transformed
+        to a <arg, env> pair where env is envAtApp.
+
+        all arguments, whether from a "single" or a "variadic arguments",
+        are concatenated together
+    */
+    std::vector<FlattenArg> flattenArgs;
+
+    for (auto arg: fnCall.arguments) {
+        /* handle "variadic arguments" argument */
+        /* breakable block */for (int z = 1; z <= 1; ++z)
+        {
+            unless (std::holds_alternative<Symbol*>(arg.expr)) break;
+            auto symbol = std::get<Symbol*>(arg.expr);
+            unless (env->contains(symbol->name)) break;
+            auto symbolVal = env->at(symbol->name);
+            unless (std::holds_alternative<Environment::VariadicArguments>(symbolVal)) break;
+            auto varargs = std::get<Environment::VariadicArguments>(symbolVal);
+
+            flattenArgs.insert(flattenArgs.end(), varargs.begin(), varargs.end());
+
+            goto CONTINUE;
+        }
+        
+        /* handle "single" argument */
+        flattenArgs.push_back({arg, env});
+
+        CONTINUE:
+    }
+
     auto function = std::get<prim_value_t::Lambda>(fnPrimValPtr->variant).stdfunc;
-    return function(fnCall.arguments, env);
+
+    return function(flattenArgs);
 }
 
 value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
@@ -228,53 +263,16 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
     Environment* envAtCreation = new Environment{*env};
     auto lambdaVal = prim_value_t::Lambda{
         new prim_value_t{Int(lambda.parameters.size())},
-        [envAtCreation, lambda](const std::vector<FunctionCall::Argument>& args, Environment* envAtApp) -> value_t {
-
-            /*
-                transform `args` into `flatten_args`.
-
-                each "single" argument will get transformed
-                to a <arg, env> pair where env is envAtApp.
-
-                all arguments, whether from a "single" or a "variadic arguments",
-                are concatenated together
-            */
-            std::vector<std::pair<FunctionCall::Argument, Environment*>>
-            flatten_args;
-
-            for (auto arg: args) {
-                /* handle "variadic arguments" argument */
-                /* breakable block */for (int z = 1; z <= 1; ++z)
-                {
-                    unless (std::holds_alternative<Symbol*>(arg.expr)) break;
-                    auto symbol = std::get<Symbol*>(arg.expr);
-                    unless (envAtApp->contains(symbol->name)) break;
-                    auto symbolVal = envAtApp->at(symbol->name);
-                    unless (std::holds_alternative<Environment::VariadicArguments>(symbolVal)) break;
-                    auto varargs = std::get<Environment::VariadicArguments>(symbolVal);
-
-                    for (auto [arg, env]: varargs) {
-                        flatten_args.push_back({arg, env});
-                    }
-
-                    goto CONTINUE;
-                }
-                
-                /* handle "single" argument */
-                flatten_args.push_back({arg, envAtApp});
-
-                CONTINUE:
-            }
-
+        [envAtCreation, lambda](const std::vector<FlattenArg>& flattenArgs) -> value_t {
             /*
                 create a temporary new environment, based on the captured-one,
                 in which we resolve each flatten_args argument with respect with their associated environment,
                 and then bind each value to its argument-associated lambda parameter..
             */
             auto parametersBinding = std::map<Environment::SymbolName, Environment::SymbolValue>{};
-            if (!lambda.variadicParameters && flatten_args.size() != lambda.parameters.size()) {
+            if (!lambda.variadicParameters && flattenArgs.size() != lambda.parameters.size()) {
                 ::activeCallStack.push_back(const_cast<LV2::Lambda*>(&lambda));
-                throw WrongNbOfArgsError(lambda.parameters, flatten_args);
+                throw WrongNbOfArgsError(lambda.parameters, flattenArgs);
             }
             
             size_t i = 0;
@@ -282,8 +280,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
             /* binding required parameters (<> variadic parameters) */
             for (; i < lambda.parameters.size(); ++i) {
                 auto currParam = lambda.parameters.at(i);
-                auto [currArg, _] = flatten_args.at(i);
-                auto [_, currArgEnv] = flatten_args.at(i);
+                auto currArg = flattenArgs.at(i);
 
                 if (parametersBinding.contains(currParam.name)
                         && currParam.name != "_") {
@@ -291,22 +288,21 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 }
 
                 if (currArg.passByRef) {
-                    auto currArg_ = Lvalue{currArg.expr};
                     parametersBinding[currParam.name] = Environment::PassByRef{
-                        (thunk_t<value_t>)[currArg_, currArgEnv]() -> value_t {
-                            return evaluateValue(currArg_, currArgEnv);
+                        (thunk_t<value_t>)[currArg]() -> value_t {
+                            return evaluateValue(currArg.expr, currArg.env);
                         },
-                        (thunk_t<value_t*>)[currArg_, currArgEnv]() -> value_t* {
-                            return evaluateLvalue(currArg_, currArgEnv);
+                        (thunk_t<value_t*>)[currArg]() -> value_t* {
+                            return evaluateLvalue(currArg.expr, currArg.env);
                         }
                     };
                 }
                 else {
                     #ifdef TOGGLE_PASS_BY_VALUE
-                    auto var = new value_t{evaluateValue(currArg.expr, currArgEnv)}; // TODO: leak
+                    auto var = new value_t{evaluateValue(currArg.expr, currArg.env)}; // TODO: leak
                     parametersBinding[currParam.name] = Environment::Variable{var};
                     #else // lazy passing a.k.a pass by delayed
-                    auto* thunkEnv = new Environment{*currArgEnv};
+                    auto* thunkEnv = new Environment{*currArg.env};
                     auto* delayed = new thunk_with_memoization_t<value_t>{
                         [currArg, thunkEnv]() -> value_t {
                             return evaluateValue(currArg.expr, thunkEnv);
@@ -320,8 +316,8 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
             /* binding variadic parameters */
             if (lambda.variadicParameters) {
                 auto varargs = Environment::VariadicArguments{
-                    flatten_args.begin() + i,
-                    flatten_args.end()
+                    flattenArgs.begin() + i,
+                    flattenArgs.end()
                 };
                 parametersBinding[lambda.variadicParameters->name] = varargs;
                 parametersBinding["$#varargs"] = Environment::ConstValue{new prim_value_t{Int(varargs.size())}};

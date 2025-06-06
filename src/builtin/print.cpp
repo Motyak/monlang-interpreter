@@ -19,13 +19,13 @@ static void print(const struct_value_t&, std::ostream& = std::cout);
 static void print(const enum_value_t&, std::ostream& = std::cout);
 
 const prim_value_t::Lambda builtin::print __attribute__((init_priority(3000))) = {
-    IntConst::ZERO,
-    [](const std::vector<FunctionCall::Argument>& varargs, Environment* env) -> value_t {
+    new prim_value_t{prim_value_t::Int(0)},
+    [](const std::vector<FlattenArg>& varargs) -> value_t {
         LOOP for (auto arg: varargs) {
             if (!__first_it) {
                 std::cout << " ";
             }
-            auto argValue = evaluateValue(arg.expr, env);
+            auto argValue = evaluateValue(arg.expr, arg.env);
             ::print(argValue);
             ENDLOOP
         }

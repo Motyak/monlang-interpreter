@@ -29,6 +29,11 @@
 
 struct Environment;
 
+// flatten / normalized argument
+struct FlattenArg : public FunctionCall::Argument {
+    Environment* env = nullptr;
+};
+
 struct prim_value_t;
 struct type_value_t;
 struct struct_value_t;
@@ -53,7 +58,7 @@ struct prim_value_t {
 
     struct Lambda {
         value_t requiredParams;
-        std::function<value_t(const std::vector<FunctionCall::Argument>&, Environment*)> stdfunc;
+        std::function<value_t(const std::vector<FlattenArg>&)> stdfunc;
     };
 
     using Variant = std::variant<

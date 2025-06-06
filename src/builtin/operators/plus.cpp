@@ -21,34 +21,35 @@ using Str = prim_value_t::Str;
 using List = prim_value_t::List;
 using Map = prim_value_t::Map;
 
-static value_t addByte(Byte firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
-static value_t addInt(Int firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
-static value_t addFloat(Float firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
-static value_t concatStr(const Str& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
-static value_t concatList(const List& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
-static value_t concatMap(const Map& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env);
+static value_t addByte(Byte firstArgValue, const std::vector<FlattenArg>& args);
+static value_t addInt(Int firstArgValue, const std::vector<FlattenArg>& args);
+static value_t addFloat(Float firstArgValue, const std::vector<FlattenArg>& args);
+static value_t concatStr(const Str& firstArgValue, const std::vector<FlattenArg>& args);
+static value_t concatList(const List& firstArgValue, const std::vector<FlattenArg>& args);
+static value_t concatMap(const Map& firstArgValue, const std::vector<FlattenArg>& args);
 
 const prim_value_t::Lambda builtin::op::plus __attribute__((init_priority(3000))) = {
-    IntConst::TWO,
-    [](const std::vector<FunctionCall::Argument>& args, Environment* env) -> value_t {
+    new prim_value_t{prim_value_t::Int(2)},
+    [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() >= 2) throw InterpretError("+() takes 2+ args");
 
-        auto firstArgValue = evaluateValue(args.at(0).expr, env);
+        auto firstArg = args.at(0);
+        auto firstArgValue = evaluateValue(firstArg.expr, firstArg.env);
         unless (std::holds_alternative<prim_value_t*>(firstArgValue)) SHOULD_NOT_HAPPEN(); // TODO: tmp
         auto firstArgPrimValuePtr = std::get<prim_value_t*>(firstArgValue);
         if (firstArgPrimValuePtr == nullptr) {
             throw InterpretError("+() first arg cannot be $nil");
         }
-        auto otherArgs = std::vector<FunctionCall::Argument>{args.begin() + 1, args.end()};
+        auto otherArgs = std::vector<FlattenArg>{args.begin() + 1, args.end()};
 
         // dispatch impl based on first argument type
         return std::visit(overload{
-            [&otherArgs, env](Byte byte) -> value_t {return addByte(byte, otherArgs, env);},
-            [&otherArgs, env](Int int_) -> value_t {return addInt(int_, otherArgs, env);},
-            [&otherArgs, env](Float float_) -> value_t {return addFloat(float_, otherArgs, env);},
-            [&otherArgs, env](const Str& str) -> value_t {return concatStr(str, otherArgs, env);},
-            [&otherArgs, env](const List& list) -> value_t {return concatList(list, otherArgs, env);},
-            [&otherArgs, env](const Map& map) -> value_t {return concatMap(map, otherArgs, env);},
+            [&otherArgs](Byte byte) -> value_t {return addByte(byte, otherArgs);},
+            [&otherArgs](Int int_) -> value_t {return addInt(int_, otherArgs);},
+            [&otherArgs](Float float_) -> value_t {return addFloat(float_, otherArgs);},
+            [&otherArgs](const Str& str) -> value_t {return concatStr(str, otherArgs);},
+            [&otherArgs](const List& list) -> value_t {return concatList(list, otherArgs);},
+            [&otherArgs](const Map& map) -> value_t {return concatMap(map, otherArgs);},
 
             [](Bool) -> value_t {throw InterpretError("+() first arg cannot be Bool");},
             [](const prim_value_t::Lambda&) -> value_t {throw InterpretError("+() first arg cannot be Lambda");},
@@ -56,11 +57,11 @@ const prim_value_t::Lambda builtin::op::plus __attribute__((init_priority(3000))
     }
 };
 
-static value_t addByte(Byte firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
+static value_t addByte(Byte firstArgValue, const std::vector<FlattenArg>& args) {
     auto sum = firstArgValue;
 
     for (auto arg: args) {
-        auto argValue = evaluateValue(arg.expr, env);
+        auto argValue = evaluateValue(arg.expr, arg.env);
         auto intVal = builtin::prim_ctor::Byte_(argValue);
         sum += intVal;
     }
@@ -68,11 +69,11 @@ static value_t addByte(Byte firstArgValue, const std::vector<FunctionCall::Argum
     return new prim_value_t{sum};
 }
 
-static value_t addInt(Int firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
+static value_t addInt(Int firstArgValue, const std::vector<FlattenArg>& args) {
     auto sum = firstArgValue;
 
     for (auto arg: args) {
-        auto argValue = evaluateValue(arg.expr, env);
+        auto argValue = evaluateValue(arg.expr, arg.env);
         auto intVal = builtin::prim_ctor::Int_(argValue);
         sum += intVal;
     }
@@ -80,11 +81,11 @@ static value_t addInt(Int firstArgValue, const std::vector<FunctionCall::Argumen
     return new prim_value_t{sum};
 }
 
-static value_t addFloat(Float firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
+static value_t addFloat(Float firstArgValue, const std::vector<FlattenArg>& args) {
     auto sum = firstArgValue;
 
     for (auto arg: args) {
-        auto argValue = evaluateValue(arg.expr, env);
+        auto argValue = evaluateValue(arg.expr, arg.env);
         auto intVal = builtin::prim_ctor::Float_(argValue);
         sum += intVal;
     }
@@ -92,11 +93,11 @@ static value_t addFloat(Float firstArgValue, const std::vector<FunctionCall::Arg
     return new prim_value_t{sum};
 }
 
-static value_t concatStr(const Str& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
+static value_t concatStr(const Str& firstArgValue, const std::vector<FlattenArg>& args) {
     auto res = firstArgValue;
 
     for (auto arg: args) {
-        auto argValue = evaluateValue(arg.expr, env);
+        auto argValue = evaluateValue(arg.expr, arg.env);
         auto strVal = builtin::prim_ctor::Str_(argValue);
         res += strVal;
     }
@@ -104,11 +105,11 @@ static value_t concatStr(const Str& firstArgValue, const std::vector<FunctionCal
     return new prim_value_t{res};
 }
 
-static value_t concatList(const List& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
+static value_t concatList(const List& firstArgValue, const std::vector<FlattenArg>& args) {
     TODO();
 }
 
-static value_t concatMap(const Map& firstArgValue, const std::vector<FunctionCall::Argument>& args, Environment* env) {
+static value_t concatMap(const Map& firstArgValue, const std::vector<FlattenArg>& args) {
     TODO();
 }
 

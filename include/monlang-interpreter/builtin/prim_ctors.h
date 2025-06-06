@@ -14,12 +14,6 @@ namespace BoolConst {
     extern const value_t FALSE;
 }
 
-namespace IntConst {
-    extern const value_t ZERO;
-    extern const value_t ONE;
-    extern const value_t TWO;
-}
-
 namespace builtin {
 namespace prim_ctor {
 
