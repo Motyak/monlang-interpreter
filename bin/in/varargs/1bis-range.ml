@@ -163,10 +163,15 @@ var - {
 
 var Range (from, to):{
     var res List()
-    while(():{from + -(to)}, ():{
-        res := merge(res, from)
+    while(():{from + -(to + 1)}, ():{
+        ```
+            we need to immediatly evaluate `from` value
+        ```
+        var from' from
+        res := merge(res, List(from'))
         from += 1
     })
+    res
 }
 
 foreach(Range(1, 5), (_):{

@@ -183,6 +183,7 @@ var map {
         var res List()
 
         foreach(list, (cur):{
+            cur
             res := merge(res, List(fn(cur)))
         })
 
@@ -197,7 +198,8 @@ var filter {
         var res List()
 
         foreach(list, (cur):{
-            pred(cur) && {res := merge(res, List(cur))}
+            var res' merge(res, List(cur))
+            pred(cur) && {res := res'}
         })
 
         res

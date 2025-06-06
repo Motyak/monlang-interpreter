@@ -137,7 +137,11 @@ var reduce (op, init, list):{
     var acc init
 
     foreach(list, (cur):{
-        acc := op(acc, cur)
+        ```
+            we need to immediatly evaluate `acc` value
+        ```
+        var acc' acc
+        acc := op(acc', cur)
     })
 
     acc
@@ -145,7 +149,6 @@ var reduce (op, init, list):{
 
 reduce(+, 0, List(1, 2, 3))
 reduce(+, 'T, List('o, 'm, 'm, 'y))
-
 
 '---pipe----------------------
 
