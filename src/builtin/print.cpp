@@ -11,6 +11,7 @@
 #include <iostream>
 #include <iomanip>
 #include <vector>
+#include <limits>
 
 static void print(const value_t&, std::ostream& = std::cout);
 static void print(const prim_value_t&, std::ostream& = std::cout);

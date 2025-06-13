@@ -454,14 +454,14 @@ value_t evaluateValue(const Numeral& numeral, const Environment*) {
     if (numeral.type == "pow") {
         auto base = std::stoll(numeral.int1);
         auto exponent = std::stoll(numeral.int2);
-        auto power = std::powl(base, exponent);
+        auto power = std::pow(base, exponent);
         return new prim_value_t(Int(power));
     }
 
     if (numeral.type == "fix_only") {
         auto int_part = std::stoll(numeral.int1);
         auto numerator = std::stoll(numeral.fixed);
-        auto denominator = std::powl(10, numeral.fixed.size());
+        auto denominator = std::pow(10, numeral.fixed.size());
         auto division = (double)numerator / denominator;
         auto sum = int_part + division;
         return new prim_value_t(Float(sum));
@@ -470,7 +470,7 @@ value_t evaluateValue(const Numeral& numeral, const Environment*) {
     if (numeral.type == "per_only") {
         auto int_part = std::stoll(numeral.int1);
         auto numerator = std::stoll(numeral.periodic);
-        auto denominator = std::powl(10, numeral.periodic.size()) - 1;
+        auto denominator = std::pow(10, numeral.periodic.size()) - 1;
         auto division = (double)numerator / denominator;
         auto sum = int_part + division;
         return new prim_value_t(Float(sum));
@@ -479,10 +479,10 @@ value_t evaluateValue(const Numeral& numeral, const Environment*) {
     if (numeral.type == "fix_and_per") {
         auto int_part = std::stoll(numeral.int1);
         auto fixed_part_numerator = std::stoll(numeral.fixed);
-        auto fixed_part_denominator = std::powl(10, numeral.fixed.size());
+        auto fixed_part_denominator = std::pow(10, numeral.fixed.size());
         auto fixed_part_division = (double)fixed_part_numerator / fixed_part_denominator;
         auto periodic_part_numerator = std::stoll(numeral.periodic);
-        auto periodic_part_denominator = (std::powl(10, numeral.periodic.size()) - 1) * fixed_part_denominator;
+        auto periodic_part_denominator = (std::pow(10, numeral.periodic.size()) - 1) * fixed_part_denominator;
         auto periodic_part_division = (double)periodic_part_numerator / periodic_part_denominator;
         auto sum = int_part + fixed_part_division + periodic_part_division;
         return new prim_value_t(Float(sum));
