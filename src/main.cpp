@@ -8,8 +8,11 @@
 #include <utils/file-utils.h>
 #include <utils/str-utils.h>
 #include <utils/vec-utils.h>
+#include <utils/env-utils.h>
 
 #define unless(x) if(!(x))
+
+static std::string STDIN_SRCNAME = env_or_default("STDIN_SRCNAME", "<stdin>");
 
 [[noreturn]] int repl_main(int argc, char* argv[]);
 int stdinput_main(int argc, char* argv[]);
@@ -100,7 +103,7 @@ int stdinput_main(int argc, char* argv[]) {
     }
     catch (const InterpretError& e) {
         std::cerr << "Runtime error: " << e.what() << "\n";
-        reportCallStack(e.callStack, tokens);
+        reportCallStack(e.callStack, tokens, STDIN_SRCNAME);
         return 101;
     }
 
