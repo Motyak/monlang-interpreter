@@ -4,6 +4,7 @@
 
 #include <monlang-interpreter/InterpretError.h>
 #include <monlang-interpreter/builtin.h>
+#include <monlang-interpreter/libc.h>
 
 #include <utils/assert-utils.h>
 #include <utils/variant-utils.h>
@@ -12,12 +13,15 @@
 
 #include <cmath>
 #include <vector>
+#include <dlfcn.h>
 
 #define unless(x) if(!(x))
 
 thread_local bool INTERACTIVE_MODE = false;
 thread_local bool top_level_stmt = true;
 thread_local std::vector<Expression> activeCallStack;
+
+thread_local void* libc_so = dlopen("libc.so.6", RTLD_LOCAL | RTLD_LAZY);
 
 using Int = prim_value_t::Int;
 using Byte = prim_value_t::Byte;
@@ -522,6 +526,11 @@ value_t evaluateValue(const Symbol& symbol, Environment* env) {
     }
     else if (BUILTIN_TABLE.contains(symbol.name)) {
         return BUILTIN_TABLE.at(symbol.name);
+    }
+    else if (libc_so) {
+        if (void* func = dlsym(libc_so, symbol.name.c_str()); func) {
+            return create_libc_lambda(func);
+        }
     }
     #ifdef TOGGLE_UNBOUND_SYM_AS_STR
     /*
