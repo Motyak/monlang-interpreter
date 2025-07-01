@@ -13,7 +13,7 @@
         "monlang-parser/*": true,
 
         "lib/monlang-LV1/*": true,
-        "lib/monlang-LV2/*": true,
+        "lib/monlang-parser/*": true,
     },
 }
 

@@ -45,6 +45,7 @@ static prim_value_t::Int to_int(const prim_value_t& primVal) {
         [](prim_value_t::Int int_) -> prim_value_t::Int {return int_;},
         [](prim_value_t::Float float_) -> prim_value_t::Int {return float_;},
 
+        [](prim_value_t::Char) -> prim_value_t::Int {throw InterpretError("Int() arg cannot be a Char");},
         [](const prim_value_t::Str&) -> prim_value_t::Int {throw InterpretError("Int() arg cannot be a Str");},
         [](const prim_value_t::List&) -> prim_value_t::Int {throw InterpretError("Int() arg cannot be a List");},
         [](const prim_value_t::Map&) -> prim_value_t::Int {throw InterpretError("Int() arg cannot be a Map");},

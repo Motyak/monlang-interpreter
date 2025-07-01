@@ -45,6 +45,7 @@ static prim_value_t::Float to_float(const prim_value_t& primVal) {
         [](prim_value_t::Float float_) -> prim_value_t::Float {return float_;},
 
         [](prim_value_t::Bool) -> prim_value_t::Float {throw InterpretError("Float() arg cannot be a Bool");},
+        [](prim_value_t::Char) -> prim_value_t::Float {throw InterpretError("Float() arg cannot be a Char");},
         [](const prim_value_t::Str&) -> prim_value_t::Float {throw InterpretError("Float() arg cannot be a Str");},
         [](const prim_value_t::List&) -> prim_value_t::Float {throw InterpretError("Float() arg cannot be a List");},
         [](const prim_value_t::Map&) -> prim_value_t::Float {throw InterpretError("Float() arg cannot be a Map");},

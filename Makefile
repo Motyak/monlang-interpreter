@@ -34,6 +34,7 @@ obj/builtin/prim_ctors/Byte.o \
 obj/builtin/prim_ctors/Bool.o \
 obj/builtin/prim_ctors/Int.o \
 obj/builtin/prim_ctors/Float.o \
+obj/builtin/prim_ctors/Char.o \
 obj/builtin/prim_ctors/Str.o
 
 DEPS := $(OBJS:obj/%.o=.deps/%.d)

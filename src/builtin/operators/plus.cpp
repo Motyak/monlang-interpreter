@@ -17,6 +17,7 @@ using Byte = prim_value_t::Byte;
 using Bool = prim_value_t::Bool;
 using Int = prim_value_t::Int;
 using Float = prim_value_t::Float;
+using Char = prim_value_t::Char;
 using Str = prim_value_t::Str;
 using List = prim_value_t::List;
 using Map = prim_value_t::Map;
@@ -24,6 +25,7 @@ using Map = prim_value_t::Map;
 static value_t addByte(Byte firstArgValue, const std::vector<FlattenArg>& args);
 static value_t addInt(Int firstArgValue, const std::vector<FlattenArg>& args);
 static value_t addFloat(Float firstArgValue, const std::vector<FlattenArg>& args);
+static value_t addChar(Char firstArgValue, const std::vector<FlattenArg>& args);
 static value_t concatStr(const Str& firstArgValue, const std::vector<FlattenArg>& args);
 static value_t concatList(const List& firstArgValue, const std::vector<FlattenArg>& args);
 static value_t concatMap(const Map& firstArgValue, const std::vector<FlattenArg>& args);
@@ -47,6 +49,7 @@ const value_t builtin::op::plus __attribute__((init_priority(3000))) = new prim_
             [&otherArgs](Byte byte) -> value_t {return addByte(byte, otherArgs);},
             [&otherArgs](Int int_) -> value_t {return addInt(int_, otherArgs);},
             [&otherArgs](Float float_) -> value_t {return addFloat(float_, otherArgs);},
+            [&otherArgs](Char char_) -> value_t {return addChar(char_, otherArgs);},
             [&otherArgs](const Str& str) -> value_t {return concatStr(str, otherArgs);},
             [&otherArgs](const List& list) -> value_t {return concatList(list, otherArgs);},
             [&otherArgs](const Map& map) -> value_t {return concatMap(map, otherArgs);},
@@ -93,6 +96,18 @@ static value_t addFloat(Float firstArgValue, const std::vector<FlattenArg>& args
     return new prim_value_t{sum};
 }
 
+static value_t addChar(Char firstArgValue, const std::vector<FlattenArg>& args) {
+    auto sum = uint8_t(firstArgValue);
+
+    for (auto arg: args) {
+        auto argValue = evaluateValue(arg.expr, arg.env);
+        auto intVal = uint8_t(builtin::prim_ctor::Char_(argValue));
+        sum += intVal;
+    }
+
+    return new prim_value_t{Char(sum)};
+}
+
 static value_t concatStr(const Str& firstArgValue, const std::vector<FlattenArg>& args) {
     auto res = firstArgValue;
 
@@ -107,9 +122,13 @@ static value_t concatStr(const Str& firstArgValue, const std::vector<FlattenArg>
 
 static value_t concatList(const List& firstArgValue, const std::vector<FlattenArg>& args) {
     TODO();
+    (void)firstArgValue;
+    (void)args;
 }
 
 static value_t concatMap(const Map& firstArgValue, const std::vector<FlattenArg>& args) {
     TODO();
+    (void)firstArgValue;
+    (void)args;
 }
 

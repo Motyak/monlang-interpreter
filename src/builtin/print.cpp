@@ -55,6 +55,7 @@ static void print(const prim_value_t& primVal, std::ostream& out) {
         [&out](prim_value_t::Bool bool_){out << (bool_ == true? "$true" : "$false");},
         [&out](prim_value_t::Int int_){out << int_;},
         [&out](prim_value_t::Float float_){out << std::setprecision(std::numeric_limits<double>::digits10) << float_;},
+        [&out](const prim_value_t::Char& char_){out << char_;},
         [&out](const prim_value_t::Str& str){out << str;},
         [&out](const prim_value_t::List& list){
             out << "[";
