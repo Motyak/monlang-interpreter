@@ -54,7 +54,7 @@ const value_t builtin::op::plus __attribute__((init_priority(3000))) = new prim_
                 unless (std::holds_alternative<prim_value_t*>(secondArgValue)) SHOULD_NOT_HAPPEN(); // TODO: tmp
                 auto secondArgPrimValuePtr = std::get<prim_value_t*>(secondArgValue);
                 if (secondArgPrimValuePtr == nullptr) {
-                    throw InterpretError("+() second arg cannot be $nil");
+                    throw InterpretError("+(<Char>, <..>) second arg cannot be $nil");
                 }
                 auto otherOtherArgs = std::vector<FlattenArg>{otherArgs.begin() + 1, otherArgs.end()};
                 if (std::holds_alternative<Str>(secondArgPrimValuePtr->variant)) {
