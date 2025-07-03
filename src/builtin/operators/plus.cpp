@@ -33,7 +33,7 @@ static value_t concatList(const List& firstArgValue, const std::vector<FlattenAr
 static value_t concatMap(const Map& firstArgValue, const std::vector<FlattenArg>& args);
 
 const value_t builtin::op::plus __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
-    new prim_value_t{prim_value_t::Int(2)},
+    IntConst::TWO,
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() >= 2) throw InterpretError("+() takes 2+ args");
 

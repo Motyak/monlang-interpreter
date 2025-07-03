@@ -27,7 +27,7 @@ static value_t mulFloat(Float firstArgValue, const std::vector<FlattenArg>& args
 static value_t buildStr(Int firstArgValue, const Str& secondArgValue);
 
 const value_t builtin::op::mul __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
-    new prim_value_t{prim_value_t::Int(2)},
+    IntConst::TWO,
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() >= 2) throw InterpretError("*() takes 2+ args");
 
