@@ -21,10 +21,11 @@ using Str = prim_value_t::Str;
 using List = prim_value_t::List;
 using Map = prim_value_t::Map;
 
-static value_t mulByte(Byte firstArgValue, const std::vector<FlattenArg>& args);
-static value_t mulInt(Int firstArgValue, const std::vector<FlattenArg>& args);
+static value_t mulByte(Byte firstArgValue, prim_value_t* secondArgValue, const std::vector<FlattenArg>& args);
+static value_t mulInt(Int firstArgValue, prim_value_t* secondArgValue, const std::vector<FlattenArg>& args);
 static value_t mulFloat(Float firstArgValue, const std::vector<FlattenArg>& args);
 static value_t buildStr(const Str& firstArgValue, const std::vector<FlattenArg>& args);
+static value_t buildStr(Int firstArgValue, const Str& secondArgValue);
 
 const value_t builtin::op::mul __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     IntConst::TWO,
@@ -42,8 +43,46 @@ const value_t builtin::op::mul __attribute__((init_priority(3000))) = new prim_v
 
         // dispatch impl based on first argument type
         return std::visit(overload{
-            [&otherArgs](Byte byte_) -> value_t {return mulByte(byte_, otherArgs);},
-            [&otherArgs](Int int_) -> value_t {return mulInt(int_, otherArgs);},
+            [&otherArgs](Byte byte) -> value_t {
+                auto secondArg = otherArgs.at(0);
+                auto secondArgValue = evaluateValue(secondArg.expr, secondArg.env);
+                unless (std::holds_alternative<prim_value_t*>(secondArgValue)) SHOULD_NOT_HAPPEN(); // TODO: tmp
+                auto secondArgPrimValuePtr = std::get<prim_value_t*>(secondArgValue);
+                if (secondArgPrimValuePtr == nullptr) {
+                    throw InterpretError("*(<Byte>, <..>) second arg cannot be $nil");
+                }
+                auto otherOtherArgs = std::vector<FlattenArg>{otherArgs.begin() + 1, otherArgs.end()};
+                if (otherOtherArgs.empty()) {
+                    if (std::holds_alternative<Str>(secondArgPrimValuePtr->variant)) {
+                        return buildStr(byte, std::get<Str>(secondArgPrimValuePtr->variant));
+                    }
+                    if (std::holds_alternative<Char>(secondArgPrimValuePtr->variant)) {
+                        return buildStr(byte, Str(1, std::get<Char>(secondArgPrimValuePtr->variant)));
+                    }
+                }
+                return mulByte(byte, secondArgPrimValuePtr, otherOtherArgs);
+            },
+
+            [&otherArgs](Int int_) -> value_t {
+                auto secondArg = otherArgs.at(0);
+                auto secondArgValue = evaluateValue(secondArg.expr, secondArg.env);
+                unless (std::holds_alternative<prim_value_t*>(secondArgValue)) SHOULD_NOT_HAPPEN(); // TODO: tmp
+                auto secondArgPrimValuePtr = std::get<prim_value_t*>(secondArgValue);
+                if (secondArgPrimValuePtr == nullptr) {
+                    throw InterpretError("*(<Int>, <..>) second arg cannot be $nil");
+                }
+                auto otherOtherArgs = std::vector<FlattenArg>{otherArgs.begin() + 1, otherArgs.end()};
+                if (otherOtherArgs.empty()) {
+                    if (std::holds_alternative<Str>(secondArgPrimValuePtr->variant)) {
+                        return buildStr(int_, std::get<Str>(secondArgPrimValuePtr->variant));
+                    }
+                    if (std::holds_alternative<Char>(secondArgPrimValuePtr->variant)) {
+                        return buildStr(int_, Str(1, std::get<Char>(secondArgPrimValuePtr->variant)));
+                    }
+                }
+                return mulInt(int_, secondArgPrimValuePtr, otherOtherArgs);
+            },
+
             [&otherArgs](Float float_) -> value_t {return mulFloat(float_, otherArgs);},
             [&otherArgs](const prim_value_t::Str& str) -> value_t {return buildStr(str, otherArgs);},
             [&otherArgs](Char char_) -> value_t {return buildStr(Str(1, char_), otherArgs);},
@@ -52,24 +91,25 @@ const value_t builtin::op::mul __attribute__((init_priority(3000))) = new prim_v
             [](const prim_value_t::List&) -> value_t {throw InterpretError("*() first arg cannot be List");},
             [](const prim_value_t::Map&) -> value_t {throw InterpretError("*() first arg cannot be Map");},
             [](const prim_value_t::Lambda&) -> value_t {throw InterpretError("*() first arg cannot be Lambda");},
+
         }, firstArgPrimValuePtr->variant);
     }
 }};
 
-static value_t mulByte(Byte firstArgValue, const std::vector<FlattenArg>& args) {
-    Int res = firstArgValue;
+static value_t mulByte(Byte firstArgValue, prim_value_t* secondArgValue, const std::vector<FlattenArg>& args) {
+    Int res = Int(firstArgValue) * Int(builtin::prim_ctor::Byte_(secondArgValue));
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
-        auto intVal = builtin::prim_ctor::Byte_(argValue);
+        auto intVal = Int(builtin::prim_ctor::Byte_(argValue));
         res *= intVal;
     }
 
     return new prim_value_t{Byte(res)};
 }
 
-static value_t mulInt(Int firstArgValue, const std::vector<FlattenArg>& args) {
-    Int res = firstArgValue;
+static value_t mulInt(Int firstArgValue, prim_value_t* secondArgValue, const std::vector<FlattenArg>& args) {
+    Int res = firstArgValue * builtin::prim_ctor::Int_(secondArgValue);
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
@@ -99,11 +139,13 @@ static value_t buildStr(const Str& firstArgValue, const std::vector<FlattenArg>&
         auto intValue = builtin::prim_ctor::Int_(argValue);
         multiplier *= intValue;
     }
+    return buildStr(multiplier, firstArgValue);
+}
 
+static value_t buildStr(Int firstArgValue, const Str& secondArgValue) {
     auto res = Str("");
-    for (uint8_t i = 1; i <= multiplier; ++i) {
-        res += firstArgValue;
+    for (uint8_t i = 1; i <= firstArgValue; ++i) {
+        res += secondArgValue;
     }
-
     return new prim_value_t{res};
 }
