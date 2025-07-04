@@ -24,6 +24,7 @@ using Byte = prim_value_t::Byte;
 using Bool = prim_value_t::Bool;
 using Int = prim_value_t::Int;
 using Float = prim_value_t::Float;
+using Char = prim_value_t::Char;
 using Str = prim_value_t::Str;
 using List = prim_value_t::List;
 using Map = prim_value_t::Map;
@@ -386,8 +387,48 @@ value_t evaluateValue(const FieldAccess&, const Environment*) {
     TODO();
 }
 
-value_t evaluateValue(const Subscript&, const Environment*) {
-    TODO();
+value_t evaluateValue(const Subscript& subscript, Environment* env) {
+    auto arrVal = evaluateValue(subscript.array, env);
+    ASSERT (std::holds_alternative<prim_value_t*>(arrVal)); // TODO: tmp
+    auto arrPrimValPtr = std::get<prim_value_t*>(arrVal);
+    if (arrPrimValPtr == nullptr) {
+        throw InterpretError("Subscripting a $nil");
+    }
+    if (std::holds_alternative<prim_value_t::Str>(arrPrimValPtr->variant)) {
+        auto strVal = std::get<prim_value_t::Str>(arrPrimValPtr->variant);
+
+        if (std::holds_alternative<Subscript::Key>(subscript.argument)) {
+            throw InterpretError("Subscripting a Str with a key");
+        }
+
+        else if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
+            auto index = std::get<Subscript::Index>(subscript.argument);
+            auto nthVal = evaluateValue(variant_cast(index.nth), env);
+            auto intVal = builtin::prim_ctor::Int_(nthVal);
+
+            unless (intVal != 0 && strVal.size() >= abs(intVal)) {
+                throw InterpretError("Subscript index is out of bounds");
+            }
+            auto pos = intVal < 0? strVal.size() - abs(intVal) : size_t(intVal) - 1;
+            return new prim_value_t{Char(strVal.at(pos))};
+        }
+
+        else if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
+            TODO();
+        }
+
+        else SHOULD_NOT_HAPPEN();
+    }
+
+    else if (std::holds_alternative<prim_value_t::List>(arrPrimValPtr->variant)) {
+        TODO();
+    }
+
+    else if (std::holds_alternative<prim_value_t::Map>(arrPrimValPtr->variant)) {
+        TODO();
+    }
+
+    else SHOULD_NOT_HAPPEN();
 }
 
 value_t evaluateValue(const ListLiteral&, const Environment*) {
