@@ -394,6 +394,7 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
     if (arrPrimValPtr == nullptr) {
         throw InterpretError("Subscripting a $nil");
     }
+
     if (std::holds_alternative<prim_value_t::Str>(arrPrimValPtr->variant)) {
         auto strVal = std::get<prim_value_t::Str>(arrPrimValPtr->variant);
 
@@ -414,7 +415,35 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
         }
 
         else if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
-            TODO();
+            auto range = std::get<Subscript::Range>(subscript.argument);
+
+            auto fromVal = evaluateValue(variant_cast(range.from), env);
+            auto intFromVal = builtin::prim_ctor::Int_(fromVal);
+
+            auto toVal = evaluateValue(variant_cast(range.to), env);
+            auto intToVal = builtin::prim_ctor::Int_(toVal);
+
+            unless (intFromVal != 0) {
+                throw InterpretError("Subscript range 'from' is zero");
+            }
+            unless (intToVal != 0) {
+                throw InterpretError("Subscript range 'to' is zero");
+            }
+
+            Int fromPos = intFromVal < 0? Int(strVal.size()) - abs(intFromVal) : intFromVal - 1;
+            Int toPos = intToVal < 0? Int(strVal.size()) - abs(intToVal) : intToVal - 1;
+            if (range.exclusive) {
+                toPos -= fromPos <= toPos? 1 : -1;
+            }
+
+            unless (fromPos < Int(strVal.size())) {
+                throw InterpretError("Subscript range 'from' is out of bounds");
+            }
+            unless (toPos < Int(strVal.size())) {
+                throw InterpretError("Subscript range 'to' is out of bounds");
+            }
+
+            return new prim_value_t{strVal.substr(fromPos, toPos - fromPos + 1)};
         }
 
         else SHOULD_NOT_HAPPEN();
