@@ -33,6 +33,7 @@ BUILTIN_TABLE __attribute__((init_priority(6000))) = {
     {"*", builtin::op::mul},
     {"&&", builtin::op::logical_and},
     {"||", builtin::op::logical_or},
+    {"==", builtin::op::eq},
 
     /* primitive constructors */
     {"Byte", builtin::prim_ctor::Byte},
