@@ -7,7 +7,6 @@
 #include <monlang-interpreter/InterpretError.h>
 
 #include <utils/assert-utils.h>
-#include <utils/loop-utils.h>
 #include <utils/variant-utils.h>
 #include <utils/stdfunc-utils.h>
 
@@ -30,14 +29,15 @@ const value_t builtin::op::gt __attribute__((init_priority(3000))) = new prim_va
         unless (args.size() >= 2) throw InterpretError(">() takes 2+ argument");
         value_t lhsVal;
         bool res = true;
-        LOOP for (auto arg: args) {
+        bool first_it = true;
+        for (auto arg: args) {
             auto argVal = evaluateValue(arg.expr, arg.env);
             if (is_nil(argVal)) {
                 throw InterpretError(">() arg is $nil");
             }
 
             /* compare with lhs (arg from last iteration) */
-            if (!__first_it) {
+            if (!first_it) {
                 if (lhsVal.index() != argVal.index()) {
                     TODO();
                 }
@@ -63,7 +63,7 @@ const value_t builtin::op::gt __attribute__((init_priority(3000))) = new prim_va
 
             // setup for next iteration
             lhsVal = argVal;
-            ENDLOOP
+            first_it = false;
         }
         return BoolConst::TRUE;
     }
