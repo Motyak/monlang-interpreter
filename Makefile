@@ -29,7 +29,8 @@ obj/builtin/operators/plus.o \
 obj/builtin/operators/mul.o \
 obj/builtin/operators/logical_and.o \
 obj/builtin/operators/logical_or.o \
-obj/builtin/operators/eq.o
+obj/builtin/operators/eq.o \
+obj/builtin/operators/gt.o
 
 PRIM_CTORS_OBJS = \
 obj/builtin/prim_ctors/Byte.o \

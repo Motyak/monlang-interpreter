@@ -17,6 +17,7 @@ namespace op {
     extern const value_t logical_and;
     extern const value_t logical_or;
     extern const value_t eq;
+    extern const value_t gt;
 
 }} // end of builtin::op::
 
