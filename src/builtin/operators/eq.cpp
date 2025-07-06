@@ -22,7 +22,7 @@ using Str = prim_value_t::Str;
 using List = prim_value_t::List;
 using Map = prim_value_t::Map;
 
-static bool comparePrimVal(const prim_value_t::Variant& , const prim_value_t::Variant&);
+static bool comparePrimValPtr(prim_value_t*, prim_value_t*);
 
 const value_t builtin::op::eq __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     IntConst::TWO,
@@ -32,22 +32,18 @@ const value_t builtin::op::eq __attribute__((init_priority(3000))) = new prim_va
         bool res = true;
         LOOP for (auto arg: args) {
             auto argVal = evaluateValue(arg.expr, arg.env);
+            if (is_nil(argVal)) {
+                throw InterpretError("==() arg is $nil");
+            }
 
             /* compare with lhs (arg from last iteration) */
             if (!__first_it) {
                 if (lhsVal.index() != argVal.index()) {
-                    return BoolConst::FALSE;
+                    TODO();
                 }
-                if (is_nil(lhsVal) && is_nil(argVal)) {
-                    return BoolConst::TRUE;
-                }
-                if (is_nil(lhsVal) != is_nil(argVal)) {
-                    return BoolConst::FALSE;
-                }
-                /* at this point, we know both lhsVal and argVal are non-nil AND of the same value_t type */
                 std::visit(overload{
                     [argVal, &res](prim_value_t* lhsPrimValPtr){
-                        res &= comparePrimVal(lhsPrimValPtr->variant, std::get<prim_value_t*>(argVal)->variant);
+                        res &= comparePrimValPtr(lhsPrimValPtr, std::get<prim_value_t*>(argVal));
                     },
                     [](type_value_t*){
                         TODO();
@@ -73,37 +69,38 @@ const value_t builtin::op::eq __attribute__((init_priority(3000))) = new prim_va
     }
 }};
 
-static bool comparePrimVal(const prim_value_t::Variant& primVal_lhs, const prim_value_t::Variant& primVal_rhs) {
-    if (primVal_lhs.index() != primVal_rhs.index()) {
-        return false;
-    }
+static bool comparePrimValPtr(prim_value_t* primValPtr_lhs, prim_value_t* primValPtr_rhs) {
+    ASSERT (primValPtr_lhs != nullptr);
     return std::visit(overload{
-        [&primVal_rhs](Byte byte) -> bool {
-            return byte == std::get<Byte>(primVal_rhs);
+        [primValPtr_rhs](Byte byte) -> bool {
+            return byte == builtin::prim_ctor::Byte_(primValPtr_rhs);
         },
-        [&primVal_rhs](Bool bool_) -> bool {
-            return bool_ == std::get<Bool>(primVal_rhs);
+        [primValPtr_rhs](Bool bool_) -> bool {
+            return bool_ == builtin::prim_ctor::Bool_(primValPtr_rhs);
         },
-        [&primVal_rhs](Int int_) -> bool {
-            return int_ == std::get<Int>(primVal_rhs);
+        [primValPtr_rhs](Int int_) -> bool {
+            return int_ == builtin::prim_ctor::Int_(primValPtr_rhs);
         },
-        [&primVal_rhs](Float float_) -> bool {
-            return float_ == std::get<Float>(primVal_rhs);
+        [primValPtr_rhs](Float float_) -> bool {
+            return float_ == builtin::prim_ctor::Float_(primValPtr_rhs);
         },
-        [&primVal_rhs](Char char_) -> bool {
-            return char_ == std::get<Char>(primVal_rhs);
+        [primValPtr_rhs](Char char_) -> bool {
+            return char_ == builtin::prim_ctor::Char_(primValPtr_rhs);
         },
-        [&primVal_rhs](const Str& str) -> bool {
-            return str == std::get<Str>(primVal_rhs);
+        [primValPtr_rhs](const Str& str) -> bool {
+            return str == builtin::prim_ctor::Str_(primValPtr_rhs);
         },
-        [&primVal_rhs](const List& list) -> bool {
-            return list == std::get<List>(primVal_rhs);
+        [primValPtr_rhs](const List&) -> bool {
+            // return list == builtin::prim_ctor::List_(primValPtr_rhs);
+            TODO();
         },
-        [&primVal_rhs](const Map& map) -> bool {
-            return map == std::get<Map>(primVal_rhs);
+        [primValPtr_rhs](const Map&) -> bool {
+            // return map == builtin::prim_ctor::Map_(primValPtr_rhs);
+            TODO();
         },
-        [&primVal_rhs](const prim_value_t::Lambda& lambda) -> bool {
-            return get_addr(lambda.stdfunc) == get_addr(std::get<prim_value_t::Lambda>(primVal_rhs).stdfunc);
+        [primValPtr_rhs](const prim_value_t::Lambda&) -> bool {
+            // return lambda == builtin::prim_ctor::Lambda_(primValPtr_rhs);
+            TODO();
         },
-    }, primVal_lhs);
+    }, primValPtr_lhs->variant);
 }
