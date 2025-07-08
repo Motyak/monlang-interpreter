@@ -44,7 +44,9 @@ using value_t = std::variant<
     /* user-defined */
     type_value_t*,
     struct_value_t*,
-    enum_value_t*
+    enum_value_t*,
+    /* for evaluating Str subscript as lvalue */
+    char*
 >;
 
 struct prim_value_t {

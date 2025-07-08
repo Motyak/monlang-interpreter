@@ -25,17 +25,17 @@ static prim_value_t::Float to_float(const struct_value_t&);
 static prim_value_t::Float to_float(const enum_value_t&);
 
 prim_value_t::Float builtin::prim_ctor::Float_(const value_t& val) {
-    return std::visit(
-        [](auto* val){
+    return std::visit(overload{
+        [](auto* val) -> prim_value_t::Float {
             if (val == nullptr){
-                throw InterpretError("Int() arg cannot be $nil");
+                throw InterpretError("Float() arg cannot be $nil");
             }
             else {
                 return to_float(*val);
             }
-        }
-        , val
-    );
+        },
+        [](char*) -> prim_value_t::Float {SHOULD_NOT_HAPPEN();},
+    }, val);
 }
 
 static prim_value_t::Float to_float(const prim_value_t& primVal) {

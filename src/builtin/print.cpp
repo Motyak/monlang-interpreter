@@ -7,6 +7,7 @@
 
 #include <utils/variant-utils.h>
 #include <utils/loop-utils.h>
+#include <utils/assert-utils.h>
 
 #include <iostream>
 #include <iomanip>
@@ -36,7 +37,7 @@ const value_t builtin::print __attribute__((init_priority(3000))) = new prim_val
 }};
 
 static void print(const value_t& val, std::ostream& out) {
-    std::visit(
+    std::visit(overload{
         [&out](auto* val){
             if (val == nullptr){
                 out << "$nil";
@@ -44,9 +45,9 @@ static void print(const value_t& val, std::ostream& out) {
             else {
                 print(*val, out);
             }
-        }
-        , val
-    );
+        },
+        [](char*){SHOULD_NOT_HAPPEN();},
+    }, val);
 }
 
 static void print(const prim_value_t& primVal, std::ostream& out) {

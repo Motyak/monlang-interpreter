@@ -54,6 +54,9 @@ const value_t builtin::op::eq __attribute__((init_priority(3000))) = new prim_va
                     [](enum_value_t*){
                         TODO();
                     },
+                    [](char*){
+                        SHOULD_NOT_HAPPEN();
+                    },
                 }, lhsVal);
             }
 

@@ -25,17 +25,17 @@ static prim_value_t::Byte to_byte(const struct_value_t&);
 static prim_value_t::Byte to_byte(const enum_value_t&);
 
 prim_value_t::Byte builtin::prim_ctor::Byte_(const value_t& val) {
-    return std::visit(
-        [](auto* val){
+    return std::visit(overload{
+        [](auto* val) -> prim_value_t::Byte {
             if (val == nullptr){
                 throw InterpretError("Byte() arg cannot be $nil");
             }
             else {
                 return to_byte(*val);
             }
-        }
-        , val
-    );
+        },
+        [](char*) -> prim_value_t::Byte {SHOULD_NOT_HAPPEN();},
+    }, val);
 }
 
 static prim_value_t::Byte to_byte(const prim_value_t& primVal) {

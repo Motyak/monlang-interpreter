@@ -25,24 +25,22 @@ static prim_value_t::Char to_char(const struct_value_t&);
 static prim_value_t::Char to_char(const enum_value_t&);
 
 prim_value_t::Char builtin::prim_ctor::Char_(const value_t& val) {
-    return std::visit(
-        [](auto* val){
+    return std::visit(overload{
+        [](auto* val) -> prim_value_t::Char {
             if (val == nullptr){
                 throw InterpretError("Char() arg cannot be $nil");
             }
             else {
                 return to_char(*val);
             }
-        }
-        , val
-    );
+        },
+        [](char*) -> prim_value_t::Char {SHOULD_NOT_HAPPEN();},
+    }, val);
 }
 
 static prim_value_t::Char to_char(const prim_value_t& primVal) {
     return std::visit(overload{
         [](prim_value_t::Char char_) -> prim_value_t::Char {return char_;},
-        [](prim_value_t::Byte byte) -> prim_value_t::Char {return byte;},
-        [](prim_value_t::Int int_) -> prim_value_t::Char {return uint8_t(int_);},
         [](const prim_value_t::Str& str) -> prim_value_t::Char {
             if (str.empty()) {
                 throw InterpretError("Char() arg cannot be an empty Str");
@@ -53,7 +51,9 @@ static prim_value_t::Char to_char(const prim_value_t& primVal) {
             return str[0];
         },
 
+        [](prim_value_t::Byte) -> prim_value_t::Char {throw InterpretError("Char() arg cannot be a Byte");},
         [](prim_value_t::Bool) -> prim_value_t::Char {throw InterpretError("Char() arg cannot be a Bool");},
+        [](prim_value_t::Int) -> prim_value_t::Char {throw InterpretError("Char() arg cannot be a Int");},
         [](prim_value_t::Float) -> prim_value_t::Char {throw InterpretError("Char() arg cannot be a Float");},
         [](const prim_value_t::List&) -> prim_value_t::Char {throw InterpretError("Char() arg cannot be a List");},
         [](const prim_value_t::Map&) -> prim_value_t::Char {throw InterpretError("Char() arg cannot be a Map");},
