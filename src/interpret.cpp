@@ -186,7 +186,10 @@ void performStatement(const DoWhileStatement&, const Environment*) {
 }
 
 void performStatement(const ExpressionStatement& exprStmt, Environment* env) {
-    auto value = evaluateValue(exprStmt.expression, env);
+    value_t value = nil_value_t();
+    if (exprStmt.expression) {
+        value = evaluateValue(*exprStmt.expression, env);
+    }
     if (INTERACTIVE_MODE && ::top_level_stmt) {
         if (!is_nil(value)) {
             builtin::print_({value});
@@ -363,7 +366,10 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
 
             if (std::holds_alternative<ExpressionStatement*>(lambda.body.statements.at(i))) {
                 auto exprStmt = *std::get<ExpressionStatement*>(lambda.body.statements.at(i));
-                return evaluateValue(exprStmt.expression, &lambdaEnv);
+                if (exprStmt.expression) {
+                    return evaluateValue(*exprStmt.expression, &lambdaEnv);
+                }
+                return nil_value_t();
             }
             performStatement(lambda.body.statements.at(i), &lambdaEnv);
             return nil_value_t();
@@ -389,7 +395,12 @@ value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
 
     if (std::holds_alternative<ExpressionStatement*>(blockExpr.statements.at(i))) {
         auto exprStmt = *std::get<ExpressionStatement*>(blockExpr.statements.at(i));
-        return evaluateValue(exprStmt.expression, newEnv);
+        if (exprStmt.expression) {
+            return evaluateValue(*exprStmt.expression, newEnv);
+        }
+        else {
+            return nil_value_t();
+        }
     }
     performStatement(blockExpr.statements.at(i), newEnv);
     return nil_value_t();
