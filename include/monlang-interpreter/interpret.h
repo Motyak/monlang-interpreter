@@ -37,8 +37,9 @@
 
 using namespace LV2;
 
-extern thread_local bool INTERACTIVE_MODE;
-extern thread_local bool top_level_stmt;
+extern std::string ARG0;
+extern std::vector<std::string> SRC_ARGS;
+extern bool INTERACTIVE_MODE;
 
 void interpretProgram(const Program&);
 void performStatement(const Statement&, Environment*);

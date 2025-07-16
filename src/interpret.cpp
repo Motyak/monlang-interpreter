@@ -15,9 +15,13 @@
 
 #define unless(x) if(!(x))
 
-thread_local bool INTERACTIVE_MODE = false;
-thread_local bool top_level_stmt = true;
+/* set by a "main.cpp", otherwise default values */
+std::string ARG0;
+std::vector<std::string> SRC_ARGS;
+bool INTERACTIVE_MODE = false;
+
 thread_local std::vector<Expression> activeCallStack;
+static bool top_level_stmt = true;
 
 using Int = prim_value_t::Int;
 using Byte = prim_value_t::Byte;

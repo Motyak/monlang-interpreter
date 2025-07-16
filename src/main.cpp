@@ -15,9 +15,6 @@
 
 #define unless(x) if(!(x))
 
-std::string ARG0;
-std::vector<std::string> SRC_ARGS;
-
 static std::string STDIN_SRCNAME = env_or_default("STDIN_SRCNAME", "<stdin>");
 
 [[noreturn]] int repl_main(int argc, char* argv[]);
@@ -31,18 +28,18 @@ int main(int argc, char* argv[])
 {
     if (auto options = second(split_in_two(argv[0], " -"))) {
         if (options->contains("i")) {
-            ::INTERACTIVE_MODE = true;
+            INTERACTIVE_MODE = true;
         }
     }
 
-    ::ARG0 = argv[0];
+    ARG0 = argv[0];
     auto ARGS = split_args_in_two(argc, argv, "--").first;
-    ::SRC_ARGS = split_args_in_two(argc, argv, "--").second;
+    SRC_ARGS = split_args_in_two(argc, argv, "--").second;
 
     /* delegate main based on execution mode */
 
     if (ARGS.size() == 0) {
-        if (::INTERACTIVE_MODE) {
+        if (INTERACTIVE_MODE) {
             return repl_main(argc, argv);
         }
         try {
