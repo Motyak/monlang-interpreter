@@ -64,7 +64,7 @@ static void print(const prim_value_t& primVal, std::ostream& out) {
                 if (!__first_it) {
                     out << ", ";
                 }
-                print(val);
+                print(val, out);
                 ENDLOOP
             }
             out << "]";
@@ -75,9 +75,9 @@ static void print(const prim_value_t& primVal, std::ostream& out) {
                 if (!__first_it) {
                     out << ", ";
                 }
-                print(key);
+                print(key, out);
                 out << ":";
-                print(val);
+                print(val, out);
                 ENDLOOP
             }
             out << "]";
@@ -88,7 +88,7 @@ static void print(const prim_value_t& primVal, std::ostream& out) {
 
 static void print(const type_value_t& type_val, std::ostream& out) {
     out << type_val.type << "(";
-    print(type_val.value);
+    print(type_val.value, out);
     out << ")";
 }
 
@@ -98,7 +98,7 @@ static void print(const struct_value_t& struct_val, std::ostream& out) {
         if (!__first_it) {
             out << ", ";
         }
-        print(field_value);
+        print(field_value, out);
         ENDLOOP
     }
     out << ")";
@@ -106,7 +106,7 @@ static void print(const struct_value_t& struct_val, std::ostream& out) {
 
 static void print(const enum_value_t& enum_val, std::ostream& out) {
     out << enum_val.type << "(";
-    print(enum_val.enumerate_value);
+    print(enum_val.enumerate_value, out);
     out << ")";
 }
 
