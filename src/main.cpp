@@ -72,6 +72,7 @@ int repl_main(int argc, char* argv[]) {
     INTERACTIVE_MODE = true;
 
     Read:
+    std::cerr << "> " << std::flush; // prompt
     auto text = slurp_stdin(/*repeatable*/true);
 
     Eval:
@@ -81,10 +82,12 @@ int repl_main(int argc, char* argv[]) {
         prog = parse(text); // we don't reconstruct tokens in REPL
     }
     catch (const ParseError&) {
+        std::cerr << "---" << std::endl; // end of input
         std::cerr << "Parsing error" << std::endl;
         goto Read;
     }
     try {
+        std::cerr << "---" << std::endl; // end of input
         for (auto stmt: prog.statements) {
             performStatement(stmt, &env);
         }
