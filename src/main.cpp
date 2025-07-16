@@ -22,7 +22,7 @@ int stdinput_main(int argc, char* argv[]);
 int fileinput_main(int argc, char* argv[]);
 int selfinput_main(int argc, char* argv[]);
 
-class SelfInputException : public std::exception{};
+class SelfInputException{};
 
 int main(int argc, char* argv[])
 {
@@ -46,8 +46,9 @@ int main(int argc, char* argv[])
             return selfinput_main(argc, argv);
         }
         catch (const SelfInputException&) {
-            return repl_main(argc, argv);
+            ; // fallback to repl mode
         }
+        return repl_main(argc, argv);
     }
 
     if (ARGS[0] == "-") {

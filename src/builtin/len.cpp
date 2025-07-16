@@ -49,8 +49,8 @@ static value_t strLength(const prim_value_t::Str& str) {
     return new prim_value_t{prim_value_t::Int(str.size())};
 }
 
-static value_t listLength(const prim_value_t::List&) {
-    TODO();
+static value_t listLength(const prim_value_t::List& list) {
+    return new prim_value_t{prim_value_t::Int(list.size())};
 }
 
 static value_t mapLength(const prim_value_t::Map&) {
