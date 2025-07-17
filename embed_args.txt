@@ -1,0 +1,28 @@
+./echo.elf
+  -> execute l'interp en mode REPL
+
+./echo.elf -
+./echo.elf srcfile
+  -> execute l'interp
+
+./echo.elf\ -i
+  -> execute l'interp en mode REPL (le -i est redondant)
+
+./echo.elf\ -i -
+./echo.elf\ -i srcfile
+  -> execute l'interp en mode interactive
+
+---
+
+./echo.elf --
+  -> execute l'embed (echo.ml)
+
+./echo.elf -- <arg(s)>
+  -> execute l'embed
+
+./echo.elf\ -i --
+  -> execute l'embed en mode interactive
+     (pas l'interp)
+
+./echo.elf\ -i -- <arg(s)>
+  -> execute l'embed en mode interactive

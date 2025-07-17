@@ -27,6 +27,7 @@ class EmbedException{};
 int main(int argc, char* argv[])
 {
     if (auto options = second(split_in_two(argv[0], " -"))) {
+        // to force interactive mode, even in non-REPL mode
         if (options->contains("i") && !args_contain(argc, argv, "--")) {
             INTERACTIVE_MODE = true;
         }
@@ -39,14 +40,8 @@ int main(int argc, char* argv[])
     /* delegate main based on execution mode */
 
     if (ARGS.size() == 0) {
-        if (INTERACTIVE_MODE) {
-            return repl_main(argc, argv);
-        }
-        try {
+        if (args_contain(argc, argv, "--")) {
             return embed_main(argc, argv);
-        }
-        catch (const EmbedException&) {
-            ; // fallback to repl mode
         }
         return repl_main(argc, argv);
     }

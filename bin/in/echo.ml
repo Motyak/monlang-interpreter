@@ -1,7 +1,8 @@
 "interactive mode enabled"
 
-print("args=" + $args)
-print("len(args)=" + len($args))
+print("$arg0=" + $arg0)
+print("$args=" + $args)
+print("len($args)=" + len($args))
 
 var tern (cond, if_true, if_false):{
     var res $nil
