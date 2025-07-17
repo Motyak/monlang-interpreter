@@ -20,14 +20,14 @@ static std::string STDIN_SRCNAME = env_or_default("STDIN_SRCNAME", "<stdin>");
 [[noreturn]] int repl_main(int argc, char* argv[]);
 int stdinput_main(int argc, char* argv[]);
 int fileinput_main(int argc, char* argv[]);
-int selfinput_main(int argc, char* argv[]);
+int embed_main(int argc, char* argv[]);
 
-class SelfInputException{};
+class EmbedException{};
 
 int main(int argc, char* argv[])
 {
     if (auto options = second(split_in_two(argv[0], " -"))) {
-        if (options->contains("i")) {
+        if (options->contains("i") && !args_contain(argc, argv, "--")) {
             INTERACTIVE_MODE = true;
         }
     }
@@ -43,9 +43,9 @@ int main(int argc, char* argv[])
             return repl_main(argc, argv);
         }
         try {
-            return selfinput_main(argc, argv);
+            return embed_main(argc, argv);
         }
-        catch (const SelfInputException&) {
+        catch (const EmbedException&) {
             ; // fallback to repl mode
         }
         return repl_main(argc, argv);
@@ -165,28 +165,28 @@ int fileinput_main(int argc, char* argv[]) {
     return 0;
 }
 
-int selfinput_main(int argc, char* argv[]) {
+int embed_main(int argc, char* argv[]) {
     (void)argc;
-    const auto self_file = argv[0];
+    const auto elf_file = argv[0];
 
-    char magic_sig[7];
-    uint32_t src_size;
+    char magic_sig[7] = {};
+    uint32_t src_size = uint32_t(-1);
     char* src = nullptr;
 
-    auto ifs = std::ifstream(self_file, std::ios::binary);
-    unless (ifs.is_open()) throw SelfInputException(); // could be permissions issue, ..
+    auto ifs = std::ifstream(elf_file, std::ios::binary);
+    unless (ifs.is_open()) throw EmbedException(); // could be permissions issue, ..
     ifs.seekg(-(sizeof(magic_sig) + sizeof(src_size)), std::ios::end);
-    unless (!ifs.fail()) throw SelfInputException(); // file is too short to conform
+    unless (!ifs.fail()) throw EmbedException(); // file is too short to conform
     ifs.read(magic_sig, sizeof(magic_sig));
-    unless (ifs.gcount() == sizeof(magic_sig)) throw SelfInputException(); // failed to read file (magic_sig)
-    unless (std::strncmp("monlang", magic_sig, sizeof(magic_sig)/sizeof(magic_sig[0])) == 0) throw SelfInputException(); // no magic sig
+    unless (std::strncmp("monlang", magic_sig, sizeof(magic_sig)/sizeof(magic_sig[0])) == 0) throw EmbedException(); // no magic sig
     ifs.read((char*)&src_size, sizeof(src_size));
-    unless (ifs.gcount() == sizeof(src_size)) throw SelfInputException(); // failed to read file (src_size)
+    unless (ifs.gcount() == sizeof(src_size)) throw EmbedException(); // failed to read file (src_size)
+    unless (src_size < (/*1MB*/ 1 << 20)) throw EmbedException(); // src_size is too big (protection against big malloc)
     ifs.seekg(-(src_size + sizeof(magic_sig) + sizeof(src_size)), std::ios::end);
-    unless (!ifs.fail()) throw SelfInputException(); // // incorrect src size
+    unless (!ifs.fail()) throw EmbedException(); // incorrect src size
     src = new char[src_size];
     ifs.read(src, src_size);
-    unless (ifs.gcount() == src_size) throw SelfInputException(); // failed to read file (src)
+    unless (ifs.gcount() == src_size) throw EmbedException(); // failed to read file (src)
 
     Program prog;
     Tokens tokens;

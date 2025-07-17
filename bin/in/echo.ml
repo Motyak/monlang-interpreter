@@ -1,3 +1,7 @@
+"interactive mode enabled"
+
+print("args=" + $args)
+print("len(args)=" + len($args))
 
 var tern (cond, if_true, if_false):{
     var res $nil
@@ -14,7 +18,7 @@ until := (cond, do):{
     }
 }
 
-```
+_ := ```
     this function slightly differs from builtin stdin()
     in that the last trailing newline isn't part of the input,
     and there is no way to know whether the last getline line
