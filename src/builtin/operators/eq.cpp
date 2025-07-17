@@ -32,32 +32,34 @@ const value_t builtin::op::eq __attribute__((init_priority(3000))) = new prim_va
         bool first_it = true;
         for (auto arg: args) {
             auto argVal = evaluateValue(arg.expr, arg.env);
-            if (is_nil(argVal)) {
-                throw InterpretError("==() arg is $nil");
-            }
 
             /* compare with lhs (arg from last iteration) */
             if (!first_it) {
-                if (lhsVal.index() != argVal.index()) {
-                    TODO();
+                if (is_nil(argVal)) {
+                    res &= is_nil(lhsVal);
                 }
-                std::visit(overload{
-                    [argVal, &res](prim_value_t* lhsPrimValPtr){
-                        res &= comparePrimValPtr(lhsPrimValPtr, std::get<prim_value_t*>(argVal));
-                    },
-                    [](type_value_t*){
+                else {
+                    if (lhsVal.index() != argVal.index()) {
                         TODO();
-                    },
-                    [](struct_value_t*){
-                        TODO();
-                    },
-                    [](enum_value_t*){
-                        TODO();
-                    },
-                    [](char*){
-                        SHOULD_NOT_HAPPEN();
-                    },
-                }, lhsVal);
+                    }
+                    std::visit(overload{
+                        [argVal, &res](prim_value_t* lhsPrimValPtr){
+                            res &= comparePrimValPtr(lhsPrimValPtr, std::get<prim_value_t*>(argVal));
+                        },
+                        [](type_value_t*){
+                            TODO();
+                        },
+                        [](struct_value_t*){
+                            TODO();
+                        },
+                        [](enum_value_t*){
+                            TODO();
+                        },
+                        [](char*){
+                            SHOULD_NOT_HAPPEN();
+                        },
+                    }, lhsVal);
+                }
             }
 
             if (res == false) {

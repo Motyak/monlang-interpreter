@@ -29,17 +29,17 @@ static prim_value_t::Bool to_bool(const enum_value_t&);
 
 prim_value_t::Bool builtin::prim_ctor::Bool_(const value_t& val) {
     return std::visit(overload{
-        [](prim_value_t* primVal) -> prim_value_t::Bool {
-            if (primVal == nullptr) {
+        [](auto* val) -> prim_value_t::Bool {
+            if (val == nullptr) {
                 #ifdef TOGGLE_NIL_CAST_TO_BOOL
                 return false;
                 #endif
                 throw InterpretError("Bool() arg cannot be $nil"
                         " (TOGGLE_NIL_CAST_TO_BOOL macro wasn't provided)");
             }
-            return to_bool(*primVal);
+            return to_bool(*val);
         },
-        [](auto*) -> prim_value_t::Bool {SHOULD_NOT_HAPPEN();}, // TODO: tmp
+        [](char*) -> prim_value_t::Bool {SHOULD_NOT_HAPPEN();},
     }, val);
 }
 

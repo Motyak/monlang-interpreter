@@ -9,6 +9,9 @@
 #include <utils/str-utils.h>
 #include <utils/vec-utils.h>
 #include <utils/env-utils.h>
+#include <utils/args-utils.h>
+
+#include <cstring>
 
 #define unless(x) if(!(x))
 
@@ -17,22 +20,38 @@ static std::string STDIN_SRCNAME = env_or_default("STDIN_SRCNAME", "<stdin>");
 [[noreturn]] int repl_main(int argc, char* argv[]);
 int stdinput_main(int argc, char* argv[]);
 int fileinput_main(int argc, char* argv[]);
+int embed_main(int argc, char* argv[]);
+
+class EmbedException{};
 
 int main(int argc, char* argv[])
 {
     if (auto options = second(split_in_two(argv[0], " -"))) {
-        if (options->contains("i")) {
+        if (options->contains("i") && !args_contain(argc, argv, "--")) {
             INTERACTIVE_MODE = true;
         }
     }
 
+    ARG0 = argv[0];
+    auto ARGS = split_args_in_two(argc, argv, "--").first;
+    SRC_ARGS = split_args_in_two(argc, argv, "--").second;
+
     /* delegate main based on execution mode */
 
-    if (argc == 1) {
+    if (ARGS.size() == 0) {
+        if (INTERACTIVE_MODE) {
+            return repl_main(argc, argv);
+        }
+        try {
+            return embed_main(argc, argv);
+        }
+        catch (const EmbedException&) {
+            ; // fallback to repl mode
+        }
         return repl_main(argc, argv);
     }
 
-    if (*argv[1] == '-') {
+    if (ARGS[0] == "-") {
         return stdinput_main(argc, argv);
     }
 
@@ -53,6 +72,7 @@ int repl_main(int argc, char* argv[]) {
     INTERACTIVE_MODE = true;
 
     Read:
+    std::cerr << "> " << std::flush; // prompt
     auto text = slurp_stdin(/*repeatable*/true);
 
     Eval:
@@ -62,10 +82,12 @@ int repl_main(int argc, char* argv[]) {
         prog = parse(text); // we don't reconstruct tokens in REPL
     }
     catch (const ParseError&) {
+        std::cerr << "---" << std::endl; // end of input
         std::cerr << "Parsing error" << std::endl;
         goto Read;
     }
     try {
+        std::cerr << "---" << std::endl; // end of input
         for (auto stmt: prog.statements) {
             performStatement(stmt, &env);
         }
@@ -137,6 +159,50 @@ int fileinput_main(int argc, char* argv[]) {
     catch (const InterpretError& e) {
         std::cerr << "Runtime error: " << e.what() << "\n";
         reportCallStack(e.callStack, tokens, filename);
+        return 101;
+    }
+
+    return 0;
+}
+
+int embed_main(int argc, char* argv[]) {
+    (void)argc;
+    const auto elf_file = argv[0];
+
+    char magic_sig[7] = {};
+    uint32_t src_size = uint32_t(-1);
+    char* src = nullptr;
+
+    auto ifs = std::ifstream(elf_file, std::ios::binary);
+    unless (ifs.is_open()) throw EmbedException(); // could be permissions issue, ..
+    ifs.seekg(-(sizeof(magic_sig) + sizeof(src_size)), std::ios::end);
+    unless (!ifs.fail()) throw EmbedException(); // file is too short to conform
+    ifs.read(magic_sig, sizeof(magic_sig));
+    unless (std::strncmp("monlang", magic_sig, sizeof(magic_sig)/sizeof(magic_sig[0])) == 0) throw EmbedException(); // no magic sig
+    ifs.read((char*)&src_size, sizeof(src_size));
+    unless (ifs.gcount() == sizeof(src_size)) throw EmbedException(); // failed to read file (src_size)
+    unless (src_size < (/*1MB*/ 1 << 20)) throw EmbedException(); // src_size is too big (protection against big malloc)
+    ifs.seekg(-(src_size + sizeof(magic_sig) + sizeof(src_size)), std::ios::end);
+    unless (!ifs.fail()) throw EmbedException(); // incorrect src size
+    src = new char[src_size];
+    ifs.read(src, src_size);
+    unless (ifs.gcount() == src_size) throw EmbedException(); // failed to read file (src)
+
+    Program prog;
+    Tokens tokens;
+    try {
+        prog = parse(src, &tokens);
+    }
+    catch (const ParseError&) {
+        std::cerr << "Parsing error" << std::endl;
+        return 102;
+    }
+    try {
+        interpretProgram(prog);
+    }
+    catch (const InterpretError& e) {
+        std::cerr << "Runtime error: " << e.what() << "\n";
+        reportCallStack(e.callStack, tokens);
         return 101;
     }
 

@@ -15,9 +15,13 @@
 
 #define unless(x) if(!(x))
 
-thread_local bool INTERACTIVE_MODE = false;
-thread_local bool top_level_stmt = true;
+/* set by a "main.cpp", otherwise default values */
+std::string ARG0;
+std::vector<std::string> SRC_ARGS;
+bool INTERACTIVE_MODE = false;
+
 thread_local std::vector<Expression> activeCallStack;
+static bool top_level_stmt = true;
 
 using Int = prim_value_t::Int;
 using Byte = prim_value_t::Byte;
@@ -554,7 +558,18 @@ value_t evaluateValue(const MapLiteral&, const Environment*) {
     TODO();
 }
 
+static value_t init_ARGS() {
+    std::vector<value_t> strs;
+    for (auto arg: SRC_ARGS) {
+        strs.push_back(new prim_value_t{Str(arg)});
+    }
+    return new prim_value_t{List(strs)};
+}
+
 value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env) {
+    static const value_t ARG0 = new prim_value_t{Str(::ARG0)};
+    static const value_t ARGS = init_ARGS();
+
     if (specialSymbol.name == "$nil") {
         return nil_value_t();
     }
@@ -565,6 +580,14 @@ value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env
 
     if (specialSymbol.name == "$false") {
         return BoolConst::FALSE;
+    }
+
+    if (specialSymbol.name == "$arg0") {
+        return ARG0;
+    }
+
+    if (specialSymbol.name == "$args") {
+        return ARGS;
     }
 
     if (!env->contains(specialSymbol.name)) {
