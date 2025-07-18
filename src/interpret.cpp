@@ -699,7 +699,9 @@ value_t evaluateValue(const Symbol& symbol, Environment* env) {
             },
             [](Environment::PassByRef ref) -> value_t {return ref.value();},
 
-            [](Environment::VariadicArguments) -> value_t {SHOULD_NOT_HAPPEN();},
+            [](Environment::VariadicArguments) -> value_t {
+                throw InterpretError("Cannot refer to variadic arguments as symbol");
+            },
         }, symbolVal);
     }
     else if (BUILTIN_TABLE.contains(symbol.name)) {
@@ -803,7 +805,9 @@ value_t* evaluateLvalue(const Symbol& symbol, Environment* env) {
         */
         [](Environment::ConstValue /*or LabelToConst*/) -> value_t* {SHOULD_NOT_HAPPEN();},
         [](Environment::LabelToNonConst) -> value_t* {SHOULD_NOT_HAPPEN();},
-        [](Environment::VariadicArguments) -> value_t* {SHOULD_NOT_HAPPEN();},
+        [](Environment::VariadicArguments) -> value_t* {
+            throw InterpretError("Cannot refer to variadic arguments as symbol");
+        },
     }, symbolVal);
 
 }
