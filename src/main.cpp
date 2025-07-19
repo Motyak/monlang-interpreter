@@ -41,7 +41,12 @@ int main(int argc, char* argv[])
 
     if (ARGS.size() == 0) {
         if (args_contain(argc, argv, "--")) {
-            return embed_main(argc, argv);
+            try {
+                return embed_main(argc, argv);
+            }
+            catch (const EmbedException&) {
+                ; // fallback to REPL mode
+            }
         }
         return repl_main(argc, argv);
     }
