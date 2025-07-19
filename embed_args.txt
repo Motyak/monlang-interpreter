@@ -5,9 +5,6 @@
 ./echo.elf srcfile
   -> execute l'interp
 
-./echo.elf\ -i
-  -> execute l'interp en mode REPL (le -i est redondant)
-
 ./echo.elf\ -i -
 ./echo.elf\ -i srcfile
   -> execute l'interp en mode interactive
@@ -20,15 +17,11 @@
 ./echo.elf -- <arg(s)>
   -> execute l'embed
 
-./echo.elf\ -i --
-  -> execute l'embed en mode interactive
-     (pas l'interp)
-
 ./echo.elf\ -i -- <arg(s)>
-  -> execute l'embed en mode interactive
-
+  -> execute l'interp en mode REPL (présence du -i)
+     (utile pour passer des arguments en mode REPL)
 ---
 
 ./interp.elf -- <arg(s)>
-  -> fallback sur le mode REPL (utile pour passer des arguments en mode REPL)
+  -> fallback sur le mode REPL
      (requiert le ELF original, ne fonctionne pas sur un ELF embeddé)

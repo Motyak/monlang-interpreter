@@ -28,7 +28,7 @@ int main(int argc, char* argv[])
 {
     if (auto options = second(split_in_two(argv[0], " -"))) {
         // to force interactive mode, even in non-REPL mode
-        if (options->contains("i") && !args_contain(argc, argv, "--")) {
+        if (options->contains("i")) {
             INTERACTIVE_MODE = true;
         }
     }
@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
     /* delegate main based on execution mode */
 
     if (ARGS.size() == 0) {
-        if (args_contain(argc, argv, "--")) {
+        if (args_contain(argc, argv, "--") && !INTERACTIVE_MODE) {
             try {
                 return embed_main(argc, argv);
             }
