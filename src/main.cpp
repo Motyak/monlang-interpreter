@@ -15,7 +15,7 @@
 
 #define unless(x) if(!(x))
 
-static std::string STDIN_SRCNAME = env_or_default("STDIN_SRCNAME", "<stdin>");
+static auto SRCNAME = env_get("SRCNAME"); // to override src name in traceback report
 
 [[noreturn]] int repl_main(int argc, char* argv[]);
 int stdinput_main(int argc, char* argv[]);
@@ -126,7 +126,7 @@ int stdinput_main(int argc, char* argv[]) {
     }
     catch (const InterpretError& e) {
         std::cerr << "Runtime error: " << e.what() << "\n";
-        reportCallStack(e.callStack, tokens, STDIN_SRCNAME);
+        reportCallStack(e.callStack, tokens, SRCNAME.value_or("<stdin>"));
         return 101;
     }
 
@@ -159,7 +159,7 @@ int fileinput_main(int argc, char* argv[]) {
     }
     catch (const InterpretError& e) {
         std::cerr << "Runtime error: " << e.what() << "\n";
-        reportCallStack(e.callStack, tokens, filename);
+        reportCallStack(e.callStack, tokens, SRCNAME.value_or(filename));
         return 101;
     }
 
