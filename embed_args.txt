@@ -26,3 +26,9 @@
 
 ./echo.elf\ -i -- <arg(s)>
   -> execute l'embed en mode interactive
+
+---
+
+./interp.elf -- <arg(s)>
+  -> fallback sur le mode REPL (utile pour passer des arguments en mode REPL)
+     (requiert le ELF original, ne fonctionne pas sur un ELF embeddé)
