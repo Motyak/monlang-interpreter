@@ -8,17 +8,18 @@
 #include <utils/variant-utils.h>
 #include <utils/loop-utils.h>
 #include <utils/assert-utils.h>
+#include <utils/str-utils.h>
 
 #include <iostream>
 #include <iomanip>
 #include <vector>
 #include <limits>
 
-static void print(const value_t&, std::ostream& = std::cout);
-static void print(const prim_value_t&, std::ostream& = std::cout);
-static void print(const type_value_t&, std::ostream& = std::cout);
-static void print(const struct_value_t&, std::ostream& = std::cout);
-static void print(const enum_value_t&, std::ostream& = std::cout);
+static void print(const value_t&, std::ostream& = std::cout, bool shouldQuot = false);
+static void print(const prim_value_t&, std::ostream&, bool shouldQuot);
+static void print(const type_value_t&, std::ostream&);
+static void print(const struct_value_t&, std::ostream&);
+static void print(const enum_value_t&, std::ostream&);
 
 const value_t builtin::print __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     IntConst::ZERO,
@@ -36,35 +37,57 @@ const value_t builtin::print __attribute__((init_priority(3000))) = new prim_val
     }
 }};
 
-static void print(const value_t& val, std::ostream& out) {
+static void print(const value_t& val, std::ostream& out, bool shouldQuot) {
+    if (is_nil(val)) {
+        out << "$nil";
+        return;
+    }
     std::visit(overload{
-        [&out](auto* val){
-            if (val == nullptr){
-                out << "$nil";
-            }
-            else {
-                print(*val, out);
-            }
+        [&out, shouldQuot](prim_value_t* val){
+            print(*val, out, shouldQuot);
+        },
+        [&out](type_value_t* val){
+            print(*val, out);
+        },
+        [&out](struct_value_t* val){
+            print(*val, out);
+        },
+        [&out](enum_value_t* val){
+            print(*val, out);
         },
         [](char*){SHOULD_NOT_HAPPEN();},
     }, val);
 }
 
-static void print(const prim_value_t& primVal, std::ostream& out) {
+static std::string quote_str(const std::string& str) {
+    return "\"" +
+    escape_newlines(
+        escape_double_quotes(
+            escape_antislashes(str)
+        )
+    )
+    + "\"";
+}
+
+static void print(const prim_value_t& primVal, std::ostream& out, bool shouldQuot) {
     std::visit(overload{
-        [&out](prim_value_t::Byte byte){out << (unsigned)byte;},
+        [&out](prim_value_t::Byte byte){out << (int)byte;},
         [&out](prim_value_t::Bool bool_){out << (bool_ == true? "$true" : "$false");},
         [&out](prim_value_t::Int int_){out << int_;},
         [&out](prim_value_t::Float float_){out << std::setprecision(std::numeric_limits<double>::digits10) << float_;},
-        [&out](const prim_value_t::Char& char_){out << char_;},
-        [&out](const prim_value_t::Str& str){out << str;},
+        [&out, shouldQuot](const prim_value_t::Char& char_){
+            shouldQuot? out << (int)(unsigned char)char_ : out << char_;
+        },
+        [&out, shouldQuot](const prim_value_t::Str& str){
+            shouldQuot? out << quote_str(str) : out << str;
+        },
         [&out](const prim_value_t::List& list){
             out << "[";
             LOOP for (auto val: list) {
                 if (!__first_it) {
                     out << ", ";
                 }
-                print(val, out);
+                print(val, out, /*shouldQuot*/true);
                 ENDLOOP
             }
             out << "]";
@@ -75,9 +98,9 @@ static void print(const prim_value_t& primVal, std::ostream& out) {
                 if (!__first_it) {
                     out << ", ";
                 }
-                print(key, out);
+                print(val, out, /*shouldQuot*/true);
                 out << ":";
-                print(val, out);
+                print(val, out, /*shouldQuot*/true);
                 ENDLOOP
             }
             out << "]";
@@ -110,7 +133,7 @@ static void print(const enum_value_t& enum_val, std::ostream& out) {
     out << ")";
 }
 
-value_t builtin::print_(const std::vector<value_t>& varargs, std::ostream& out) {
+void builtin::print_(const std::vector<value_t>& varargs, std::ostream& out) {
     LOOP for (auto arg: varargs) {
         if (!__first_it) {
             out << " ";
@@ -119,5 +142,4 @@ value_t builtin::print_(const std::vector<value_t>& varargs, std::ostream& out) 
         ENDLOOP
     }
     out << "\n";
-    return nil_value_t();
 };

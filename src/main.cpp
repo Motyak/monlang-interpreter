@@ -171,11 +171,9 @@ int embed_main(int argc, char* argv[]) {
     auto ifs = std::ifstream(elf_file, std::ios::binary);
     unless (ifs.is_open()) throw EmbedException(); // could be permissions issue, ..
     ifs.seekg(-(sizeof(magic_sig) + sizeof(src_size)), std::ios::end);
-    unless (!ifs.fail()) throw EmbedException(); // file is too short to conform
     ifs.read(magic_sig, sizeof(magic_sig));
     unless (std::strncmp("monlang", magic_sig, sizeof(magic_sig)/sizeof(magic_sig[0])) == 0) throw EmbedException(); // no magic sig
     ifs.read((char*)&src_size, sizeof(src_size));
-    unless (ifs.gcount() == sizeof(src_size)) throw EmbedException(); // failed to read file (src_size)
     unless (src_size < (/*1MB*/ 1 << 20)) throw EmbedException(); // src_size is too big (protection against big malloc)
     ifs.seekg(-(src_size + sizeof(magic_sig) + sizeof(src_size)), std::ios::end);
     unless (!ifs.fail()) throw EmbedException(); // incorrect src size

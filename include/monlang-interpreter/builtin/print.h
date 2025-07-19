@@ -9,7 +9,7 @@ namespace builtin {
     extern const value_t print;
 
     // for internal use, not part of the builtin table
-    value_t print_(const std::vector<value_t>& varargs, std::ostream& = std::cout);
+    void print_(const std::vector<value_t>& varargs, std::ostream& = std::cout);
 }
 
 #endif // BUILTIN_PRINT_H
