@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
     /* delegate main based on execution mode */
 
     if (ARGS.size() == 0) {
-        if (args_contain(argc, argv, "--") && !INTERACTIVE_MODE) {
+        if (args_contain(argc, argv, "--")) {
             try {
                 return embed_main(argc, argv);
             }

@@ -17,11 +17,14 @@
 ./echo.elf -- <arg(s)>
   -> execute l'embed
 
+./echo.elf\ -i --
+  -> execute l'embed en mode interactive
+
 ./echo.elf\ -i -- <arg(s)>
-  -> execute l'interp en mode REPL (présence du -i)
-     (utile pour passer des arguments en mode REPL)
+  -> execute l'embed en mode interactive
+
 ---
 
 ./interp.elf -- <arg(s)>
-  -> fallback sur le mode REPL
-     (requiert le ELF original, ne fonctionne pas sur un ELF embeddé)
+  -> fallback sur le mode REPL (utile pour passer des arguments en mode REPL)
+    -> requiert le ELF original, ne fonctionne pas sur un ELF embeddé
