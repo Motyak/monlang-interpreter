@@ -431,28 +431,21 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                 auto nthVal = evaluateValue(variant_cast(index.nth), env);
                 auto intVal = builtin::prim_ctor::Int_(nthVal);
 
-                if (intVal == 0 || abs(intVal) > str.size()) {
-                    throw InterpretError("Subscript index is out of bounds");
-                }
+                unless (intVal != 0) throw InterpretError("Subscript index is zero");
+                unless (abs(intVal) <= str.size()) throw InterpretError("Subscript index is out of bounds");
                 auto pos = intVal < 0? str.size() - abs(intVal) : size_t(intVal) - 1;
                 return new prim_value_t{Char(str.at(pos))};
             }
 
             else if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
                 auto range = std::get<Subscript::Range>(subscript.argument);
-
                 auto fromVal = evaluateValue(variant_cast(range.from), env);
                 auto intFromVal = builtin::prim_ctor::Int_(fromVal);
-
                 auto toVal = evaluateValue(variant_cast(range.to), env);
                 auto intToVal = builtin::prim_ctor::Int_(toVal);
 
-                unless (intFromVal != 0) {
-                    throw InterpretError("Subscript range 'from' is zero");
-                }
-                unless (intToVal != 0) {
-                    throw InterpretError("Subscript range 'to' is zero");
-                }
+                unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
+                unless (intToVal != 0) throw InterpretError("Subscript range 'to' is zero");
 
                 Int fromPos = intFromVal < 0? Int(str.size()) - abs(intFromVal) : intFromVal - 1;
                 Int toPos = intToVal < 0? Int(str.size()) - abs(intToVal) : intToVal - 1;
@@ -460,19 +453,57 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                     toPos -= fromPos <= toPos? 1 : -1;
                 }
 
-                unless (fromPos < Int(str.size())) {
-                    throw InterpretError("Subscript range 'from' is out of bounds");
-                }
-                unless (toPos < Int(str.size())) {
-                    throw InterpretError("Subscript range 'to' is out of bounds");
-                }
+                unless (fromPos < Int(str.size())) throw InterpretError("Subscript range 'from' is out of bounds");
+                unless (toPos < Int(str.size())) throw InterpretError("Subscript range 'to' is out of bounds");
 
                 return new prim_value_t{str.substr(fromPos, toPos - fromPos + 1)};
             }
 
             else SHOULD_NOT_HAPPEN();
         },
-        [](const List&) -> value_t {TODO();},
+
+        [&subscript, env](const List& list) -> value_t {
+            if (std::holds_alternative<Subscript::Key>(subscript.argument)) {
+                throw InterpretError("Subscripting a List with a key");
+            }
+
+            else if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
+                auto index = std::get<Subscript::Index>(subscript.argument);
+                auto nthVal = evaluateValue(variant_cast(index.nth), env);
+                auto intVal = builtin::prim_ctor::Int_(nthVal);
+
+                unless (intVal != 0) throw InterpretError("Subscript index is zero");
+                unless (abs(intVal) <= list.size()) throw InterpretError("Subscript index is out of bounds");
+                auto pos = intVal < 0? list.size() - abs(intVal) : size_t(intVal) - 1;
+                return list.at(pos);
+            }
+
+            else if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
+                auto range = std::get<Subscript::Range>(subscript.argument);
+                auto fromVal = evaluateValue(variant_cast(range.from), env);
+                auto intFromVal = builtin::prim_ctor::Int_(fromVal);
+                auto toVal = evaluateValue(variant_cast(range.to), env);
+                auto intToVal = builtin::prim_ctor::Int_(toVal);
+
+                unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
+                unless (intToVal != 0) throw InterpretError("Subscript range 'to' is zero");
+
+                Int fromPos = intFromVal < 0? Int(list.size()) - abs(intFromVal) : intFromVal - 1;
+                Int toPos = intToVal < 0? Int(list.size()) - abs(intToVal) : intToVal - 1;
+                if (range.exclusive) {
+                    toPos -= fromPos <= toPos? 1 : -1;
+                }
+
+                unless (fromPos < Int(list.size())) throw InterpretError("Subscript range 'from' is out of bounds");
+                unless (toPos < Int(list.size())) throw InterpretError("Subscript range 'to' is out of bounds");
+
+                auto res = std::vector<value_t>(list.begin() + fromPos, list.begin() + + toPos + 1);
+                return new prim_value_t{List(res)};
+            }
+
+            else SHOULD_NOT_HAPPEN();
+        },
+
         [](const Map&) -> value_t {TODO();},
 
         [](Byte) -> value_t {throw InterpretError("Cannot subscript a Byte");},
@@ -495,9 +526,8 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
             auto nthVal = evaluateValue(variant_cast(index.nth), env);
             auto intVal = builtin::prim_ctor::Int_(nthVal);
 
-            unless (intVal != 0 && strVal.size() >= abs(intVal)) {
-                throw InterpretError("Subscript index is out of bounds");
-            }
+            unless (intVal != 0) throw InterpretError("Subscript index is zero");
+            unless (strVal.size() >= abs(intVal)) throw InterpretError("Subscript index is out of bounds");
             auto pos = intVal < 0? strVal.size() - abs(intVal) : size_t(intVal) - 1;
             return new prim_value_t{Char(strVal.at(pos))};
         }
@@ -511,12 +541,8 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
             auto toVal = evaluateValue(variant_cast(range.to), env);
             auto intToVal = builtin::prim_ctor::Int_(toVal);
 
-            unless (intFromVal != 0) {
-                throw InterpretError("Subscript range 'from' is zero");
-            }
-            unless (intToVal != 0) {
-                throw InterpretError("Subscript range 'to' is zero");
-            }
+            unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
+            unless (intToVal != 0) throw InterpretError("Subscript range 'to' is zero");
 
             Int fromPos = intFromVal < 0? Int(strVal.size()) - abs(intFromVal) : intFromVal - 1;
             Int toPos = intToVal < 0? Int(strVal.size()) - abs(intToVal) : intToVal - 1;
@@ -759,16 +785,32 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
                 auto nthVal = evaluateValue(variant_cast(index.nth), env);
                 auto intVal = builtin::prim_ctor::Int_(nthVal);
 
-                if (intVal == 0 || abs(intVal) > str.size()) {
-                    throw InterpretError("Subscript index is out of bounds");
-                }
+                unless (intVal != 0) throw InterpretError("Subscript index is zero");
+                unless (abs(intVal) <= str.size()) throw InterpretError("Subscript index is out of bounds");
                 auto pos = intVal < 0? str.size() - abs(intVal) : size_t(intVal) - 1;
 
                 return new value_t{&str[pos]};
             }
             else SHOULD_NOT_HAPPEN();
         },
-        [](List&) -> value_t* {TODO();},
+        [&subscript, env](List& list) -> value_t* {
+            if (std::holds_alternative<Subscript::Key>(subscript.argument)) {
+                throw InterpretError("Subscripting a List with a key");
+            }
+            else if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
+                auto index = std::get<Subscript::Index>(subscript.argument);
+                auto nthVal = evaluateValue(variant_cast(index.nth), env);
+                auto intVal = builtin::prim_ctor::Int_(nthVal);
+
+                unless (intVal != 0) throw InterpretError("Subscript index is zero");
+                unless (abs(intVal) <= list.size()) throw InterpretError("Subscript index is out of bounds");
+                auto pos = intVal < 0? list.size() - abs(intVal) : size_t(intVal) - 1;
+
+                return &list[pos];
+            }
+            else SHOULD_NOT_HAPPEN();
+        },
+
         [](Map&) -> value_t* {TODO();},
 
         [](Byte&) -> value_t* {throw InterpretError("Cannot subscript a Byte");},
