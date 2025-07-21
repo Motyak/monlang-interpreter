@@ -99,8 +99,6 @@ int repl_main(int argc, char* argv[]) {
         // we can't report the call stack because each new..
         // ..user prompt is interpreted as an individual program..
         // ..therefore we can't point to a previous prompt token
-
-        goto Read;
     }
 
     Loop: goto Read

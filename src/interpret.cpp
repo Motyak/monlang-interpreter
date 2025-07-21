@@ -194,7 +194,7 @@ void performStatement(const ExpressionStatement& exprStmt, Environment* env) {
     if (exprStmt.expression) {
         value = evaluateValue(*exprStmt.expression, env);
     }
-    if (INTERACTIVE_MODE && ::top_level_stmt) {
+    if (INTERACTIVE_MODE && top_level_stmt) {
         if (!is_nil(value)) {
             builtin::print_({value});
         }
@@ -359,9 +359,9 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 return nil_value_t();
             }
 
-            auto backup_top_level_stmt = ::top_level_stmt;
-            ::top_level_stmt = false;
-            defer {::top_level_stmt = backup_top_level_stmt;};
+            auto backup_top_level_stmt = top_level_stmt;
+            top_level_stmt = false;
+            defer {top_level_stmt = backup_top_level_stmt;};
 
             i = 0;
             for (; i < lambda.body.statements.size() - 1; ++i) {
@@ -383,9 +383,9 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
 }
 
 value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
-    auto backup_top_level_stmt = ::top_level_stmt;
-    ::top_level_stmt = false;
-    defer {::top_level_stmt = backup_top_level_stmt;};
+    auto backup_top_level_stmt = top_level_stmt;
+    top_level_stmt = false;
+    defer {top_level_stmt = backup_top_level_stmt;};
 
     if (blockExpr.statements.size() == 0) {
         return nil_value_t();
@@ -402,9 +402,7 @@ value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
         if (exprStmt.expression) {
             return evaluateValue(*exprStmt.expression, newEnv);
         }
-        else {
-            return nil_value_t();
-        }
+        return nil_value_t();
     }
     performStatement(blockExpr.statements.at(i), newEnv);
     return nil_value_t();
@@ -550,11 +548,17 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
     else SHOULD_NOT_HAPPEN(); // should throw an error here ?
 }
 
-value_t evaluateValue(const ListLiteral&, const Environment*) {
-    TODO();
+value_t evaluateValue(const ListLiteral& listLiteral, Environment* env) {
+    std::vector<value_t> res;
+    res.reserve(listLiteral.arguments.size());
+    for (auto arg: listLiteral.arguments) {
+        auto currArgVal = evaluateValue(arg, env);
+        res.push_back(currArgVal);
+    }
+    return new prim_value_t{List(res)};
 }
 
-value_t evaluateValue(const MapLiteral&, const Environment*) {
+value_t evaluateValue(const MapLiteral&, Environment*) {
     TODO();
 }
 

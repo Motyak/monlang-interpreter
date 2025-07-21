@@ -151,9 +151,15 @@ static value_t concatStr(const Str& firstArgValue, const Str& secondArgValue, co
 }
 
 static value_t concatList(const List& firstArgValue, const std::vector<FlattenArg>& args) {
-    TODO();
-    (void)firstArgValue;
-    (void)args;
+    std::vector<value_t> res = firstArgValue;
+
+    for (auto arg: args) {
+        auto argValue = evaluateValue(arg.expr, arg.env);
+        auto currList = builtin::prim_ctor::List_(argValue);
+        res.insert(res.end(), currList.begin(), currList.end());
+    }
+
+    return new prim_value_t{List(res)};
 }
 
 static value_t concatMap(const Map& firstArgValue, const std::vector<FlattenArg>& args) {

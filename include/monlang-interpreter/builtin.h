@@ -45,7 +45,7 @@ BUILTIN_TABLE __attribute__((init_priority(6000))) = {
     {"Float", builtin::prim_ctor::Float},
     {"Char", builtin::prim_ctor::Char},
     {"Str", builtin::prim_ctor::Str},
-    // {"List", builtin::prim_ctor::List},
+    {"List", builtin::prim_ctor::List},
     // {"Map", builtin::prim_ctor::Map},
     // {"Lambda", builtin::prim_ctor::Lambda},
 };

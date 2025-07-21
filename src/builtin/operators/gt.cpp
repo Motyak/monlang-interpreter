@@ -21,7 +21,8 @@ using Str = prim_value_t::Str;
 using List = prim_value_t::List;
 using Map = prim_value_t::Map;
 
-static bool comparePrimValPtr(prim_value_t*, prim_value_t*);
+static int compareValue(value_t, value_t);
+static int comparePrimValPtr(prim_value_t*, prim_value_t*);
 
 const value_t builtin::op::gt __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     IntConst::TWO,
@@ -38,26 +39,7 @@ const value_t builtin::op::gt __attribute__((init_priority(3000))) = new prim_va
 
             /* compare with lhs (arg from last iteration) */
             if (!first_it) {
-                if (lhsVal.index() != argVal.index()) {
-                    TODO();
-                }
-                std::visit(overload{
-                    [argVal, &res](prim_value_t* lhsPrimValPtr){
-                        res &= comparePrimValPtr(lhsPrimValPtr, std::get<prim_value_t*>(argVal));
-                    },
-                    [](type_value_t*){
-                        TODO();
-                    },
-                    [](struct_value_t*){
-                        TODO();
-                    },
-                    [](enum_value_t*){
-                        TODO();
-                    },
-                    [](char*){
-                        SHOULD_NOT_HAPPEN();
-                    },
-                }, lhsVal);
+                res &= compareValue(lhsVal, argVal) == 1;
             }
 
             if (res == false) {
@@ -72,36 +54,74 @@ const value_t builtin::op::gt __attribute__((init_priority(3000))) = new prim_va
     }
 }};
 
-static bool comparePrimValPtr(prim_value_t* primValPtr_lhs, prim_value_t* primValPtr_rhs) {
-    ASSERT (primValPtr_lhs != nullptr);
+static int compareValue(value_t lhsVal, value_t rhsVal) {
+    if (lhsVal.index() != rhsVal.index()) {
+        TODO();
+    }
     return std::visit(overload{
-        [primValPtr_rhs](Byte byte) -> bool {
-            return byte > builtin::prim_ctor::Byte_(primValPtr_rhs);
+        [rhsVal](prim_value_t* lhsPrimValPtr) -> int {
+            return comparePrimValPtr(lhsPrimValPtr, std::get<prim_value_t*>(rhsVal));
         },
-        [primValPtr_rhs](Bool bool_) -> bool {
-            return bool_ > builtin::prim_ctor::Bool_(primValPtr_rhs);
-        },
-        [primValPtr_rhs](Int int_) -> bool {
-            return int_ > builtin::prim_ctor::Int_(primValPtr_rhs);
-        },
-        [primValPtr_rhs](Float float_) -> bool {
-            return float_ > builtin::prim_ctor::Float_(primValPtr_rhs);
-        },
-        [primValPtr_rhs](Char char_) -> bool {
-            return char_ > builtin::prim_ctor::Char_(primValPtr_rhs);
-        },
-        [primValPtr_rhs](const Str& str) -> bool {
-            return str > builtin::prim_ctor::Str_(primValPtr_rhs);
-        },
-        [primValPtr_rhs](const List&) -> bool {
-            // return list > builtin::prim_ctor::List_(primValPtr_rhs);
+        [](type_value_t*) -> int {
             TODO();
         },
-        [primValPtr_rhs](const Map&) -> bool {
+        [](struct_value_t*) -> int {
+            TODO();
+        },
+        [](enum_value_t*) -> int {
+            TODO();
+        },
+        [](char*) -> int {
+            SHOULD_NOT_HAPPEN();
+        },
+    }, lhsVal);
+}
+
+static int comparePrimValPtr(prim_value_t* primValPtr_lhs, prim_value_t* primValPtr_rhs) {
+    ASSERT (primValPtr_lhs != nullptr);
+    return std::visit(overload{
+        [primValPtr_rhs](Byte byte) -> int {
+            auto rhsAsByte = builtin::prim_ctor::Byte_(primValPtr_rhs);
+            return byte < rhsAsByte? -1 : byte > rhsAsByte? 1 : 0;
+        },
+        [primValPtr_rhs](Bool bool_) -> int {
+            auto rhsAsBool = builtin::prim_ctor::Bool_(primValPtr_rhs);
+            return bool_ < rhsAsBool? -1 : bool_ > rhsAsBool? 1 : 0;
+        },
+        [primValPtr_rhs](Int int_) -> int {
+            auto rhsAsInt = builtin::prim_ctor::Int_(primValPtr_rhs);
+            return int_ < rhsAsInt? -1 : int_ > rhsAsInt? 1 : 0;
+        },
+        [primValPtr_rhs](Float float_) -> int {
+            auto rhsAsFloat = builtin::prim_ctor::Float_(primValPtr_rhs);
+            return float_ < rhsAsFloat? -1 : float_ > rhsAsFloat? 1 : 0;
+        },
+        [primValPtr_rhs](Char char_) -> int {
+            auto rhsAsChar = builtin::prim_ctor::Char_(primValPtr_rhs);
+            return char_ < rhsAsChar? -1 : char_ > rhsAsChar? 1 : 0;
+        },
+        [primValPtr_rhs](const Str& str) -> int {
+            auto rhsAsStr = builtin::prim_ctor::Str_(primValPtr_rhs);
+            return str < rhsAsStr? -1 : str > rhsAsStr? 1 : 0;
+        },
+        [primValPtr_rhs](const List& list) -> int {
+            auto rhsAsList = builtin::prim_ctor::List_(primValPtr_rhs);
+            if (list.size() != rhsAsList.size()) {
+                return list.size() < rhsAsList.size() ? -1 : 1;
+            }
+            for (size_t i = 0; i < list.size(); ++i) {
+                auto cmp = compareValue(list[i], rhsAsList[i]);
+                if (cmp != 0) {
+                    return cmp;
+                }
+            }
+            return 0;
+        },
+        [primValPtr_rhs](const Map&) -> int {
             // return map > builtin::prim_ctor::Map_(primValPtr_rhs);
             TODO();
         },
-        [primValPtr_rhs](const prim_value_t::Lambda&) -> bool {
+        [primValPtr_rhs](const prim_value_t::Lambda&) -> int {
             // return lambda > builtin::prim_ctor::Lambda_(primValPtr_rhs);
             TODO();
         },
