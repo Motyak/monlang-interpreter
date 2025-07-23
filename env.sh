@@ -1,13 +1,5 @@
 [ "${BASH_SOURCE[0]}" == "$0" ] && { >&2 echo "this script is meant to be sourced, not executed"; exit 1; }
 
-#alias make='make -j16 BUILD_LIBS_ONCE='
-#alias make='make -j16 TRACE=x BUILD_LIBS_ONCE='
-
-## custom build
-#alias make='make -j16 BUILD_LIBS_ONCE= DISABLE_WORDS=SBG DISABLE_POSTFIXES=PG_IN_PG'
-
-## uncomment below line if you intend to use an above alias instead of the `make` function
-#return 0
 function make {
     local MAKE="/usr/bin/make"
     local EXTRA_ARGS="-j16"
@@ -34,18 +26,34 @@ function make {
         ;;
     esac
 
-    local final_cmd=""
+    local build_cmd=""
     for target in $target_args; do
-        final_cmd="${final_cmd}${final_cmd:+ && }${make_prefix} $target"
+        build_cmd="${build_cmd}${build_cmd:+ && }${make_prefix} ${target}"
     done
+    local rm_cmd=""
+    if [ -n "$__REMAKE" ]; then
+        if [ -n "$build_cmd" ]; then
+            rm_cmd="rm -rf ${target_args}"
+        else
+            make_prefix="${make_prefix} -B"
+        fi
+    fi
+    local final_cmd="${rm_cmd}${rm_cmd:+; }${build_cmd}"
 
     echo eval \""${final_cmd:-$make_prefix}"\" #debug
+    if [ -n "$rm_cmd" ]; then
+        >&2 echo -n "proceed?(Y/n) >"
+        read confirm
+        [[ "$confirm" =~ n|N ]] && >&2 echo "aborted" && return
+    fi
     eval "${final_cmd:-$make_prefix}"
 }
+
+alias remake='__REMAKE=x make'
 
 # detect broken symbolic links
 find . -xtype l -exec echo 'WARN: Broken symlink: {}' \;
 
 ## add (back) make autocompletion for our new definition of make
 source tools/bash_completion_make # exports _make function
-complete -F _make make
+complete -F _make make remake
