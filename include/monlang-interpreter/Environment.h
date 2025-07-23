@@ -10,16 +10,12 @@
 
 struct Environment {
     using ConstValue = value_t;
-
     using Variable = value_t*;
-
-    using LabelToConst = ConstValue;
-    using LabelToNonConst = thunk_t<value_t>;
     using LabelToLvalue = thunk_t<value_t*>;
 
     // argument passed by delayed value (lazy pass by value)
     using PassByDelay_Variant = std::variant<
-        thunk_with_memoization_t<value_t>*,
+        thunk_with_memoization_t<value_t>*, // TODO: is ptr necessary here ?
         value_t* // once transformed
     >;
     using PassByDelay = PassByDelay_Variant*;
@@ -32,9 +28,8 @@ struct Environment {
 
     using SymbolName = std::string;
     using SymbolValue = std::variant<
-        ConstValue /*or LabelToConst*/,
+        ConstValue,
         Variable,
-        LabelToNonConst,
         LabelToLvalue,
         PassByDelay,
         PassByRef,

@@ -4,6 +4,7 @@
 
 #include <monlang-interpreter/InterpretError.h>
 #include <monlang-interpreter/builtin.h>
+#include <monlang-interpreter/deepcopy.h>
 
 #include <utils/assert-utils.h>
 #include <utils/variant-utils.h>
@@ -101,6 +102,7 @@ value_t* evaluateLvalue(const Lvalue& lvalue, Environment* env) {
 
 void performStatement(const Assignment& assignment, Environment* env) {
     auto new_value = evaluateValue(assignment.value, env);
+    new_value = deepcopy(new_value);
     if (std::holds_alternative<Symbol*>(assignment.variable.variant)
             && std::get<Symbol*>(assignment.variable.variant)->name == "_") {
         return;
@@ -157,6 +159,7 @@ void performStatement(const VarStatement& varStmt, Environment* env) {
     }
 
     auto value = evaluateValue(varStmt.value, env);
+    value = deepcopy(value);
     auto* var = new value_t(value);
     env->symbolTable[varStmt.variable.name] = Environment::Variable{var};
 }
@@ -214,6 +217,7 @@ value_t evaluateValue(const Operation& operation, Environment* env) {
     fnCallPtr->_tokenId = operation.operator_._tokenId;
 
     auto res = evaluateValue((Expression)fnCallPtr, env);
+    res = deepcopy(res);
 
     delete opPtr;
     delete fnCallPtr;
@@ -320,12 +324,16 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 else {
                     #ifdef TOGGLE_PASS_BY_VALUE
                     auto var = new value_t{evaluateValue(currArg.expr, currArg.env)}; // TODO: leak
+                    var = deepcopy(var);
                     parametersBinding[currParam.name] = Environment::Variable{var};
                     #else // lazy passing a.k.a pass by delayed
                     auto* thunkEnv = new Environment{*currArg.env};
                     auto* delayed = new thunk_with_memoization_t<value_t>{
                         [currArg, thunkEnv]() -> value_t {
-                            return evaluateValue(currArg.expr, thunkEnv);
+                            auto res = evaluateValue(currArg.expr, thunkEnv);
+                            res = deepcopy(res);
+                            return res;
+
                         }
                     };
                     parametersBinding[currParam.name] = new Environment::PassByDelay_Variant{delayed};
@@ -371,7 +379,9 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
             if (std::holds_alternative<ExpressionStatement*>(lambda.body.statements.at(i))) {
                 auto exprStmt = *std::get<ExpressionStatement*>(lambda.body.statements.at(i));
                 if (exprStmt.expression) {
-                    return evaluateValue(*exprStmt.expression, &lambdaEnv);
+                    auto res = evaluateValue(*exprStmt.expression, &lambdaEnv);
+                    res = deepcopy(res);
+                    return res;
                 }
                 return nil_value_t();
             }
@@ -400,7 +410,9 @@ value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
     if (std::holds_alternative<ExpressionStatement*>(blockExpr.statements.at(i))) {
         auto exprStmt = *std::get<ExpressionStatement*>(blockExpr.statements.at(i));
         if (exprStmt.expression) {
-            return evaluateValue(*exprStmt.expression, newEnv);
+            auto res = evaluateValue(*exprStmt.expression, newEnv);
+            res = deepcopy(res);
+            return res;
         }
         return nil_value_t();
     }
@@ -414,6 +426,7 @@ value_t evaluateValue(const FieldAccess&, const Environment*) {
 
 value_t evaluateValue(const Subscript& subscript, Environment* env) {
     auto arrVal = evaluateValue(subscript.array, env);
+    arrVal = deepcopy(arrVal);
     ASSERT (std::holds_alternative<prim_value_t*>(arrVal)); // TODO: tmp
     auto* arrPrimValPtr = std::get<prim_value_t*>(arrVal);
     if (arrPrimValPtr == nullptr) {
@@ -513,65 +526,6 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
         [](Char) -> value_t {throw InterpretError("Cannot subscript a Char");},
         [](const prim_value_t::Lambda&) -> value_t {throw InterpretError("Cannot subscript a Lambda");},
     }, arrPrimValPtr->variant);
-
-    if (std::holds_alternative<prim_value_t::Str>(arrPrimValPtr->variant)) {
-        auto strVal = std::get<prim_value_t::Str>(arrPrimValPtr->variant);
-
-        if (std::holds_alternative<Subscript::Key>(subscript.argument)) {
-            throw InterpretError("Subscripting a Str with a key");
-        }
-
-        else if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
-            auto index = std::get<Subscript::Index>(subscript.argument);
-            auto nthVal = evaluateValue(variant_cast(index.nth), env);
-            auto intVal = builtin::prim_ctor::Int_(nthVal);
-
-            unless (intVal != 0) throw InterpretError("Subscript index is zero");
-            unless (strVal.size() >= abs(intVal)) throw InterpretError("Subscript index is out of bounds");
-            auto pos = intVal < 0? strVal.size() - abs(intVal) : size_t(intVal) - 1;
-            return new prim_value_t{Char(strVal.at(pos))};
-        }
-
-        else if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
-            auto range = std::get<Subscript::Range>(subscript.argument);
-
-            auto fromVal = evaluateValue(variant_cast(range.from), env);
-            auto intFromVal = builtin::prim_ctor::Int_(fromVal);
-
-            auto toVal = evaluateValue(variant_cast(range.to), env);
-            auto intToVal = builtin::prim_ctor::Int_(toVal);
-
-            unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
-            unless (intToVal != 0) throw InterpretError("Subscript range 'to' is zero");
-
-            Int fromPos = intFromVal < 0? Int(strVal.size()) - abs(intFromVal) : intFromVal - 1;
-            Int toPos = intToVal < 0? Int(strVal.size()) - abs(intToVal) : intToVal - 1;
-            if (range.exclusive) {
-                toPos -= fromPos <= toPos? 1 : -1;
-            }
-
-            unless (fromPos < Int(strVal.size())) {
-                throw InterpretError("Subscript range 'from' is out of bounds");
-            }
-            unless (toPos < Int(strVal.size())) {
-                throw InterpretError("Subscript range 'to' is out of bounds");
-            }
-
-            return new prim_value_t{strVal.substr(fromPos, toPos - fromPos + 1)};
-        }
-
-        else SHOULD_NOT_HAPPEN();
-    }
-
-    else if (std::holds_alternative<prim_value_t::List>(arrPrimValPtr->variant)) {
-        TODO();
-    }
-
-    else if (std::holds_alternative<prim_value_t::Map>(arrPrimValPtr->variant)) {
-        TODO();
-    }
-
-    else SHOULD_NOT_HAPPEN(); // should throw an error here ?
 }
 
 value_t evaluateValue(const ListLiteral& listLiteral, Environment* env) {
@@ -628,8 +582,7 @@ value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env
     return std::visit(overload{
         [](Environment::ConstValue const_) -> value_t {return const_;},
         [](Environment::Variable) -> value_t {SHOULD_NOT_HAPPEN();},
-        [](Environment::LabelToNonConst) -> value_t {SHOULD_NOT_HAPPEN();},
-        [](Environment::LabelToLvalue /*or PassByRef*/) -> value_t {SHOULD_NOT_HAPPEN();},
+        [](Environment::LabelToLvalue) -> value_t {SHOULD_NOT_HAPPEN();},
         [](Environment::PassByDelay) -> value_t {SHOULD_NOT_HAPPEN();},
         [](Environment::PassByRef) -> value_t {SHOULD_NOT_HAPPEN();},
         [](Environment::VariadicArguments) -> value_t {SHOULD_NOT_HAPPEN();},
@@ -715,10 +668,9 @@ value_t evaluateValue(const Symbol& symbol, Environment* env) {
     if (env->contains(symbol.name)) {
         auto symbolVal = env->at(symbol.name);
         return std::visit(overload{
-            [](Environment::ConstValue /*or LabelToConst*/ const_) -> value_t {return const_;},
+            [](Environment::ConstValue) -> value_t {SHOULD_NOT_HAPPEN();}, // special symbols exclusively
             [](Environment::Variable var) -> value_t {return *var;},
-            [](Environment::LabelToNonConst label) -> value_t {return label();},
-            [](Environment::LabelToLvalue /*or PassByRef*/ label_ref) -> value_t {return *label_ref();},
+            [](Environment::LabelToLvalue label_ref) -> value_t {return *label_ref();},
             [](Environment::PassByDelay delayed) -> value_t {
                 if (std::holds_alternative<value_t*>(*delayed)) {
                     auto variable = std::get<value_t*>(*delayed);
@@ -835,7 +787,7 @@ value_t* evaluateLvalue(const Symbol& symbol, Environment* env) {
     auto symbolVal = env->at(symbol.name);
     return std::visit(overload{
         [](Environment::Variable var) -> value_t* {return var;},
-        [](Environment::LabelToLvalue& /*or PassByRef*/ var) -> value_t* {return var();},
+        [](Environment::LabelToLvalue& label_ref) -> value_t* {return label_ref();},
         [](Environment::PassByDelay passByDelay) -> value_t* {
             if (!std::holds_alternative<value_t*>(*passByDelay)) {
                 *passByDelay = new value_t(); // transform it
@@ -849,8 +801,7 @@ value_t* evaluateLvalue(const Symbol& symbol, Environment* env) {
               -> when non-lvalue is passed by ref, or assigned a value
                 -> at this time, we can't trigger it, we need the let stmt
         */
-        [](Environment::ConstValue /*or LabelToConst*/) -> value_t* {SHOULD_NOT_HAPPEN();},
-        [](Environment::LabelToNonConst) -> value_t* {SHOULD_NOT_HAPPEN();},
+        [](Environment::ConstValue) -> value_t* {SHOULD_NOT_HAPPEN();},
         [](Environment::VariadicArguments) -> value_t* {
             throw InterpretError("Cannot refer to variadic arguments as symbol");
         },
