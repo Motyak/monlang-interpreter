@@ -298,6 +298,10 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 ::activeCallStack.push_back(const_cast<LV2::Lambda*>(&lambda));
                 throw WrongNbOfArgsError(lambda.parameters, flattenArgs);
             }
+            if (lambda.variadicParameters && flattenArgs.size() < lambda.parameters.size()) {
+                ::activeCallStack.push_back(const_cast<LV2::Lambda*>(&lambda));
+                throw WrongNbOfArgsError(lambda.parameters, flattenArgs);
+            }
             
             size_t i = 0;
 
