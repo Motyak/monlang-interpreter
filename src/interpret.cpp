@@ -586,10 +586,10 @@ value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env
     return std::visit(overload{
         [](Environment::ConstValue const_) -> value_t {return const_;},
         [](Environment::Variable) -> value_t {SHOULD_NOT_HAPPEN();},
-        [](Environment::LabelToLvalue) -> value_t {SHOULD_NOT_HAPPEN();},
+        [](Environment::LabelToLvalue&) -> value_t {SHOULD_NOT_HAPPEN();},
         [](Environment::PassByDelay) -> value_t {SHOULD_NOT_HAPPEN();},
         [](Environment::PassByRef) -> value_t {SHOULD_NOT_HAPPEN();},
-        [](Environment::VariadicArguments) -> value_t {SHOULD_NOT_HAPPEN();},
+        [](const Environment::VariadicArguments&) -> value_t {SHOULD_NOT_HAPPEN();},
     }, specialSymbolVal);
 }
 
@@ -674,18 +674,23 @@ value_t evaluateValue(const Symbol& symbol, Environment* env) {
         return std::visit(overload{
             [](Environment::ConstValue) -> value_t {SHOULD_NOT_HAPPEN();}, // special symbols exclusively
             [](Environment::Variable var) -> value_t {return *var;},
-            [](Environment::LabelToLvalue label_ref) -> value_t {return *label_ref();},
+            [](Environment::LabelToLvalue& label_ref) -> value_t {return *label_ref();},
             [](Environment::PassByDelay delayed) -> value_t {
-                if (std::holds_alternative<value_t*>(*delayed)) {
-                    auto variable = std::get<value_t*>(*delayed);
-                    return *variable;
+                if (std::holds_alternative<thunk_with_memoization_t<value_t>*>(*delayed)) {
+                    auto* thunk = std::get<thunk_with_memoization_t<value_t>*>(*delayed);
+                    return (*thunk)(); // now memoized for all tracking references
                 }
-                auto* thunk = std::get<thunk_with_memoization_t<value_t>*>(*delayed);
-                return (*thunk)();
+
+                else if (std::holds_alternative<value_t*>(*delayed)) {
+                    auto var = std::get<value_t*>(*delayed);
+                    return *var;
+                }
+
+                else SHOULD_NOT_HAPPEN();
             },
             [](Environment::PassByRef ref) -> value_t {return ref.value();},
 
-            [](Environment::VariadicArguments) -> value_t {
+            [](const Environment::VariadicArguments&) -> value_t {
                 throw InterpretError("Cannot refer to variadic arguments as symbol");
             },
         }, symbolVal);
@@ -792,11 +797,24 @@ value_t* evaluateLvalue(const Symbol& symbol, Environment* env) {
     return std::visit(overload{
         [](Environment::Variable var) -> value_t* {return var;},
         [](Environment::LabelToLvalue& label_ref) -> value_t* {return label_ref();},
-        [](Environment::PassByDelay passByDelay) -> value_t* {
-            if (!std::holds_alternative<value_t*>(*passByDelay)) {
-                *passByDelay = new value_t(); // transform it
+        [](Environment::PassByDelay delayed) -> value_t* {
+            if (std::holds_alternative<thunk_with_memoization_t<value_t>*>(*delayed)) {
+                auto* thunk = std::get<thunk_with_memoization_t<value_t>*>(*delayed);
+                if (thunk->memoized) {
+                    *delayed = new value_t((*thunk)()); // init var with already evaluated value
+                }
+                else {
+                    *delayed = new value_t(); // discard unevaluated value
+                }
             }
-            return std::get<value_t*>(*passByDelay);
+
+            else if (std::holds_alternative<value_t*>(*delayed)) {
+                ; // nothing to do
+            }
+
+            else SHOULD_NOT_HAPPEN();
+
+            return std::get<value_t*>(*delayed);
         },
         [](Environment::PassByRef& ref) -> value_t* {return ref.lvalue();},
 
@@ -806,7 +824,7 @@ value_t* evaluateLvalue(const Symbol& symbol, Environment* env) {
                 -> at this time, we can't trigger it, we need the let stmt
         */
         [](Environment::ConstValue) -> value_t* {SHOULD_NOT_HAPPEN();},
-        [](Environment::VariadicArguments) -> value_t* {
+        [](const Environment::VariadicArguments&) -> value_t* {
             throw InterpretError("Cannot refer to variadic arguments as symbol");
         },
     }, symbolVal);

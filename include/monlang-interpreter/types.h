@@ -119,10 +119,9 @@ class thunk_t {
 
 template <typename R>
 class thunk_with_memoization_t : public thunk_t<R> {
-  private:
+  public:
     std::optional<R> memoized;
 
-  public:
     thunk_with_memoization_t(const std::function<R()>& fn) : thunk_t<R>(fn){}
     R operator()() override;
 };

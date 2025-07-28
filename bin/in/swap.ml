@@ -1,15 +1,39 @@
 
-var a 1
-var b 2
+var swap (OUT a, OUT b):{
+    a
+    b
+    a := b
+    b := $old
+}
 
-print("before swap")
-print('a1, a)
-print('b2, b)
+"both passed by ref"
+{
+    var a 13
+    var b 37
+    swap(&a, &b)
+    print(a, b)
+}
 
-a := b
-b := $old
+"none passed by ref"
+{
+    var a 13
+    var b 37
+    swap(a, b)
+    print(a, b)
+}
 
-print()
-print("after swap")
-print('a2, a)
-print('b1, b)
+"only `a` passed by ref"
+{
+    var a 13
+    var b 37
+    swap(&a, b)
+    print(a, b)
+}
+
+"only `b` passed by ref"
+{
+    var a 13
+    var b 37
+    swap(a, &b)
+    print(a, b)
+}

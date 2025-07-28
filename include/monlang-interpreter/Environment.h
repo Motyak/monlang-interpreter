@@ -15,7 +15,7 @@ struct Environment {
 
     // argument passed by delayed value (lazy pass by value)
     using PassByDelay_Variant = std::variant<
-        thunk_with_memoization_t<value_t>*, // TODO: is ptr necessary here ?
+        thunk_with_memoization_t<value_t>*, // ptr is necessary here
         value_t* // once transformed
     >;
     using PassByDelay = PassByDelay_Variant*;
