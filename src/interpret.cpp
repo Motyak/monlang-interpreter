@@ -85,7 +85,16 @@ value_t evaluateValue(const Expression& expr, Environment* env) {
     }, expr);
 }
 
-value_t* evaluateLvalue(const Lvalue& lvalue, Environment* env) {
+value_t* evaluateLvalue(const Lvalue& lvalue, Environment* env, bool subscripted) {
+    return std::visit(overload{
+        [env, subscripted](Symbol* symbol){
+            return evaluateLvalue(*symbol, env, subscripted);
+        },
+        [env](auto* lvalue){
+            return evaluateLvalue(*lvalue, env);
+        },
+    }, lvalue.variant);
+
     return std::visit(
         [lvalue, env](auto* expr){
             ::activeCallStack.push_back(lvalue);
@@ -723,7 +732,7 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
         throw InterpretError("lvaluing a non-lvalue subscript array");
     }
 
-    auto* lvalue = evaluateLvalue(subscript.array, env);
+    auto* lvalue = evaluateLvalue(subscript.array, env, /*subscripted*/true);
     ASSERT (lvalue != nullptr);
     ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
     auto* lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
@@ -783,7 +792,7 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
     }, lvaluePrimValPtr->variant);
 }
 
-value_t* evaluateLvalue(const Symbol& symbol, Environment* env) {
+value_t* evaluateLvalue(const Symbol& symbol, Environment* env, bool subscripted) {
     static value_t DISPOSABLE_LVALUE;
     if (symbol.name == "_") {
         return &DISPOSABLE_LVALUE;
@@ -797,11 +806,13 @@ value_t* evaluateLvalue(const Symbol& symbol, Environment* env) {
     return std::visit(overload{
         [](Environment::Variable var) -> value_t* {return var;},
         [](Environment::LabelToLvalue& label_ref) -> value_t* {return label_ref();},
-        [](Environment::PassByDelay delayed) -> value_t* {
+        [subscripted](Environment::PassByDelay delayed) -> value_t* {
             if (std::holds_alternative<thunk_with_memoization_t<value_t>*>(*delayed)) {
                 auto* thunk = std::get<thunk_with_memoization_t<value_t>*>(*delayed);
-                if (thunk->memoized) {
-                    *delayed = new value_t((*thunk)()); // init var with already evaluated value
+                if (thunk->memoized || subscripted) {
+                    /* init var with evaluated value */
+                    auto initVal = (*thunk)();
+                    *delayed = new value_t(initVal);
                 }
                 else {
                     *delayed = new value_t(); // discard unevaluated value
