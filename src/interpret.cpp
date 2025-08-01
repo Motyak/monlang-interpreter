@@ -325,6 +325,8 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 }
 
                 if (currArg.passByRef) {
+                    // we should immediatly evaluate any subscript index/range..
+                    // (if they refer to symbols instead of numerals)
                     parametersBinding[currParam.name] = Environment::PassByRef{
                         (thunk_t<value_t>)[currArg]() -> value_t {
                             return evaluateValue(currArg.expr, currArg.env);
