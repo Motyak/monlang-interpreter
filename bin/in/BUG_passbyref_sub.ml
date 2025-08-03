@@ -1,5 +1,9 @@
 
 ```
+    UPDATE: maybe its not a bug after all
+```
+
+```
     When lvaluing a subcript, we should
     immediatly evaluate the value of any
     index/range that refer to a symbol.

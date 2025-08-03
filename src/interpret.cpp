@@ -293,7 +293,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
         }
     }
 
-    Environment* envAtCreation = new Environment{*env};
+    Environment* envAtCreation = env->deepcopy();
     auto lambdaVal = prim_value_t::Lambda{
         new prim_value_t{Int(lambda.parameters.size())},
         [envAtCreation, lambda](const std::vector<FlattenArg>& flattenArgs) -> value_t {
@@ -342,7 +342,8 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                     var = deepcopy(var);
                     parametersBinding[currParam.name] = Environment::Variable{var};
                     #else // lazy passing a.k.a pass by delayed
-                    auto* thunkEnv = new Environment{*currArg.env};
+                    auto* thunkEnv = new Environment{*currArg.env}; // no deep copy needed apparently ?
+                                                                    // .. = currArg.env->deepcopy();
                     auto* delayed = new thunk_with_memoization_t<value_t>{
                         [currArg, thunkEnv]() -> value_t {
                             auto res = evaluateValue(currArg.expr, thunkEnv);
