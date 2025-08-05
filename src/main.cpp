@@ -3,6 +3,7 @@
 #include <monlang-interpreter/interpret.h>
 #include <monlang-interpreter/ParseError.h>
 #include <monlang-interpreter/InterpretError.h>
+#include <monlang-interpreter/ProgramAssertion.h>
 
 #include <utils/iostream-utils.h>
 #include <utils/file-utils.h>
@@ -100,6 +101,14 @@ int repl_main(int argc, char* argv[]) {
         // ..user prompt is interpreted as an individual program..
         // ..therefore we can't point to a previous prompt token
     }
+    catch (const ProgramAssertion& assert) {
+        if (*assert.what() == '\0') {
+            std::cerr << "die() with no message\n";
+        }
+        else {
+            std::cerr << "die(): " << assert.what() << "\n";
+        }
+    }
 
     Loop: goto Read
     ;
@@ -126,6 +135,11 @@ int stdinput_main(int argc, char* argv[]) {
         std::cerr << "Runtime error: " << e.what() << "\n";
         reportCallStack(e.callStack, tokens, SRCNAME.value_or("<stdin>"));
         return 101;
+    }
+    catch (const ProgramAssertion& assert) {
+        std::cerr << "die(): " << assert.what() << "\n";
+        reportCallStack(assert.callStack, tokens, SRCNAME.value_or("<stdin>"));
+        return 1;
     }
 
     return 0;
@@ -159,6 +173,11 @@ int fileinput_main(int argc, char* argv[]) {
         std::cerr << "Runtime error: " << e.what() << "\n";
         reportCallStack(e.callStack, tokens, SRCNAME.value_or(filename));
         return 101;
+    }
+    catch (const ProgramAssertion& assert) {
+        std::cerr << "die(): " << assert.what() << "\n";
+        reportCallStack(assert.callStack, tokens, SRCNAME.value_or(filename));
+        return 1;
     }
 
     return 0;
@@ -201,6 +220,11 @@ int embed_main(int argc, char* argv[]) {
         std::cerr << "Runtime error: " << e.what() << "\n";
         reportCallStack(e.callStack, tokens);
         return 101;
+    }
+    catch (const ProgramAssertion& assert) {
+        std::cerr << "die(): " << assert.what() << "\n";
+        reportCallStack(assert.callStack, tokens);
+        return 1;
     }
 
     return 0;

@@ -16,6 +16,7 @@
 #include <monlang-interpreter/builtin/getline.h>
 #include <monlang-interpreter/builtin/sleep.h>
 #include <monlang-interpreter/builtin/exit.h>
+#include <monlang-interpreter/builtin/die.h>
 #include <monlang-interpreter/builtin/len.h>
 #include <monlang-interpreter/builtin/operators.h>
 #include <monlang-interpreter/builtin/prim_ctors.h>
@@ -26,6 +27,7 @@ static const std::map<std::string, value_t>
 BUILTIN_TABLE __attribute__((init_priority(6000))) = {
     {"print", builtin::print},
     {"getline", builtin::getline},
+    {"die", builtin::die},
     {"exit", builtin::exit},
     {"sleep", builtin::sleep},
     {"len", builtin::len},

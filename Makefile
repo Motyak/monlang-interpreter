@@ -21,6 +21,7 @@ obj/builtin/print.o \
 obj/builtin/getline.o \
 obj/builtin/sleep.o \
 obj/builtin/exit.o \
+obj/builtin/die.o \
 obj/builtin/len.o \
 $(OPERATORS_OBJS) \
 $(PRIM_CTORS_OBJS)
