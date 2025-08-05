@@ -12,9 +12,9 @@
 
 #define unless(x) if (!(x))
 
-using Int = prim_value_t::Int;
-using Byte = prim_value_t::Byte;
 using Bool = prim_value_t::Bool;
+using Byte = prim_value_t::Byte;
+using Int = prim_value_t::Int;
 using Float = prim_value_t::Float;
 using Char = prim_value_t::Char;
 using Str = prim_value_t::Str;

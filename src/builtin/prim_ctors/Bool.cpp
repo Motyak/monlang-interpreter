@@ -45,8 +45,8 @@ prim_value_t::Bool builtin::prim_ctor::Bool_(const value_t& val) {
 
 static prim_value_t::Bool to_bool(const prim_value_t& primVal) {
     return std::visit(overload{
-        [](prim_value_t::Byte byte) -> prim_value_t::Bool {return byte;},
         [](prim_value_t::Bool bool_) -> prim_value_t::Bool {return bool_;},
+        [](prim_value_t::Byte byte) -> prim_value_t::Bool {return byte;},
         [](prim_value_t::Int int_) -> prim_value_t::Bool {return int_;},
 
         [](prim_value_t::Float) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Float");},

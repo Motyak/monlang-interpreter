@@ -23,8 +23,8 @@ namespace IntConst {
 namespace builtin {
 namespace prim_ctor {
 
-    extern const value_t Byte;
     extern const value_t Bool;
+    extern const value_t Byte;
     extern const value_t Int;
     extern const value_t Float;
     extern const value_t Char;
@@ -34,8 +34,8 @@ namespace prim_ctor {
     extern const value_t Lambda;
 
     /* for internal use, not part of the builtin table */
-    prim_value_t::Byte Byte_(const value_t&);
     prim_value_t::Bool Bool_(const value_t&);
+    prim_value_t::Byte Byte_(const value_t&);
     prim_value_t::Int Int_(const value_t&);
     prim_value_t::Float Float_(const value_t&);
     prim_value_t::Char Char_(const value_t&);

@@ -12,9 +12,9 @@
 
 #define unless(x) if (!(x))
 
-using Int = prim_value_t::Int;
-using Byte = prim_value_t::Byte;
 using Bool = prim_value_t::Bool;
+using Byte = prim_value_t::Byte;
+using Int = prim_value_t::Int;
 using Float = prim_value_t::Float;
 using Char = prim_value_t::Char;
 using Str = prim_value_t::Str;
@@ -30,6 +30,8 @@ static value_t concatStr(const Str& firstArgValue, const std::vector<FlattenArg>
 static value_t concatStr(const Str& firstArgValue, const Str& secondArgValue, const std::vector<FlattenArg>& args);
 
 static value_t concatList(const List& firstArgValue, const std::vector<FlattenArg>& args);
+
+//TODO: remove, because it will be mergeMap with '|' operator instead
 static value_t concatMap(const Map& firstArgValue, const std::vector<FlattenArg>& args);
 
 const value_t builtin::op::plus __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{

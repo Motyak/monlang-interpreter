@@ -44,8 +44,8 @@ prim_value_t::Int builtin::prim_ctor::Int_(const value_t& val) {
 
 static prim_value_t::Int to_int(const prim_value_t& primVal) {
     return std::visit(overload{
-        [](prim_value_t::Byte byte) -> prim_value_t::Int {return byte;},
         [](prim_value_t::Bool bool_) -> prim_value_t::Int {return bool_;},
+        [](prim_value_t::Byte byte) -> prim_value_t::Int {return byte;},
         [](prim_value_t::Int int_) -> prim_value_t::Int {return int_;},
         [](prim_value_t::Float float_) -> prim_value_t::Int {return float_;},
         [](prim_value_t::Char char_) -> prim_value_t::Int {return (unsigned char)char_;},

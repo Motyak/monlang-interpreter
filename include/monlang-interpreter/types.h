@@ -50,8 +50,8 @@ using value_t = std::variant<
 >;
 
 struct prim_value_t {
-    using Byte = uint8_t;
     using Bool = bool;
+    using Byte = uint8_t;
     using Int = int64_t;
     using Float = double;
     using Char = char;
@@ -65,8 +65,8 @@ struct prim_value_t {
     };
 
     using Variant = std::variant<
-        Byte,
         Bool,
+        Byte,
         Int,
         Float,
         Char,
@@ -78,8 +78,8 @@ struct prim_value_t {
     Variant variant;
 };
 
-inline prim_value_t::Byte asByte(const prim_value_t& val) {return std::get<prim_value_t::Byte>(val.variant);}
 inline prim_value_t::Bool asBool(const prim_value_t& val) {return std::get<prim_value_t::Bool>(val.variant);}
+inline prim_value_t::Byte asByte(const prim_value_t& val) {return std::get<prim_value_t::Byte>(val.variant);}
 inline prim_value_t::Int asInt(const prim_value_t& val) {return std::get<prim_value_t::Int>(val.variant);}
 inline prim_value_t::Float asFloat(const prim_value_t& val) {return std::get<prim_value_t::Float>(val.variant);}
 inline prim_value_t::Char asChar(const prim_value_t& val) {return std::get<prim_value_t::Char>(val.variant);}

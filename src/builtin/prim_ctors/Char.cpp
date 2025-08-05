@@ -40,9 +40,9 @@ prim_value_t::Char builtin::prim_ctor::Char_(const value_t& val) {
 
 static prim_value_t::Char to_char(const prim_value_t& primVal) {
     return std::visit(overload{
-        [](prim_value_t::Char char_) -> prim_value_t::Char {return char_;},
         [](prim_value_t::Byte byte) -> prim_value_t::Char {return byte;},
         [](prim_value_t::Int int_) -> prim_value_t::Char {return uint8_t(int_);},
+        [](prim_value_t::Char char_) -> prim_value_t::Char {return char_;},
         [](const prim_value_t::Str& str) -> prim_value_t::Char {
             if (str.empty()) {
                 throw InterpretError("Char() arg cannot be an empty Str");

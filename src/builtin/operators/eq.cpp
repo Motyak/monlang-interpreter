@@ -82,11 +82,11 @@ static bool compareValue(value_t lhsVal, value_t rhsVal) {
 static bool comparePrimValPtr(prim_value_t* primValPtr_lhs, prim_value_t* primValPtr_rhs) {
     ASSERT (primValPtr_lhs != nullptr);
     return std::visit(overload{
-        [primValPtr_rhs](Byte byte) -> bool {
-            return byte == builtin::prim_ctor::Byte_(primValPtr_rhs);
-        },
         [primValPtr_rhs](Bool bool_) -> bool {
             return bool_ == builtin::prim_ctor::Bool_(primValPtr_rhs);
+        },
+        [primValPtr_rhs](Byte byte) -> bool {
+            return byte == builtin::prim_ctor::Byte_(primValPtr_rhs);
         },
         [primValPtr_rhs](Int int_) -> bool {
             return int_ == builtin::prim_ctor::Int_(primValPtr_rhs);

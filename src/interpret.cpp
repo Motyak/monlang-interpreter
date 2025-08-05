@@ -24,9 +24,8 @@ bool INTERACTIVE_MODE = false;
 thread_local std::vector<Expression> activeCallStack;
 static bool top_level_stmt = true;
 
-using Int = prim_value_t::Int;
-using Byte = prim_value_t::Byte;
 using Bool = prim_value_t::Bool;
+using Byte = prim_value_t::Byte;
 using Int = prim_value_t::Int;
 using Float = prim_value_t::Float;
 using Char = prim_value_t::Char;
@@ -535,8 +534,8 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
 
         [](const Map&) -> value_t {TODO();},
 
-        [](Byte) -> value_t {throw InterpretError("Cannot subscript a Byte");},
         [](Bool) -> value_t {throw InterpretError("Cannot subscript a Bool");},
+        [](Byte) -> value_t {throw InterpretError("Cannot subscript a Byte");},
         [](Int) -> value_t {throw InterpretError("Cannot subscript an Int");},
         [](Float) -> value_t {throw InterpretError("Cannot subscript a Float");},
         [](Char) -> value_t {throw InterpretError("Cannot subscript a Char");},
@@ -787,8 +786,8 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
 
         [](Map&) -> value_t* {TODO();},
 
-        [](Byte&) -> value_t* {throw InterpretError("Cannot subscript a Byte");},
         [](Bool&) -> value_t* {throw InterpretError("Cannot subscript a Bool");},
+        [](Byte&) -> value_t* {throw InterpretError("Cannot subscript a Byte");},
         [](Int&) -> value_t* {throw InterpretError("Cannot subscript an Int");},
         [](Float&) -> value_t* {throw InterpretError("Cannot subscript a Float");},
         [](Char&) -> value_t* {throw InterpretError("Cannot subscript a Char");},

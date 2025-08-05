@@ -39,7 +39,7 @@ const value_t builtin::op::gt __attribute__((init_priority(3000))) = new prim_va
 
             /* compare with lhs (arg from last iteration) */
             if (!first_it) {
-                res &= compareValue(lhsVal, argVal) == 1;
+                res &= compareValue(lhsVal, argVal) > 0;
             }
 
             if (res == false) {
@@ -80,13 +80,13 @@ static int compareValue(value_t lhsVal, value_t rhsVal) {
 static int comparePrimValPtr(prim_value_t* primValPtr_lhs, prim_value_t* primValPtr_rhs) {
     ASSERT (primValPtr_lhs != nullptr);
     return std::visit(overload{
-        [primValPtr_rhs](Byte byte) -> int {
-            auto rhsAsByte = builtin::prim_ctor::Byte_(primValPtr_rhs);
-            return byte < rhsAsByte? -1 : byte > rhsAsByte? 1 : 0;
-        },
         [primValPtr_rhs](Bool bool_) -> int {
             auto rhsAsBool = builtin::prim_ctor::Bool_(primValPtr_rhs);
             return bool_ < rhsAsBool? -1 : bool_ > rhsAsBool? 1 : 0;
+        },
+        [primValPtr_rhs](Byte byte) -> int {
+            auto rhsAsByte = builtin::prim_ctor::Byte_(primValPtr_rhs);
+            return byte < rhsAsByte? -1 : byte > rhsAsByte? 1 : 0;
         },
         [primValPtr_rhs](Int int_) -> int {
             auto rhsAsInt = builtin::prim_ctor::Int_(primValPtr_rhs);

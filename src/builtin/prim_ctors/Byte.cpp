@@ -41,8 +41,8 @@ prim_value_t::Byte builtin::prim_ctor::Byte_(const value_t& val) {
 static prim_value_t::Byte to_byte(const prim_value_t& primVal) {
     return std::visit(overload{
         [](prim_value_t::Byte byte) -> prim_value_t::Byte {return byte;},
-        [](prim_value_t::Char char_) -> prim_value_t::Byte {return char_;},
         [](prim_value_t::Int int_) -> prim_value_t::Byte {return int_;},
+        [](prim_value_t::Char char_) -> prim_value_t::Byte {return char_;},
 
         [](prim_value_t::Bool) -> prim_value_t::Byte {throw InterpretError("Byte() arg cannot be a Bool");},
         [](prim_value_t::Float) -> prim_value_t::Byte {throw InterpretError("Byte() arg cannot be a Float");},
