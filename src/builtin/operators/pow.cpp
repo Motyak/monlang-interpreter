@@ -63,7 +63,7 @@ static value_t powByte(Byte firstArgValue, const std::vector<FlattenArg>& args) 
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
-        auto intVal = Int(builtin::prim_ctor::Int_(argValue));
+        auto intVal = builtin::prim_ctor::Int_(argValue);
         res = std::pow(res, intVal);
     }
 

@@ -18,6 +18,8 @@ namespace op {
     extern const value_t intdiv;
     extern const value_t mod;
     extern const value_t pow;
+    extern const value_t leftshift;
+    extern const value_t rightshift;
     extern const value_t logical_and;
     extern const value_t logical_or;
     extern const value_t eq;
