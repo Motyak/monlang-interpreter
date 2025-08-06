@@ -29,6 +29,8 @@ $(PRIM_CTORS_OBJS)
 OPERATORS_OBJS := \
 obj/builtin/operators/plus.o \
 obj/builtin/operators/mul.o \
+obj/builtin/operators/div.o \
+obj/builtin/operators/intdiv.o \
 obj/builtin/operators/pow.o \
 obj/builtin/operators/logical_and.o \
 obj/builtin/operators/logical_or.o \
