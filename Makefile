@@ -35,6 +35,10 @@ obj/builtin/operators/mod.o \
 obj/builtin/operators/pow.o \
 obj/builtin/operators/leftshift.o \
 obj/builtin/operators/rightshift.o \
+obj/builtin/operators/bitwise_not.o \
+obj/builtin/operators/bitwise_and.o \
+obj/builtin/operators/bitwise_or.o \
+obj/builtin/operators/bitwise_xor.o \
 obj/builtin/operators/logical_and.o \
 obj/builtin/operators/logical_or.o \
 obj/builtin/operators/eq.o \
