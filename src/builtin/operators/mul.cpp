@@ -84,12 +84,12 @@ const value_t builtin::op::mul __attribute__((init_priority(3000))) = new prim_v
             },
 
             [&otherArgs](Float float_) -> value_t {return mulFloat(float_, otherArgs);},
-            [&otherArgs](const prim_value_t::Str& str) -> value_t {return buildStr(str, otherArgs);},
             [&otherArgs](Char char_) -> value_t {return buildStr(Str(1, char_), otherArgs);},
+            [&otherArgs](const Str& str) -> value_t {return buildStr(str, otherArgs);},
 
             [](Bool) -> value_t {throw InterpretError("*() first arg cannot be Bool");},
-            [](const prim_value_t::List&) -> value_t {throw InterpretError("*() first arg cannot be List");},
-            [](const prim_value_t::Map&) -> value_t {throw InterpretError("*() first arg cannot be Map");},
+            [](const List&) -> value_t {throw InterpretError("*() first arg cannot be List");},
+            [](const Map&) -> value_t {throw InterpretError("*() first arg cannot be Map");},
             [](const prim_value_t::Lambda&) -> value_t {throw InterpretError("*() first arg cannot be Lambda");},
 
         }, firstArgPrimValuePtr->variant);
