@@ -14,19 +14,26 @@ OBJS = \
 obj/interpret.o \
 obj/monlang_parser.o \
 obj/Environment.o \
-$(BUILTIN_OBJS)
+$(BUILTIN_OBJS) \
 
 BUILTIN_OBJS = \
 obj/builtin/print.o \
 obj/builtin/getline.o \
+obj/builtin/getchar.o \
+obj/builtin/putstr.o \
+obj/builtin/slurpfile.o \
 obj/builtin/sleep.o \
 obj/builtin/exit.o \
 obj/builtin/die.o \
 obj/builtin/len.o \
 $(OPERATORS_OBJS) \
-$(PRIM_CTORS_OBJS)
+$(PRIM_CTORS_OBJS) \
 
 OPERATORS_OBJS := \
+obj/builtin/operators/logical_and.o \
+obj/builtin/operators/logical_or.o \
+obj/builtin/operators/eq.o \
+obj/builtin/operators/gt.o \
 obj/builtin/operators/plus.o \
 obj/builtin/operators/mul.o \
 obj/builtin/operators/div.o \
@@ -39,10 +46,6 @@ obj/builtin/operators/bitwise_not.o \
 obj/builtin/operators/bitwise_and.o \
 obj/builtin/operators/bitwise_or.o \
 obj/builtin/operators/bitwise_xor.o \
-obj/builtin/operators/logical_and.o \
-obj/builtin/operators/logical_or.o \
-obj/builtin/operators/eq.o \
-obj/builtin/operators/gt.o
 
 PRIM_CTORS_OBJS := \
 obj/builtin/prim_ctors/Byte.o \
@@ -51,7 +54,7 @@ obj/builtin/prim_ctors/Int.o \
 obj/builtin/prim_ctors/Float.o \
 obj/builtin/prim_ctors/Char.o \
 obj/builtin/prim_ctors/Str.o \
-obj/builtin/prim_ctors/List.o
+obj/builtin/prim_ctors/List.o \
 
 DEPS := $(OBJS:obj/%.o=.deps/%.d)
 

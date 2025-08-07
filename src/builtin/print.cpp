@@ -143,3 +143,14 @@ void builtin::print_(const std::vector<value_t>& varargs, std::ostream& out) {
     }
     out << "\n";
 };
+
+void builtin::putstr_(const std::vector<value_t>& varargs, std::ostream& out) {
+    LOOP for (auto arg: varargs) {
+        if (!__first_it) {
+            out << " ";
+        }
+        ::print(arg, out);
+        ENDLOOP
+    }
+    // out << "\n";
+};

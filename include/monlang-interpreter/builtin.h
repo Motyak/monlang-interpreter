@@ -14,6 +14,9 @@
 /* builtins */
 #include <monlang-interpreter/builtin/print.h>
 #include <monlang-interpreter/builtin/getline.h>
+#include <monlang-interpreter/builtin/getchar.h>
+#include <monlang-interpreter/builtin/putstr.h>
+#include <monlang-interpreter/builtin/slurpfile.h>
 #include <monlang-interpreter/builtin/sleep.h>
 #include <monlang-interpreter/builtin/exit.h>
 #include <monlang-interpreter/builtin/die.h>
@@ -27,12 +30,19 @@ static const std::map<std::string, value_t>
 BUILTIN_TABLE __attribute__((init_priority(6000))) = {
     {"print", builtin::print},
     {"getline", builtin::getline},
+    {"getchar", builtin::getchar},
+    {"putstr", builtin::putstr},
+    {"slurpfile", builtin::slurpfile},
     {"die", builtin::die},
     {"exit", builtin::exit},
     {"sleep", builtin::sleep},
     {"len", builtin::len},
 
     /* operators */
+    {"&&", builtin::op::logical_and},
+    {"||", builtin::op::logical_or},
+    {"==", builtin::op::eq},
+    {">", builtin::op::gt},
     {"+", builtin::op::plus},
     {"*", builtin::op::mul},
     {"/", builtin::op::div},
@@ -45,10 +55,6 @@ BUILTIN_TABLE __attribute__((init_priority(6000))) = {
     {"&", builtin::op::bitwise_and},
     {"|", builtin::op::bitwise_or},
     {"^", builtin::op::bitwise_xor},
-    {"&&", builtin::op::logical_and},
-    {"||", builtin::op::logical_or},
-    {"==", builtin::op::eq},
-    {">", builtin::op::gt},
 
     /* primitive constructors */
     {"Bool", builtin::prim_ctor::Bool},
