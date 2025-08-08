@@ -7,7 +7,10 @@
 #include <utils/assert-utils.h>
 #include <utils/variant-utils.h>
 
+extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
+
 const value_t builtin::prim_ctor::List __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
+    builtin_lambda_id++,
     IntConst::ZERO,
     [](const std::vector<FlattenArg>& args) -> value_t {
         std::vector<value_t> res;

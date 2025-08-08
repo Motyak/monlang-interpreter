@@ -23,6 +23,7 @@ bool INTERACTIVE_MODE = false;
 
 thread_local std::vector<Expression> activeCallStack;
 static bool top_level_stmt = true;
+uint64_t builtin_lambda_id = 0;
 
 using Bool = prim_value_t::Bool;
 using Byte = prim_value_t::Byte;
@@ -279,7 +280,11 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
 
     auto function = std::get<prim_value_t::Lambda>(fnPrimValPtr->variant).stdfunc;
 
-    return function(flattenArgs);
+    // add a jumpbf to a map with the lambda id as key
+
+    auto res = function(flattenArgs);
+
+    return res;
 }
 
 value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
@@ -293,7 +298,11 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
     }
 
     Environment* envAtCreation = env->deepcopy();
+    static uint64_t lambda_id = 1000;
+    ASSERT (lambda_id > builtin_lambda_id);
+    ASSERT (lambda_id != uint64_t(-1));
     auto lambdaVal = prim_value_t::Lambda{
+        lambda_id++,
         new prim_value_t{Int(lambda.parameters.size())},
         [envAtCreation, lambda](const std::vector<FlattenArg>& flattenArgs) -> value_t {
             /*

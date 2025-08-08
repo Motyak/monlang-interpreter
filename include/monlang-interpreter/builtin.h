@@ -65,7 +65,7 @@ BUILTIN_TABLE __attribute__((init_priority(6000))) = {
     {"Str", builtin::prim_ctor::Str},
     {"List", builtin::prim_ctor::List},
     // {"Map", builtin::prim_ctor::Map},
-    // {"Lambda", builtin::prim_ctor::Lambda},
+    {"Lambda", builtin::prim_ctor::Lambda},
 };
 
 #endif // BUILTIN_H

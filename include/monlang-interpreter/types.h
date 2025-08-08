@@ -60,6 +60,7 @@ struct prim_value_t {
     using Map = std::map<value_t, value_t>;
 
     struct Lambda {
+        uint64_t id;
         value_t requiredParams;
         std::function<value_t(const std::vector<FlattenArg>&)> stdfunc;
     };

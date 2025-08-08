@@ -26,7 +26,10 @@ using Map = prim_value_t::Map;
 static value_t bitwise_or_Byte(Byte firstArgValue, const std::vector<FlattenArg>& args);
 static value_t bitwise_or_Int(Int firstArgValue, const std::vector<FlattenArg>& args);
 
+extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
+
 const value_t builtin::op::bitwise_or __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
+    builtin_lambda_id++,
     IntConst::TWO,
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() >= 2) throw InterpretError("|() takes 2+ args");

@@ -25,7 +25,10 @@ using Map = prim_value_t::Map;
 
 static value_t mod(Int firstArgValue, const std::vector<FlattenArg>& args);
 
+extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
+
 const value_t builtin::op::mod __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
+    builtin_lambda_id++,
     IntConst::TWO,
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() >= 2) throw InterpretError("%() takes 2+ args");

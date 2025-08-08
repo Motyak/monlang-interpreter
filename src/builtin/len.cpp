@@ -16,7 +16,10 @@ static value_t listLength(const prim_value_t::List&);
 static value_t mapLength(const prim_value_t::Map&);
 static value_t requiredParams(const prim_value_t::Lambda&);
 
+extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
+
 const value_t builtin::len __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
+    builtin_lambda_id++,
     IntConst::ONE,
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() == 1) throw InterpretError("len() takes 1 arg");

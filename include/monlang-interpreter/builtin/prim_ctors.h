@@ -40,8 +40,11 @@ namespace prim_ctor {
     prim_value_t::Float Float_(const value_t&);
     prim_value_t::Char Char_(const value_t&);
     prim_value_t::Str Str_(const value_t&);
+
     // differs from List() prim ctor, more like a copy ctor
     prim_value_t::List List_(const value_t& container);
+
+    prim_value_t::Lambda Lambda_(const value_t&);
 
 }} // end of builtin::prim_ctor::
 

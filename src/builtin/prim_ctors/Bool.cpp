@@ -12,7 +12,10 @@
 const value_t BoolConst::TRUE __attribute__((init_priority(2000))) = new prim_value_t{prim_value_t::Bool(true)};
 const value_t BoolConst::FALSE __attribute__((init_priority(2000))) = new prim_value_t{prim_value_t::Bool(false)};
 
+extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
+
 const value_t builtin::prim_ctor::Bool __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
+    builtin_lambda_id++,
     IntConst::ONE,
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() == 1) throw InterpretError("Bool() takes 1 argument");

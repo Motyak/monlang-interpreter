@@ -26,7 +26,10 @@ using Map = prim_value_t::Map;
 static value_t bitwise_not_Byte(Byte argValue);
 static value_t bitwise_not_Int(Int argValue);
 
+extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
+
 const value_t builtin::op::bitwise_not __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
+    builtin_lambda_id++,
     IntConst::TWO,
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() == 1) throw InterpretError("~() takes 1 arg");

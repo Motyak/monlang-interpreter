@@ -8,7 +8,6 @@
 
 #include <utils/assert-utils.h>
 #include <utils/variant-utils.h>
-#include <utils/stdfunc-utils.h>
 
 #define unless(x) if (!(x))
 
@@ -24,7 +23,10 @@ using Map = prim_value_t::Map;
 static bool compareValue(value_t, value_t);
 static bool comparePrimValPtr(prim_value_t*, prim_value_t*);
 
+extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
+
 const value_t builtin::op::eq __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
+    builtin_lambda_id++,
     IntConst::TWO,
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() >= 2) throw InterpretError("==() takes 2+ argument");
@@ -116,9 +118,9 @@ static bool comparePrimValPtr(prim_value_t* primValPtr_lhs, prim_value_t* primVa
             // return map == builtin::prim_ctor::Map_(primValPtr_rhs);
             TODO();
         },
-        [primValPtr_rhs](const prim_value_t::Lambda&) -> bool {
-            // return lambda == builtin::prim_ctor::Lambda_(primValPtr_rhs);
-            TODO();
+        [primValPtr_rhs](const prim_value_t::Lambda& lambda) -> bool {
+            auto rhs = builtin::prim_ctor::Lambda_(primValPtr_rhs);
+            return lambda.id == rhs.id;
         },
     }, primValPtr_lhs->variant);
 }

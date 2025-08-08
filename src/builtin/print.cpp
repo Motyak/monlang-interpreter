@@ -21,7 +21,10 @@ static void print(const type_value_t&, std::ostream&);
 static void print(const struct_value_t&, std::ostream&);
 static void print(const enum_value_t&, std::ostream&);
 
+extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
+
 const value_t builtin::print __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
+    builtin_lambda_id++,
     IntConst::ZERO,
     [](const std::vector<FlattenArg>& varargs) -> value_t {
         LOOP for (auto arg: varargs) {
