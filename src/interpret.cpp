@@ -281,15 +281,13 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
 
     auto function = std::get<prim_value_t::Lambda>(fnPrimValPtr->variant);
     static auto savedCalledFns = std::map<uint64_t, jmp_buf>{};
-    static auto savedFlattenArgs = std::vector<FlattenArg>{};
     if (savedCalledFns.contains(function.id)) {
-        savedFlattenArgs = flattenArgs;
         longjmp(savedCalledFns.at(function.id), 1);
     }
     else {
         savedCalledFns[function.id]; // creates entry with default val
         if (setjmp(savedCalledFns.at(function.id))) {
-            flattenArgs = savedFlattenArgs;
+            ;
         }
     }
 
