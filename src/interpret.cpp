@@ -24,6 +24,7 @@ bool INTERACTIVE_MODE = false;
 
 thread_local std::vector<Expression> activeCallStack;
 static bool top_level_stmt = true;
+static bool is_tailcallable = false;
 uint64_t builtin_lambda_id = 0;
 
 using Bool = prim_value_t::Bool;
@@ -282,7 +283,9 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
     auto function = std::get<prim_value_t::Lambda>(fnPrimValPtr->variant);
     static auto savedCalledFns = std::map<uint64_t, jmp_buf>{};
     if (savedCalledFns.contains(function.id)) {
-        longjmp(savedCalledFns.at(function.id), 1);
+        if (is_tailcallable) {
+            longjmp(savedCalledFns.at(function.id), 1);
+        }
     }
     else {
         savedCalledFns[function.id]; // creates entry with default val
@@ -294,6 +297,14 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
     auto res = function.stdfunc(flattenArgs);
     savedCalledFns.erase(function.id);
     return res;
+}
+
+static bool check_if_tailcallable(const Statement& stmt) {
+    unless (std::holds_alternative<Assignment*>(stmt)) return false;
+    auto assignment = std::get<Assignment*>(stmt);
+    unless (std::holds_alternative<Symbol*>(assignment->variable.variant)) return false;
+    auto varSymbol = std::get<Symbol*>(assignment->variable.variant);
+    return varSymbol->name == "_";
 }
 
 value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
@@ -409,6 +420,10 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 performStatement(lambda.body.statements.at(i), &lambdaEnv);
             }
 
+                auto backup_is_tailcallable = is_tailcallable;
+                is_tailcallable = check_if_tailcallable(lambda.body.statements.at(i));
+                defer {is_tailcallable = backup_is_tailcallable;};
+
             if (std::holds_alternative<ExpressionStatement*>(lambda.body.statements.at(i))) {
                 auto exprStmt = *std::get<ExpressionStatement*>(lambda.body.statements.at(i));
                 if (exprStmt.expression) {
@@ -439,6 +454,10 @@ value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
     for (; i < blockExpr.statements.size() - 1; ++i) {
         performStatement(blockExpr.statements.at(i), newEnv);
     }
+
+    auto backup_is_tailcallable = is_tailcallable;
+    is_tailcallable = check_if_tailcallable(blockExpr.statements.at(i));
+    defer {is_tailcallable = backup_is_tailcallable;};
 
     if (std::holds_alternative<ExpressionStatement*>(blockExpr.statements.at(i))) {
         auto exprStmt = *std::get<ExpressionStatement*>(blockExpr.statements.at(i));
