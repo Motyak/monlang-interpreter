@@ -372,7 +372,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 else {
                     #ifdef TOGGLE_PASS_BY_VALUE
                     auto var = new value_t{evaluateValue(currArg.expr, currArg.env)}; // TODO: leak
-                    var = deepcopy(var);
+                    *var = deepcopy(*var);
                     parametersBinding[currParam.name] = Environment::Variable{var};
                     #else // lazy passing a.k.a pass by delayed
                     auto* thunkEnv = new Environment{*currArg.env}; // no deep copy needed apparently ?
