@@ -300,11 +300,16 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
 }
 
 static bool check_if_tailcallable(const Statement& stmt) {
+    #ifdef TOGGLE_TAILCALL
     unless (std::holds_alternative<Assignment*>(stmt)) return false;
     auto assignment = std::get<Assignment*>(stmt);
     unless (std::holds_alternative<Symbol*>(assignment->variable.variant)) return false;
     auto varSymbol = std::get<Symbol*>(assignment->variable.variant);
     return varSymbol->name == "_";
+    #else
+    (void)stmt;
+    return false;
+    #endif
 }
 
 value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
