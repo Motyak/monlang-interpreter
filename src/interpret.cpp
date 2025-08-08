@@ -13,6 +13,7 @@
 
 #include <cmath>
 #include <vector>
+#include <csetjmp>
 
 #define unless(x) if(!(x))
 
@@ -278,12 +279,24 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
         CONTINUE:
     }
 
-    auto function = std::get<prim_value_t::Lambda>(fnPrimValPtr->variant).stdfunc;
+    auto function = std::get<prim_value_t::Lambda>(fnPrimValPtr->variant);
+    static auto savedCalledFns = std::map<uint64_t, jmp_buf>{};
+    static auto savedFlattenArgs = std::vector<FlattenArg>{};
+    if (savedCalledFns.contains(function.id)) {
+        if (setjmp(savedCalledFns.at(function.id))) {
+            flattenArgs = savedFlattenArgs;
+        }
+        else {
+            savedFlattenArgs = flattenArgs;
+            longjmp(savedCalledFns.at(function.id), 1);
+        }
+    }
+    else {
+        savedCalledFns[function.id]; // creates entry with default val
+    }
 
-    // add a jumpbf to a map with the lambda id as key
-
-    auto res = function(flattenArgs);
-
+    auto res = function.stdfunc(flattenArgs);
+    savedCalledFns.erase(function.id);
     return res;
 }
 
