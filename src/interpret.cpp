@@ -283,16 +283,14 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
     static auto savedCalledFns = std::map<uint64_t, jmp_buf>{};
     static auto savedFlattenArgs = std::vector<FlattenArg>{};
     if (savedCalledFns.contains(function.id)) {
-        if (setjmp(savedCalledFns.at(function.id))) {
-            flattenArgs = savedFlattenArgs;
-        }
-        else {
-            savedFlattenArgs = flattenArgs;
-            longjmp(savedCalledFns.at(function.id), 1);
-        }
+        // savedFlattenArgs = flattenArgs; // ca, ca doit etre fait dans la lambda
+        longjmp(savedCalledFns.at(function.id), 1);
     }
     else {
         savedCalledFns[function.id]; // creates entry with default val
+        if (setjmp(savedCalledFns.at(function.id))) {
+            flattenArgs = savedFlattenArgs;
+        }
     }
 
     auto res = function.stdfunc(flattenArgs);
