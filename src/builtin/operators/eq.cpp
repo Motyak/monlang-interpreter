@@ -38,7 +38,7 @@ const value_t builtin::op::eq __attribute__((init_priority(3000))) = new prim_va
 
             // // NOTE: at the moment we allow == with $nil, to check for $nil
             // if (is_nil(argVal)) {
-            //     throw InterpretError("==() arg is $nil");
+            //     throw InterpretError("==() first arg cannot be $nil");
             // }
 
             /* compare with lhs (arg from last iteration) */
@@ -114,9 +114,22 @@ static bool comparePrimValPtr(prim_value_t* primValPtr_lhs, prim_value_t* primVa
             }
             return true;
         },
-        [primValPtr_rhs](const Map&) -> bool {
-            // return map == builtin::prim_ctor::Map_(primValPtr_rhs);
-            TODO();
+        [primValPtr_rhs](const Map& map) -> bool {
+            auto rhsAsMap = builtin::prim_ctor::Map_(primValPtr_rhs);
+            if (map.size() != rhsAsMap.size()) {
+                return false;
+            }
+            auto lhsIt = map.begin();
+            auto rhsIt = rhsAsMap.begin();
+            for (; lhsIt != map.end(); lhsIt++, rhsIt++) {
+                if (!compareValue(lhsIt->first, rhsIt->first)) {
+                    return false;
+                }
+                if (!compareValue(lhsIt->second, rhsIt->second)) {
+                    return false;
+                }
+            }
+            return true;
         },
         [primValPtr_rhs](const prim_value_t::Lambda& lambda) -> bool {
             auto rhs = builtin::prim_ctor::Lambda_(primValPtr_rhs);

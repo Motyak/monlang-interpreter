@@ -20,6 +20,9 @@ static int cmp(struct_value_t* lhs, struct_value_t* rhs);
 static int cmp(enum_value_t* lhs, enum_value_t* rhs);
 
 bool MapKeyCmp::operator()(const value_t& lhs, const value_t& rhs) const {
+    if (is_nil(lhs) && is_nil(rhs)) return false;
+    if (is_nil(lhs) && !is_nil(rhs)) return true;
+    if (!is_nil(lhs) && is_nil(rhs)) return false;
     auto lhsIndex = lhs.index();
     auto rhsIndex = rhs.index();
     if (lhsIndex != rhsIndex) {
@@ -35,6 +38,9 @@ bool MapKeyCmp::operator()(const value_t& lhs, const value_t& rhs) const {
 }
 
 static int cmp(const value_t& lhs, const value_t& rhs) {
+    if (is_nil(lhs) && is_nil(rhs)) return 0;
+    if (is_nil(lhs) && !is_nil(rhs)) return -1;
+    if (!is_nil(lhs) && is_nil(rhs)) return 1;
     auto lhsIndex = lhs.index();
     auto rhsIndex = rhs.index();
     if (lhsIndex != rhsIndex) {

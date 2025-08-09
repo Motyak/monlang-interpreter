@@ -24,7 +24,7 @@ using value_t = std::variant<
 
 class MapKeyCmp {
   public:
-    bool operator()(const value_t& lhs, const value_t& rhs) const;
+    bool operator()(const value_t&, const value_t&) const;
 };
 
 #endif // MAP_KEY_CMP_H

@@ -37,7 +37,7 @@ const value_t builtin::op::gt __attribute__((init_priority(3000))) = new prim_va
         for (auto arg: args) {
             auto argVal = evaluateValue(arg.expr, arg.env);
             if (is_nil(argVal)) {
-                throw InterpretError(">() arg is $nil");
+                throw InterpretError(">() first arg cannot be $nil");
             }
 
             /* compare with lhs (arg from last iteration) */
@@ -107,28 +107,14 @@ static int comparePrimValPtr(prim_value_t* primValPtr_lhs, prim_value_t* primVal
             auto rhsAsStr = builtin::prim_ctor::Str_(primValPtr_rhs);
             return str < rhsAsStr? -1 : str > rhsAsStr? 1 : 0;
         },
-        [primValPtr_rhs](const List& list) -> int {
-            auto rhsAsList = builtin::prim_ctor::List_(primValPtr_rhs);
-            auto lhsSize = list.size();
-            auto rhsSize = rhsAsList.size();
-            if (lhsSize != rhsSize) {
-                return lhsSize < rhsSize ? -1 : 1;
-            }
-            for (size_t i = 0; i < lhsSize; ++i) {
-                auto cmp = compareValue(list[i], rhsAsList[i]);
-                if (cmp != 0) {
-                    return cmp;
-                }
-            }
-            return 0;
+        [primValPtr_rhs](const List&) -> int {
+            throw InterpretError(">() first arg cannot be List");
         },
         [primValPtr_rhs](const Map&) -> int {
-            // return map > builtin::prim_ctor::Map_(primValPtr_rhs);
-            TODO();
+            throw InterpretError(">() first arg cannot be Map");
         },
         [primValPtr_rhs](const prim_value_t::Lambda&) -> int {
-            // return lambda > builtin::prim_ctor::Lambda_(primValPtr_rhs);
-            TODO();
+            throw InterpretError(">() first arg cannot be Lambda");
         },
     }, primValPtr_lhs->variant);
 }
