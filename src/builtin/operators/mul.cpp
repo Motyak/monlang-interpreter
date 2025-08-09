@@ -24,8 +24,11 @@ using Map = prim_value_t::Map;
 static value_t mulByte(Byte firstArgValue, prim_value_t* secondArgValue, const std::vector<FlattenArg>& args);
 static value_t mulInt(Int firstArgValue, prim_value_t* secondArgValue, const std::vector<FlattenArg>& args);
 static value_t mulFloat(Float firstArgValue, const std::vector<FlattenArg>& args);
+
 static value_t buildStr(const Str& firstArgValue, const std::vector<FlattenArg>& args);
 static value_t buildStr(Int firstArgValue, const Str& secondArgValue);
+static value_t buildList(const List& firstArgValue, const std::vector<FlattenArg>& args);
+static value_t buildList(Int firstArgValue, const List& secondArgValue);
 
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
@@ -62,6 +65,9 @@ const value_t builtin::op::mul __attribute__((init_priority(3000))) = new prim_v
                     if (std::holds_alternative<Char>(secondArgPrimValuePtr->variant)) {
                         return buildStr(byte, Str(1, std::get<Char>(secondArgPrimValuePtr->variant)));
                     }
+                    if (std::holds_alternative<List>(secondArgPrimValuePtr->variant)) {
+                        return buildList(byte, std::get<List>(secondArgPrimValuePtr->variant));
+                    }
                 }
                 return mulByte(byte, secondArgPrimValuePtr, otherOtherArgs);
             },
@@ -82,6 +88,9 @@ const value_t builtin::op::mul __attribute__((init_priority(3000))) = new prim_v
                     if (std::holds_alternative<Char>(secondArgPrimValuePtr->variant)) {
                         return buildStr(int_, Str(1, std::get<Char>(secondArgPrimValuePtr->variant)));
                     }
+                    if (std::holds_alternative<List>(secondArgPrimValuePtr->variant)) {
+                        return buildList(int_, std::get<List>(secondArgPrimValuePtr->variant));
+                    }
                 }
                 return mulInt(int_, secondArgPrimValuePtr, otherOtherArgs);
             },
@@ -89,9 +98,9 @@ const value_t builtin::op::mul __attribute__((init_priority(3000))) = new prim_v
             [&otherArgs](Float float_) -> value_t {return mulFloat(float_, otherArgs);},
             [&otherArgs](Char char_) -> value_t {return buildStr(Str(1, char_), otherArgs);},
             [&otherArgs](const Str& str) -> value_t {return buildStr(str, otherArgs);},
+            [&otherArgs](const List& list) -> value_t {return buildList(list, otherArgs);},
 
             [](Bool) -> value_t {throw InterpretError("*() first arg cannot be Bool");},
-            [](const List&) -> value_t {throw InterpretError("*() first arg cannot be List");},
             [](const Map&) -> value_t {throw InterpretError("*() first arg cannot be Map");},
             [](const prim_value_t::Lambda&) -> value_t {throw InterpretError("*() first arg cannot be Lambda");},
 
@@ -147,8 +156,27 @@ static value_t buildStr(const Str& firstArgValue, const std::vector<FlattenArg>&
 
 static value_t buildStr(Int firstArgValue, const Str& secondArgValue) {
     auto res = Str("");
-    for (uint8_t i = 1; i <= firstArgValue; ++i) {
+    for (Int i = 1; i <= firstArgValue; ++i) {
         res += secondArgValue;
+    }
+    return new prim_value_t{res};
+}
+
+static value_t buildList(const List& firstArgValue, const std::vector<FlattenArg>& args) {
+    auto multiplier = Int(1);
+    for (auto arg: args) {
+        auto argValue = evaluateValue(arg.expr, arg.env);
+        auto intValue = builtin::prim_ctor::Int_(argValue);
+        multiplier *= intValue;
+    }
+    return buildList(multiplier, firstArgValue);
+}
+
+static value_t buildList(Int firstArgValue, const List& secondArgValue) {
+    auto res = List();
+    res.reserve(secondArgValue.size() * firstArgValue);
+    for (Int i = 1; i <= firstArgValue; ++i) {
+        res.insert(res.end(), secondArgValue.begin(), secondArgValue.end());
     }
     return new prim_value_t{res};
 }
