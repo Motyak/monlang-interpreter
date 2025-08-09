@@ -21,6 +21,7 @@
 #include <monlang-interpreter/builtin/exit.h>
 #include <monlang-interpreter/builtin/die.h>
 #include <monlang-interpreter/builtin/len.h>
+
 #include <monlang-interpreter/builtin/operators.h>
 #include <monlang-interpreter/builtin/prim_ctors.h>
 
@@ -64,7 +65,7 @@ BUILTIN_TABLE __attribute__((init_priority(6000))) = {
     {"Char", builtin::prim_ctor::Char},
     {"Str", builtin::prim_ctor::Str},
     {"List", builtin::prim_ctor::List},
-    // {"Map", builtin::prim_ctor::Map},
+    {"Map", builtin::prim_ctor::Map},
     {"Lambda", builtin::prim_ctor::Lambda},
 };
 

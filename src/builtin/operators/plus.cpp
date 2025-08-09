@@ -31,9 +31,6 @@ static value_t concatStr(const Str& firstArgValue, const Str& secondArgValue, co
 
 static value_t concatList(const List& firstArgValue, const std::vector<FlattenArg>& args);
 
-//TODO: remove, because it will be mergeMap with '|' operator instead
-static value_t concatMap(const Map& firstArgValue, const std::vector<FlattenArg>& args);
-
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
 const value_t builtin::op::plus __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
@@ -75,9 +72,9 @@ const value_t builtin::op::plus __attribute__((init_priority(3000))) = new prim_
             [&otherArgs](Float float_) -> value_t {return addFloat(float_, otherArgs);},
             [&otherArgs](const Str& str) -> value_t {return concatStr(str, otherArgs);},
             [&otherArgs](const List& list) -> value_t {return concatList(list, otherArgs);},
-            [&otherArgs](const Map& map) -> value_t {return concatMap(map, otherArgs);},
 
             [](Bool) -> value_t {throw InterpretError("+() first arg cannot be Bool");},
+            [](const Map&) -> value_t {throw InterpretError("+() first arg cannot be Map");},
             [](const prim_value_t::Lambda&) -> value_t {throw InterpretError("+() first arg cannot be Lambda");},
         }, firstArgPrimValuePtr->variant);
     }
@@ -166,10 +163,3 @@ static value_t concatList(const List& firstArgValue, const std::vector<FlattenAr
 
     return new prim_value_t{res};
 }
-
-static value_t concatMap(const Map& firstArgValue, const std::vector<FlattenArg>& args) {
-    TODO();
-    (void)firstArgValue;
-    (void)args;
-}
-

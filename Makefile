@@ -56,6 +56,7 @@ obj/builtin/prim_ctors/Float.o \
 obj/builtin/prim_ctors/Char.o \
 obj/builtin/prim_ctors/Str.o \
 obj/builtin/prim_ctors/List.o \
+obj/builtin/prim_ctors/Map.o \
 obj/builtin/prim_ctors/Lambda.o \
 
 DEPS := $(OBJS:obj/%.o=.deps/%.d)

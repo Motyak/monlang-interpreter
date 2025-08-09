@@ -56,8 +56,8 @@ static value_t listLength(const prim_value_t::List& list) {
     return new prim_value_t{prim_value_t::Int(list.size())};
 }
 
-static value_t mapLength(const prim_value_t::Map&) {
-    TODO();
+static value_t mapLength(const prim_value_t::Map& map) {
+    return new prim_value_t{prim_value_t::Int(map.size())};
 }
 
 static value_t requiredParams(const prim_value_t::Lambda& lambda) {
