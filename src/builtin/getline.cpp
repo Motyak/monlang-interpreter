@@ -12,11 +12,11 @@ const value_t builtin::getline __attribute__((init_priority(3000))) = new prim_v
     builtin_lambda_id++,
     IntConst::ZERO,
     [](const std::vector<FlattenArg>&) -> value_t {
-        std::string line;
+        prim_value_t::Str line;
         std::getline(std::cin, line);
         if (line.empty() && std::cin.eof()) {
             return nil_value_t();
         }
-        return new prim_value_t{prim_value_t::Str(line)};
+        return new prim_value_t{line};
     }
 }};

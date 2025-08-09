@@ -534,8 +534,8 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                 unless (fromPos < Int(list.size())) throw InterpretError("Subscript range 'from' is out of bounds");
                 unless (toPos < Int(list.size())) throw InterpretError("Subscript range 'to' is out of bounds");
 
-                auto res = std::vector<value_t>(list.begin() + fromPos, list.begin() + + toPos + 1);
-                return new prim_value_t{List(res)};
+                auto res = List(list.begin() + fromPos, list.begin() + + toPos + 1);
+                return new prim_value_t{res};
             }
 
             else SHOULD_NOT_HAPPEN();
@@ -553,29 +553,35 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
 }
 
 value_t evaluateValue(const ListLiteral& listLiteral, Environment* env) {
-    std::vector<value_t> res;
+    List res;
     res.reserve(listLiteral.arguments.size());
     for (auto arg: listLiteral.arguments) {
         auto currArgVal = evaluateValue(arg, env);
         res.push_back(currArgVal);
     }
-    return new prim_value_t{List(res)};
+    return new prim_value_t{res};
 }
 
-value_t evaluateValue(const MapLiteral&, Environment*) {
-    TODO();
+value_t evaluateValue(const MapLiteral& mapLiteral, Environment* env) {
+    Map res;
+    for (auto [key, val]: mapLiteral.arguments) {
+        auto currKeyVal = evaluateValue(key, env);
+        auto currValVal = evaluateValue(val, env);
+        res[currKeyVal] = currValVal;
+    }
+    return new prim_value_t{res};
 }
 
 static value_t init_ARGS() {
-    std::vector<value_t> strs;
-    for (auto arg: SRC_ARGS) {
-        strs.push_back(new prim_value_t{Str(arg)});
+    List strs;
+    for (Str arg: SRC_ARGS) {
+        strs.push_back(new prim_value_t{arg});
     }
-    return new prim_value_t{List(strs)};
+    return new prim_value_t{strs};
 }
 
 value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env) {
-    static const value_t ARG0 = new prim_value_t{Str(::ARG0)};
+    static const value_t ARG0 = new prim_value_t{(Str)::ARG0};
     static const value_t ARGS = init_ARGS();
 
     if (specialSymbol.name == "$nil") {
@@ -682,7 +688,7 @@ value_t evaluateValue(const Numeral& numeral, const Environment*) {
 }
 
 value_t evaluateValue(const StrLiteral& strLiteral, const Environment*) {
-    return new prim_value_t(Str(strLiteral.str));
+    return new prim_value_t((Str)strLiteral.str);
 }
 
 value_t evaluateValue(const Symbol& symbol, Environment* env) {
@@ -724,7 +730,7 @@ value_t evaluateValue(const Symbol& symbol, Environment* env) {
         useful for checking in-code whether a symbol is unbound or not
         (for testing purposes)
     */
-    return new prim_value_t(Str(symbol.name));
+    return new prim_value_t((Str)symbol.name);
     #else
     throw InterpretError("Unbound symbol `" + symbol.name + "`");
     #endif

@@ -156,7 +156,7 @@ static value_t concatStr(const Str& firstArgValue, const Str& secondArgValue, co
 }
 
 static value_t concatList(const List& firstArgValue, const std::vector<FlattenArg>& args) {
-    std::vector<value_t> res = firstArgValue;
+    List res = firstArgValue;
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
@@ -164,7 +164,7 @@ static value_t concatList(const List& firstArgValue, const std::vector<FlattenAr
         res.insert(res.end(), currList.begin(), currList.end());
     }
 
-    return new prim_value_t{List(res)};
+    return new prim_value_t{res};
 }
 
 static value_t concatMap(const Map& firstArgValue, const std::vector<FlattenArg>& args) {

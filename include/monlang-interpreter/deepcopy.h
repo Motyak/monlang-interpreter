@@ -29,17 +29,21 @@ static value_t deepcopy(prim_value_t* primValPtr) {
     ASSERT (primValPtr != nullptr);
     return std::visit(overload{
         [](const prim_value_t::Str& str) -> value_t {
-            return new prim_value_t{prim_value_t::Str(str)};
+            return new prim_value_t{str};
         },
         [](const prim_value_t::List& list) -> value_t {
-            std::vector<value_t> newlist;
+            prim_value_t::List newlist;
             for (auto val: list) {
                 newlist.push_back(deepcopy(val));
             }
-            return new prim_value_t{(prim_value_t::List)newlist};
+            return new prim_value_t{newlist};
         },
-        [](const prim_value_t::Map&) -> value_t {
-            TODO();
+        [](const prim_value_t::Map& map) -> value_t {
+            prim_value_t::Map newmap;
+            for (auto [key, val]: map) {
+                newmap[key] = deepcopy(val);
+            }
+            return new prim_value_t{newmap};
         },
         [primValPtr](prim_value_t::Byte) -> value_t {return primValPtr;},
         [primValPtr](prim_value_t::Bool) -> value_t {return primValPtr;},
