@@ -816,7 +816,20 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
             else SHOULD_NOT_HAPPEN();
         },
 
-        [](Map&) -> value_t* {TODO();},
+        [&subscript, env](Map& map) -> value_t* {
+            if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
+                throw InterpretError("Subscripting a Map with an index");
+            }
+            else if (std::holds_alternative<Subscript::Key>(subscript.argument)) {
+                auto key = std::get<Subscript::Key>(subscript.argument);
+                auto keyVal = evaluateValue(key.expr, env);
+                if (subscript.suffix == '!' && !map.contains(keyVal)) {
+                    throw InterpretError("Subscript key not found");
+                }
+                return &map[keyVal];
+            }
+            else SHOULD_NOT_HAPPEN();
+        },
 
         [](Bool&) -> value_t* {throw InterpretError("Cannot subscript a Bool");},
         [](Byte&) -> value_t* {throw InterpretError("Cannot subscript a Byte");},
