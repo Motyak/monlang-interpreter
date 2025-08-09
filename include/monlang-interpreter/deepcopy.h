@@ -15,7 +15,7 @@ static value_t deepcopy(type_value_t*);
 static value_t deepcopy(struct_value_t*);
 static value_t deepcopy(enum_value_t*);
 
-inline value_t deepcopy(value_t val) {
+inline value_t deepcopy(const value_t& val) {
     if (is_nil(val)) {
         return val;
     }

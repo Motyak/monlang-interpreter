@@ -20,7 +20,7 @@ using Str = prim_value_t::Str;
 using List = prim_value_t::List;
 using Map = prim_value_t::Map;
 
-static bool compareValue(value_t, value_t);
+static bool compareValue(const value_t&, const value_t&);
 static bool comparePrimValPtr(prim_value_t*, prim_value_t*);
 
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
@@ -58,7 +58,7 @@ const value_t builtin::op::eq __attribute__((init_priority(3000))) = new prim_va
     }
 }};
 
-static bool compareValue(value_t lhsVal, value_t rhsVal) {
+static bool compareValue(const value_t& lhsVal, const value_t& rhsVal) {
     if (lhsVal.index() != rhsVal.index()) {
         TODO();
     }

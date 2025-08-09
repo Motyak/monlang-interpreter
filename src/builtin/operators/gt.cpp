@@ -21,7 +21,7 @@ using Str = prim_value_t::Str;
 using List = prim_value_t::List;
 using Map = prim_value_t::Map;
 
-static int compareValue(value_t, value_t);
+static int compareValue(const value_t&, const value_t&);
 static int comparePrimValPtr(prim_value_t*, prim_value_t*);
 
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
@@ -57,7 +57,7 @@ const value_t builtin::op::gt __attribute__((init_priority(3000))) = new prim_va
     }
 }};
 
-static int compareValue(value_t lhsVal, value_t rhsVal) {
+static int compareValue(const value_t& lhsVal, const value_t& rhsVal) {
     if (lhsVal.index() != rhsVal.index()) {
         TODO();
     }
@@ -109,10 +109,12 @@ static int comparePrimValPtr(prim_value_t* primValPtr_lhs, prim_value_t* primVal
         },
         [primValPtr_rhs](const List& list) -> int {
             auto rhsAsList = builtin::prim_ctor::List_(primValPtr_rhs);
-            if (list.size() != rhsAsList.size()) {
-                return list.size() < rhsAsList.size() ? -1 : 1;
+            auto lhsSize = list.size();
+            auto rhsSize = rhsAsList.size();
+            if (lhsSize != rhsSize) {
+                return lhsSize < rhsSize ? -1 : 1;
             }
-            for (size_t i = 0; i < list.size(); ++i) {
+            for (size_t i = 0; i < lhsSize; ++i) {
                 auto cmp = compareValue(list[i], rhsAsList[i]);
                 if (cmp != 0) {
                     return cmp;
