@@ -36,7 +36,7 @@ const value_t builtin::op::bitwise_not __attribute__((init_priority(3000))) = ne
 
         auto arg = args.at(0);
         auto argValue = evaluateValue(arg.expr, arg.env);
-        unless (std::holds_alternative<prim_value_t*>(argValue)) SHOULD_NOT_HAPPEN(); // TODO: tmp
+        ASSERT (std::holds_alternative<prim_value_t*>(argValue)); // TODO: tmp
         auto argPrimValuePtr = std::get<prim_value_t*>(argValue);
         if (argPrimValuePtr == nullptr) {
             throw InterpretError("~() arg cannot be $nil");

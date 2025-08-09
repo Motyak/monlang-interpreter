@@ -36,7 +36,7 @@ const value_t builtin::op::rightshift __attribute__((init_priority(3000))) = new
 
         auto firstArg = args.at(0);
         auto firstArgValue = evaluateValue(firstArg.expr, firstArg.env);
-        unless (std::holds_alternative<prim_value_t*>(firstArgValue)) SHOULD_NOT_HAPPEN(); // TODO: tmp
+        ASSERT (std::holds_alternative<prim_value_t*>(firstArgValue)); // TODO: tmp
         auto firstArgPrimValuePtr = std::get<prim_value_t*>(firstArgValue);
         if (firstArgPrimValuePtr == nullptr) {
             throw InterpretError(">>() first arg cannot be $nil");

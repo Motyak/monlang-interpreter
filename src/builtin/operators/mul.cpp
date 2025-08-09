@@ -40,7 +40,7 @@ const value_t builtin::op::mul __attribute__((init_priority(3000))) = new prim_v
 
         auto firstArg = args.at(0);
         auto firstArgValue = evaluateValue(firstArg.expr, firstArg.env);
-        unless (std::holds_alternative<prim_value_t*>(firstArgValue)) SHOULD_NOT_HAPPEN(); // TODO: tmp
+        ASSERT (std::holds_alternative<prim_value_t*>(firstArgValue)); // TODO: tmp
         auto firstArgPrimValuePtr = std::get<prim_value_t*>(firstArgValue);
         if (firstArgPrimValuePtr == nullptr) {
             throw InterpretError("*() first arg cannot be $nil");
@@ -52,7 +52,7 @@ const value_t builtin::op::mul __attribute__((init_priority(3000))) = new prim_v
             [&otherArgs](Byte byte) -> value_t {
                 auto secondArg = otherArgs.at(0);
                 auto secondArgValue = evaluateValue(secondArg.expr, secondArg.env);
-                unless (std::holds_alternative<prim_value_t*>(secondArgValue)) SHOULD_NOT_HAPPEN(); // TODO: tmp
+                ASSERT (std::holds_alternative<prim_value_t*>(secondArgValue)); // TODO: tmp
                 auto secondArgPrimValuePtr = std::get<prim_value_t*>(secondArgValue);
                 if (secondArgPrimValuePtr == nullptr) {
                     throw InterpretError("*(<Byte>, <..>) second arg cannot be $nil");
@@ -75,7 +75,7 @@ const value_t builtin::op::mul __attribute__((init_priority(3000))) = new prim_v
             [&otherArgs](Int int_) -> value_t {
                 auto secondArg = otherArgs.at(0);
                 auto secondArgValue = evaluateValue(secondArg.expr, secondArg.env);
-                unless (std::holds_alternative<prim_value_t*>(secondArgValue)) SHOULD_NOT_HAPPEN(); // TODO: tmp
+                ASSERT (std::holds_alternative<prim_value_t*>(secondArgValue)); // TODO: tmp
                 auto secondArgPrimValuePtr = std::get<prim_value_t*>(secondArgValue);
                 if (secondArgPrimValuePtr == nullptr) {
                     throw InterpretError("*(<Int>, <..>) second arg cannot be $nil");
