@@ -67,7 +67,9 @@ static value_t bitwise_or_Byte(Byte firstArgValue, const std::vector<FlattenArg>
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Int_(argValue);
+        ::activeCallStack.pop_back(); // arg.expr
         res |= intVal;
     }
 
@@ -79,7 +81,9 @@ static value_t bitwise_or_Int(Int firstArgValue, const std::vector<FlattenArg>& 
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Int_(argValue);
+        ::activeCallStack.pop_back(); // arg.expr
         res |= intVal;
     }
 
@@ -91,7 +95,9 @@ static value_t mergeMap(const Map& firstArgValue, const std::vector<FlattenArg>&
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto mapVal = builtin::prim_ctor::Map_(argValue);
+        ::activeCallStack.pop_back(); // arg.expr
         for (auto [key, val]: mapVal) {
             res[key] = val;
         }

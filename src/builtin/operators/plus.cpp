@@ -65,6 +65,7 @@ const value_t builtin::op::plus __attribute__((init_priority(3000))) = new prim_
                 if (std::holds_alternative<Char>(secondArgPrimValuePtr->variant)) {
                     return concatStr(Str(1, char_), Str(1, std::get<Char>(secondArgPrimValuePtr->variant)), otherOtherArgs);
                 }
+                ::activeCallStack.push_back(secondArg.expr);
                 return addChar(char_, secondArgPrimValuePtr, otherOtherArgs);
             },
             [&otherArgs](Byte byte) -> value_t {return addByte(byte, otherArgs);},
@@ -85,7 +86,9 @@ static value_t addByte(Byte firstArgValue, const std::vector<FlattenArg>& args) 
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Byte_(argValue);
+        ::activeCallStack.pop_back(); // arg.expr
         sum += intVal;
     }
 
@@ -97,7 +100,9 @@ static value_t addInt(Int firstArgValue, const std::vector<FlattenArg>& args) {
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Int_(argValue);
+        ::activeCallStack.pop_back(); // arg.expr
         sum += intVal;
     }
 
@@ -109,7 +114,9 @@ static value_t addFloat(Float firstArgValue, const std::vector<FlattenArg>& args
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Float_(argValue);
+        ::activeCallStack.pop_back(); // arg.expr
         sum += intVal;
     }
 
@@ -118,10 +125,13 @@ static value_t addFloat(Float firstArgValue, const std::vector<FlattenArg>& args
 
 static value_t addChar(Char firstArgValue, prim_value_t* secondArgValue, const std::vector<FlattenArg>& args) {
     auto sum = uint8_t(uint8_t(firstArgValue) + builtin::prim_ctor::Byte_(secondArgValue));
+    ::activeCallStack.pop_back(); // from before addChar() call
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto intVal = uint8_t(builtin::prim_ctor::Byte_(argValue));
+        ::activeCallStack.pop_back(); // arg.expr
         sum += intVal;
     }
 
@@ -157,7 +167,9 @@ static value_t concatList(const List& firstArgValue, const std::vector<FlattenAr
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto currList = builtin::prim_ctor::List_(argValue);
+        ::activeCallStack.pop_back(); // arg.expr
         res.insert(res.end(), currList.begin(), currList.end());
     }
 

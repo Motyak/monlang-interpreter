@@ -6,6 +6,7 @@
 
 #include <utils/assert-utils.h>
 #include <utils/variant-utils.h>
+#include <utils/defer-util.h>
 
 #define unless(x) if(!(x))
 
@@ -22,6 +23,8 @@ const value_t builtin::prim_ctor::Int __attribute__((init_priority(3000))) = new
         unless (args.size() == 1) throw InterpretError("Int() takes 1 argument");
         auto arg = args.at(0);
         auto argVal = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
+        defer {::activeCallStack.pop_back();};
         return new prim_value_t(Int_(argVal));
     }
 }};

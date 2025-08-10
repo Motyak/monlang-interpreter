@@ -20,7 +20,7 @@ const value_t builtin::die __attribute__((init_priority(3000))) = new prim_value
         unless (args.size() <= 1) throw InterpretError("die() takes at most 1 argument");
         std::string msg;
         if (args.size() == 1) {
-            auto argVal = evaluateValue(args[0].expr, args[0].env);
+            auto argVal = evaluateValue(args.at(0).expr, args.at(0).env);
             msg = builtin::prim_ctor::Str_(argVal);
         }
         throw ProgramAssertion(msg);

@@ -24,7 +24,9 @@ const value_t builtin::op::logical_and __attribute__((init_priority(3000))) = ne
             ASSERT (std::holds_alternative<prim_value_t*>(argVal)); //TODO: tmp
             auto argPrimValPtr = std::get<prim_value_t*>(argVal);
             // Bool_ is responsible for $nil handling
+            ::activeCallStack.push_back(arg.expr);
             auto argBool = builtin::prim_ctor::Bool_(argPrimValPtr);
+            ::activeCallStack.pop_back(); // arg.expr
             if (!argBool) {
                 return BoolConst::FALSE;
             }

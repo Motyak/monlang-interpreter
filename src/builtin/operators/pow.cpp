@@ -66,7 +66,9 @@ static value_t powByte(Byte firstArgValue, const std::vector<FlattenArg>& args) 
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Int_(argValue);
+        ::activeCallStack.pop_back(); // arg.expr
         res = std::pow(res, intVal);
     }
 
@@ -78,7 +80,9 @@ static value_t powInt(Int firstArgValue, const std::vector<FlattenArg>& args) {
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Int_(argValue);
+        ::activeCallStack.pop_back(); // arg.expr
         res = std::pow(res, intVal);
     }
 
@@ -90,7 +94,9 @@ static value_t powFloat(Float firstArgValue, const std::vector<FlattenArg>& args
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Int_(argValue);
+        ::activeCallStack.pop_back(); // arg.expr
         res = std::pow(res, intVal);
     }
 

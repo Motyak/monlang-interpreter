@@ -64,7 +64,9 @@ static value_t divFloat(Float firstArgValue, const std::vector<FlattenArg>& args
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Int_(argValue);
+        ::activeCallStack.pop_back(); // arg.expr
         res /= intVal;
     }
 

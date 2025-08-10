@@ -64,8 +64,10 @@ static value_t intdiv(Int firstArgValue, const std::vector<FlattenArg>& args) {
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Int_(argValue);
         if (intVal == 0) throw InterpretError("intdiv by zero");
+        ::activeCallStack.pop_back(); // arg.expr
         res /= intVal;
     }
 

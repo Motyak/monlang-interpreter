@@ -20,8 +20,10 @@ const value_t builtin::prim_ctor::Map __attribute__((init_priority(3000))) = new
             auto argVal = evaluateValue(arg.expr, arg.env);
             ASSERT (std::holds_alternative<prim_value_t*>(argVal)); // TODO: tmp
             auto argPrimValPtr = std::get<prim_value_t*>(argVal);
+            ::activeCallStack.push_back(arg.expr);
             auto argAsList = List_(argPrimValPtr);
             unless (argAsList.size() == 2) throw InterpretError("Map() list arguments must contain 2 elements");
+            ::activeCallStack.pop_back(); // arg.expr
             res[argAsList.at(0)] = argAsList.at(1);
         }
         return new prim_value_t{res};
