@@ -88,21 +88,16 @@ value_t evaluateValue(const Expression& expr, Environment* env) {
 value_t* evaluateLvalue(const Lvalue& lvalue, Environment* env, bool subscripted) {
     return std::visit(overload{
         [env, subscripted](Symbol* symbol){
+            ::activeCallStack.push_back(symbol);
+            defer {::activeCallStack.pop_back();};
             return evaluateLvalue(*symbol, env, subscripted);
         },
         [env](auto* lvalue){
+            ::activeCallStack.push_back(lvalue);
+            defer {::activeCallStack.pop_back();};
             return evaluateLvalue(*lvalue, env);
         },
     }, lvalue.variant);
-
-    return std::visit(
-        [lvalue, env](auto* expr){
-            ::activeCallStack.push_back(lvalue);
-            defer {::activeCallStack.pop_back();};
-            return evaluateLvalue(*expr, env);
-        },
-        lvalue.variant
-    );
 }
 
 //==============================================================
@@ -157,13 +152,11 @@ void performStatement(const LetStatement&, const Environment*) {
 void performStatement(const VarStatement& varStmt, Environment* env) {
     if (varStmt.variable.name == "_") {
         ::activeCallStack.push_back(const_cast<Symbol*>(&varStmt.variable));
-        defer {::activeCallStack.pop_back();};
         throw InterpretError("Redefinition of a special name");
     }
 
     if (env->symbolTable.contains(varStmt.variable.name)) {
         ::activeCallStack.push_back(const_cast<Symbol*>(&varStmt.variable));
-        defer {::activeCallStack.pop_back();};
         throw SymbolRedefinitionError(varStmt.variable.name);
     }
 
@@ -763,6 +756,7 @@ value_t* evaluateLvalue(const FieldAccess&, Environment*) {
 }
 
 value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
+    //TODO: this is catch during syntax analysis, so should remove ?
     if (!is_lvalue(subscript.array)) {
         throw InterpretError("lvaluing a non-lvalue subscript array");
     }
