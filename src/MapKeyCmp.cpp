@@ -56,6 +56,11 @@ static int cmp(const value_t& lhs, const value_t& rhs) {
 }
 
 static int cmp(prim_value_t* lhs, prim_value_t* rhs) {
+    auto lhsIndex = lhs->variant.index();
+    auto rhsIndex = rhs->variant.index();
+    if (lhsIndex != rhsIndex) {
+        return lhsIndex < rhsIndex? -1 : 1;
+    }
     return std::visit(overload{
         [&rhs](Bool lhs) -> int {
             auto rhsAsBool = std::get<Bool>(rhs->variant);
