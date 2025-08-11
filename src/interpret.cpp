@@ -145,8 +145,28 @@ void performStatement(const Accumulation& acc, Environment* env) {
     delete fnCallPtr;
 }
 
-void performStatement(const LetStatement&, const Environment*) {
-    TODO();
+void performStatement(const LetStatement& letStmt, Environment* env) {
+    if (letStmt.alias.name == "_") {
+        ::activeCallStack.push_back(const_cast<Symbol*>(&letStmt.alias));
+        throw InterpretError("Redefinition of a special name");
+    }
+
+    if (env->symbolTable.contains(letStmt.alias.name)) {
+        ::activeCallStack.push_back(const_cast<Symbol*>(&letStmt.alias));
+        throw SymbolRedefinitionError(letStmt.alias.name);
+    }
+
+    auto leftmostSymbol = leftmost(letStmt.variable);
+    if (!env->symbolTable.contains(leftmostSymbol.name)) {
+        ::activeCallStack.push_back(letStmt.variable);
+        throw InterpretError("Unbound symbol `" + leftmostSymbol.name + "`");
+    }
+
+    env->symbolTable[letStmt.alias.name] = Environment::LabelToLvalue{
+        (thunk_t<value_t*>)[&letStmt, env]() -> value_t* {
+            return evaluateLvalue(letStmt.variable, env);
+        }
+    };
 }
 
 void performStatement(const VarStatement& varStmt, Environment* env) {

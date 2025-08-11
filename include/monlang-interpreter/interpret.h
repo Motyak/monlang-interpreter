@@ -49,7 +49,7 @@ value_t* evaluateLvalue(const Lvalue&, Environment*, bool subscripted = false);
 /* performStatement */
 void performStatement(const Assignment&, Environment*);
 void performStatement(const Accumulation&, Environment*);
-void performStatement(const LetStatement&, const Environment*);
+void performStatement(const LetStatement&, Environment*);
 void performStatement(const VarStatement&, Environment*);
 void performStatement(const ReturnStatement&, const Environment*);
 void performStatement(const BreakStatement&, const Environment*);
