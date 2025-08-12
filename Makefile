@@ -81,8 +81,9 @@ mrproper:
 obj/main.o obj/monlang_parser.o: CXXFLAGS += -I monlang-parser/include
 obj/main.o: CXXFLAGS += -Wno-unused-label
 obj/builtin/prim_ctors/Bool.o: CXXFLAGS += -D TOGGLE_NIL_CAST_TO_BOOL
-# obj/interpret.o: CXXFLAGS += -D TOGGLE_UNBOUND_SYM_AS_STR
+obj/interpret.o: CXXFLAGS += -D TOGGLE_TAILCALL
 # obj/interpret.o: CXXFLAGS += -D TOGGLE_PASS_BY_VALUE
+# obj/interpret.o: CXXFLAGS += -D TOGGLE_UNBOUND_SYM_AS_STR
 $(OBJS) obj/main.o: obj/%.o: src/%.cpp
 	$(CXX) -o $@ -c $< $(CXXFLAGS) $(DEPFLAGS)
 
