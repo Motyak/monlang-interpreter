@@ -15,6 +15,7 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <monlang-interpreter/MapKeyCmp.h>
 #include <monlang-LV2/ast/expr/FunctionCall.h>
 
 #include <variant>
@@ -57,7 +58,7 @@ struct prim_value_t {
     using Char = char;
     using Str = std::string;
     using List = std::vector<value_t>;
-    using Map = std::map<value_t, value_t>;
+    using Map = std::map<value_t, value_t, MapKeyCmp>;
 
     struct Lambda {
         uint64_t id;

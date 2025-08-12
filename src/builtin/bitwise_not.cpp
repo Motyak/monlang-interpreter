@@ -1,4 +1,4 @@
-#include <monlang-interpreter/builtin/operators.h>
+#include <monlang-interpreter/builtin.h>
 
 /* impl only */
 
@@ -28,7 +28,7 @@ static value_t bitwise_not_Int(Int argValue);
 
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
-const value_t builtin::op::bitwise_not __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
+const value_t builtin::bitwise_not __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     builtin_lambda_id++,
     IntConst::TWO,
     [](const std::vector<FlattenArg>& args) -> value_t {
@@ -36,7 +36,7 @@ const value_t builtin::op::bitwise_not __attribute__((init_priority(3000))) = ne
 
         auto arg = args.at(0);
         auto argValue = evaluateValue(arg.expr, arg.env);
-        unless (std::holds_alternative<prim_value_t*>(argValue)) SHOULD_NOT_HAPPEN(); // TODO: tmp
+        ASSERT (std::holds_alternative<prim_value_t*>(argValue)); // TODO: tmp
         auto argPrimValuePtr = std::get<prim_value_t*>(argValue);
         if (argPrimValuePtr == nullptr) {
             throw InterpretError("~() arg cannot be $nil");

@@ -88,6 +88,8 @@ value_t evaluateValue(const Expression& expr, Environment* env) {
 }
 
 value_t* evaluateLvalue(const Lvalue& lvalue, Environment* env, bool subscripted) {
+    ::activeCallStack.push_back(lvalue);
+    defer {::activeCallStack.pop_back();};
     return std::visit(overload{
         [env, subscripted](Symbol* symbol){
             return evaluateLvalue(*symbol, env, subscripted);
@@ -96,15 +98,6 @@ value_t* evaluateLvalue(const Lvalue& lvalue, Environment* env, bool subscripted
             return evaluateLvalue(*lvalue, env);
         },
     }, lvalue.variant);
-
-    return std::visit(
-        [lvalue, env](auto* expr){
-            ::activeCallStack.push_back(lvalue);
-            defer {::activeCallStack.pop_back();};
-            return evaluateLvalue(*expr, env);
-        },
-        lvalue.variant
-    );
 }
 
 //==============================================================
@@ -124,6 +117,8 @@ void performStatement(const Assignment& assignment, Environment* env) {
     /* special case: assign to Str char */
     if (std::holds_alternative<char*>(*lvalue)) {
         auto* c = std::get<char*>(*lvalue);
+        ::activeCallStack.push_back(assignment.value);
+        defer {::activeCallStack.pop_back();};
         auto newChar = builtin::prim_ctor::Char_(new_value);
         auto old_value = value_t(new prim_value_t{Char(*c)});
         *c = newChar;
@@ -152,20 +147,38 @@ void performStatement(const Accumulation& acc, Environment* env) {
     delete fnCallPtr;
 }
 
-void performStatement(const LetStatement&, const Environment*) {
-    TODO();
+void performStatement(const LetStatement& letStmt, Environment* env) {
+    if (letStmt.alias.name == "_") {
+        ::activeCallStack.push_back(const_cast<Symbol*>(&letStmt.alias));
+        throw InterpretError("Redefinition of a special name");
+    }
+
+    if (env->symbolTable.contains(letStmt.alias.name)) {
+        ::activeCallStack.push_back(const_cast<Symbol*>(&letStmt.alias));
+        throw SymbolRedefinitionError(letStmt.alias.name);
+    }
+
+    auto leftmostSymbol = leftmost(letStmt.variable);
+    if (!env->symbolTable.contains(leftmostSymbol.name)) {
+        ::activeCallStack.push_back(letStmt.variable);
+        throw InterpretError("Unbound symbol `" + leftmostSymbol.name + "`");
+    }
+
+    env->symbolTable[letStmt.alias.name] = Environment::LabelToLvalue{
+        (thunk_t<value_t*>)[&letStmt, env]() -> value_t* {
+            return evaluateLvalue(letStmt.variable, env);
+        }
+    };
 }
 
 void performStatement(const VarStatement& varStmt, Environment* env) {
     if (varStmt.variable.name == "_") {
         ::activeCallStack.push_back(const_cast<Symbol*>(&varStmt.variable));
-        defer {::activeCallStack.pop_back();};
         throw InterpretError("Redefinition of a special name");
     }
 
     if (env->symbolTable.contains(varStmt.variable.name)) {
         ::activeCallStack.push_back(const_cast<Symbol*>(&varStmt.variable));
-        defer {::activeCallStack.pop_back();};
         throw SymbolRedefinitionError(varStmt.variable.name);
     }
 
@@ -499,6 +512,8 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
             else if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
                 auto index = std::get<Subscript::Index>(subscript.argument);
                 auto nthVal = evaluateValue(variant_cast(index.nth), env);
+                ::activeCallStack.push_back(variant_cast(index.nth));
+                defer {::activeCallStack.pop_back();};
                 auto intVal = builtin::prim_ctor::Int_(nthVal);
 
                 unless (intVal != 0) throw InterpretError("Subscript index is zero");
@@ -509,22 +524,27 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
 
             else if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
                 auto range = std::get<Subscript::Range>(subscript.argument);
+
+                /* from */
+                ::activeCallStack.push_back(variant_cast(range.from));
                 auto fromVal = evaluateValue(variant_cast(range.from), env);
                 auto intFromVal = builtin::prim_ctor::Int_(fromVal);
+                unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
+                Int fromPos = intFromVal < 0? Int(str.size()) - abs(intFromVal) : intFromVal - 1;
+                unless (fromPos < Int(str.size())) throw InterpretError("Subscript range 'from' is out of bounds");
+                ::activeCallStack.pop_back(); // variant_cast(range.from)
+
+                /* to */
+                ::activeCallStack.push_back(variant_cast(range.to));
                 auto toVal = evaluateValue(variant_cast(range.to), env);
                 auto intToVal = builtin::prim_ctor::Int_(toVal);
-
-                unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
                 unless (intToVal != 0) throw InterpretError("Subscript range 'to' is zero");
-
-                Int fromPos = intFromVal < 0? Int(str.size()) - abs(intFromVal) : intFromVal - 1;
                 Int toPos = intToVal < 0? Int(str.size()) - abs(intToVal) : intToVal - 1;
                 if (range.exclusive) {
                     toPos -= fromPos <= toPos? 1 : -1;
                 }
-
-                unless (fromPos < Int(str.size())) throw InterpretError("Subscript range 'from' is out of bounds");
                 unless (toPos < Int(str.size())) throw InterpretError("Subscript range 'to' is out of bounds");
+                ::activeCallStack.pop_back(); // variant_cast(range.to)
 
                 return new prim_value_t{str.substr(fromPos, toPos - fromPos + 1)};
             }
@@ -540,6 +560,8 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
             else if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
                 auto index = std::get<Subscript::Index>(subscript.argument);
                 auto nthVal = evaluateValue(variant_cast(index.nth), env);
+                ::activeCallStack.push_back(variant_cast(index.nth));
+                defer {::activeCallStack.pop_back();};
                 auto intVal = builtin::prim_ctor::Int_(nthVal);
 
                 unless (intVal != 0) throw InterpretError("Subscript index is zero");
@@ -550,31 +572,53 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
 
             else if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
                 auto range = std::get<Subscript::Range>(subscript.argument);
+
+                /* from */
+                ::activeCallStack.push_back(variant_cast(range.from));
                 auto fromVal = evaluateValue(variant_cast(range.from), env);
                 auto intFromVal = builtin::prim_ctor::Int_(fromVal);
+                unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
+                Int fromPos = intFromVal < 0? Int(list.size()) - abs(intFromVal) : intFromVal - 1;
+                unless (fromPos < Int(list.size())) throw InterpretError("Subscript range 'from' is out of bounds");
+                ::activeCallStack.pop_back(); // variant_cast(range.from)
+
+                /* to */
+                ::activeCallStack.push_back(variant_cast(range.to));
                 auto toVal = evaluateValue(variant_cast(range.to), env);
                 auto intToVal = builtin::prim_ctor::Int_(toVal);
-
-                unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
                 unless (intToVal != 0) throw InterpretError("Subscript range 'to' is zero");
-
-                Int fromPos = intFromVal < 0? Int(list.size()) - abs(intFromVal) : intFromVal - 1;
                 Int toPos = intToVal < 0? Int(list.size()) - abs(intToVal) : intToVal - 1;
                 if (range.exclusive) {
                     toPos -= fromPos <= toPos? 1 : -1;
                 }
-
-                unless (fromPos < Int(list.size())) throw InterpretError("Subscript range 'from' is out of bounds");
                 unless (toPos < Int(list.size())) throw InterpretError("Subscript range 'to' is out of bounds");
+                ::activeCallStack.pop_back(); // variant_cast(range.to)
 
-                auto res = std::vector<value_t>(list.begin() + fromPos, list.begin() + + toPos + 1);
-                return new prim_value_t{List(res)};
+                auto res = List(list.begin() + fromPos, list.begin() + + toPos + 1);
+                return new prim_value_t{res};
             }
 
             else SHOULD_NOT_HAPPEN();
         },
 
-        [](const Map&) -> value_t {TODO();},
+        [&subscript, env](const Map& map) -> value_t {
+            if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
+                throw InterpretError("Subscripting a Map with an index");
+            }
+
+            else if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
+                throw InterpretError("Subscripting a Map with an range");
+            }
+
+            else if (std::holds_alternative<Subscript::Key>(subscript.argument)) {
+                auto key = std::get<Subscript::Key>(subscript.argument);
+                auto keyVal = evaluateValue(key.expr, env);
+                unless (map.contains(keyVal)) throw InterpretError("Subscript key not found");
+                return map.at(keyVal);
+            }
+
+            else SHOULD_NOT_HAPPEN();
+        },
 
         [](Bool) -> value_t {throw InterpretError("Cannot subscript a Bool");},
         [](Byte) -> value_t {throw InterpretError("Cannot subscript a Byte");},
@@ -586,29 +630,35 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
 }
 
 value_t evaluateValue(const ListLiteral& listLiteral, Environment* env) {
-    std::vector<value_t> res;
+    List res;
     res.reserve(listLiteral.arguments.size());
     for (auto arg: listLiteral.arguments) {
         auto currArgVal = evaluateValue(arg, env);
         res.push_back(currArgVal);
     }
-    return new prim_value_t{List(res)};
+    return new prim_value_t{res};
 }
 
-value_t evaluateValue(const MapLiteral&, Environment*) {
-    TODO();
+value_t evaluateValue(const MapLiteral& mapLiteral, Environment* env) {
+    Map res;
+    for (auto [key, val]: mapLiteral.arguments) {
+        auto currKeyVal = evaluateValue(key, env);
+        auto currValVal = evaluateValue(val, env);
+        res[currKeyVal] = currValVal;
+    }
+    return new prim_value_t{res};
 }
 
 static value_t init_ARGS() {
-    std::vector<value_t> strs;
-    for (auto arg: SRC_ARGS) {
-        strs.push_back(new prim_value_t{Str(arg)});
+    List strs;
+    for (Str arg: SRC_ARGS) {
+        strs.push_back(new prim_value_t{arg});
     }
-    return new prim_value_t{List(strs)};
+    return new prim_value_t{strs};
 }
 
 value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env) {
-    static const value_t ARG0 = new prim_value_t{Str(::ARG0)};
+    static const value_t ARG0 = new prim_value_t{(Str)::ARG0};
     static const value_t ARGS = init_ARGS();
 
     if (specialSymbol.name == "$nil") {
@@ -715,7 +765,7 @@ value_t evaluateValue(const Numeral& numeral, const Environment*) {
 }
 
 value_t evaluateValue(const StrLiteral& strLiteral, const Environment*) {
-    return new prim_value_t(Str(strLiteral.str));
+    return new prim_value_t((Str)strLiteral.str);
 }
 
 value_t evaluateValue(const Symbol& symbol, Environment* env) {
@@ -757,7 +807,7 @@ value_t evaluateValue(const Symbol& symbol, Environment* env) {
         useful for checking in-code whether a symbol is unbound or not
         (for testing purposes)
     */
-    return new prim_value_t(Str(symbol.name));
+    return new prim_value_t((Str)symbol.name);
     #else
     throw InterpretError("Unbound symbol `" + symbol.name + "`");
     #endif
@@ -773,6 +823,7 @@ value_t* evaluateLvalue(const FieldAccess&, Environment*) {
 }
 
 value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
+    //TODO: this is catch during syntax analysis, so should remove ?
     if (!is_lvalue(subscript.array)) {
         throw InterpretError("lvaluing a non-lvalue subscript array");
     }
@@ -798,6 +849,8 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
             else if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
                 auto index = std::get<Subscript::Index>(subscript.argument);
                 auto nthVal = evaluateValue(variant_cast(index.nth), env);
+                ::activeCallStack.push_back(variant_cast(index.nth));
+                defer {::activeCallStack.pop_back();};
                 auto intVal = builtin::prim_ctor::Int_(nthVal);
 
                 unless (intVal != 0) throw InterpretError("Subscript index is zero");
@@ -815,6 +868,8 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
             else if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
                 auto index = std::get<Subscript::Index>(subscript.argument);
                 auto nthVal = evaluateValue(variant_cast(index.nth), env);
+                ::activeCallStack.push_back(variant_cast(index.nth));
+                defer {::activeCallStack.pop_back();};
                 auto intVal = builtin::prim_ctor::Int_(nthVal);
 
                 unless (intVal != 0) throw InterpretError("Subscript index is zero");
@@ -826,7 +881,20 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
             else SHOULD_NOT_HAPPEN();
         },
 
-        [](Map&) -> value_t* {TODO();},
+        [&subscript, env](Map& map) -> value_t* {
+            if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
+                throw InterpretError("Subscripting a Map with an index");
+            }
+            else if (std::holds_alternative<Subscript::Key>(subscript.argument)) {
+                auto key = std::get<Subscript::Key>(subscript.argument);
+                auto keyVal = evaluateValue(key.expr, env);
+                if (subscript.suffix == '!' && !map.contains(keyVal)) {
+                    throw InterpretError("Subscript key not found");
+                }
+                return &map[keyVal];
+            }
+            else SHOULD_NOT_HAPPEN();
+        },
 
         [](Bool&) -> value_t* {throw InterpretError("Cannot subscript a Bool");},
         [](Byte&) -> value_t* {throw InterpretError("Cannot subscript a Byte");},

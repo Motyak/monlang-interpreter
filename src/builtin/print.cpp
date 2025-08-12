@@ -86,7 +86,7 @@ static void print(const prim_value_t& primVal, std::ostream& out, bool shouldQuo
         },
         [&out](const prim_value_t::List& list){
             out << "[";
-            LOOP for (auto val: list) {
+            LOOP for (const auto& val: list) {
                 if (!__first_it) {
                     out << ", ";
                 }
@@ -96,12 +96,16 @@ static void print(const prim_value_t& primVal, std::ostream& out, bool shouldQuo
             out << "]";
         },
         [&out](const prim_value_t::Map& map){
+            if (map.empty()) {
+                out << "[:]";
+                return;
+            }
             out << "[";
-            LOOP for (auto [key, val]: map) {
+            LOOP for (const auto& [key, val]: map) {
                 if (!__first_it) {
                     out << ", ";
                 }
-                print(val, out, /*shouldQuot*/true);
+                print(key, out, /*shouldQuot*/true);
                 out << ":";
                 print(val, out, /*shouldQuot*/true);
                 ENDLOOP

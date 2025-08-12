@@ -14,18 +14,19 @@ OBJS = \
 obj/interpret.o \
 obj/monlang_parser.o \
 obj/Environment.o \
+obj/MapKeyCmp.o \
 $(BUILTIN_OBJS) \
 
 BUILTIN_OBJS = \
 obj/builtin/print.o \
 obj/builtin/getline.o \
-obj/builtin/getchar.o \
 obj/builtin/putstr.o \
 obj/builtin/slurpfile.o \
 obj/builtin/sleep.o \
 obj/builtin/exit.o \
 obj/builtin/die.o \
 obj/builtin/len.o \
+obj/builtin/bitwise_not.o \
 $(OPERATORS_OBJS) \
 $(PRIM_CTORS_OBJS) \
 
@@ -42,7 +43,6 @@ obj/builtin/operators/mod.o \
 obj/builtin/operators/pow.o \
 obj/builtin/operators/leftshift.o \
 obj/builtin/operators/rightshift.o \
-obj/builtin/operators/bitwise_not.o \
 obj/builtin/operators/bitwise_and.o \
 obj/builtin/operators/bitwise_or.o \
 obj/builtin/operators/bitwise_xor.o \
@@ -55,6 +55,7 @@ obj/builtin/prim_ctors/Float.o \
 obj/builtin/prim_ctors/Char.o \
 obj/builtin/prim_ctors/Str.o \
 obj/builtin/prim_ctors/List.o \
+obj/builtin/prim_ctors/Map.o \
 obj/builtin/prim_ctors/Lambda.o \
 
 DEPS := $(OBJS:obj/%.o=.deps/%.d)

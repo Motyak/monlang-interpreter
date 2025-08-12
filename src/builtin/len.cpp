@@ -25,7 +25,7 @@ const value_t builtin::len __attribute__((init_priority(3000))) = new prim_value
         unless (args.size() == 1) throw InterpretError("len() takes 1 arg");
         auto arg = args.at(0);
         auto argVal = evaluateValue(arg.expr, arg.env);
-        unless (std::holds_alternative<prim_value_t*>(argVal)) SHOULD_NOT_HAPPEN(); // TODO: tmp
+        ASSERT (std::holds_alternative<prim_value_t*>(argVal)); // TODO: tmp
         auto argPrimValPtr = std::get<prim_value_t*>(argVal);
         if (argPrimValPtr == nullptr) {
             throw InterpretError("len() arg cannot be $nil");
@@ -56,8 +56,8 @@ static value_t listLength(const prim_value_t::List& list) {
     return new prim_value_t{prim_value_t::Int(list.size())};
 }
 
-static value_t mapLength(const prim_value_t::Map&) {
-    TODO();
+static value_t mapLength(const prim_value_t::Map& map) {
+    return new prim_value_t{prim_value_t::Int(map.size())};
 }
 
 static value_t requiredParams(const prim_value_t::Lambda& lambda) {

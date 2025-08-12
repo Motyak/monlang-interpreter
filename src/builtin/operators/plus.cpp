@@ -31,9 +31,6 @@ static value_t concatStr(const Str& firstArgValue, const Str& secondArgValue, co
 
 static value_t concatList(const List& firstArgValue, const std::vector<FlattenArg>& args);
 
-//TODO: remove, because it will be mergeMap with '|' operator instead
-static value_t concatMap(const Map& firstArgValue, const std::vector<FlattenArg>& args);
-
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
 const value_t builtin::op::plus __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
@@ -44,7 +41,7 @@ const value_t builtin::op::plus __attribute__((init_priority(3000))) = new prim_
 
         auto firstArg = args.at(0);
         auto firstArgValue = evaluateValue(firstArg.expr, firstArg.env);
-        unless (std::holds_alternative<prim_value_t*>(firstArgValue)) SHOULD_NOT_HAPPEN(); // TODO: tmp
+        ASSERT (std::holds_alternative<prim_value_t*>(firstArgValue)); // TODO: tmp
         auto firstArgPrimValuePtr = std::get<prim_value_t*>(firstArgValue);
         if (firstArgPrimValuePtr == nullptr) {
             throw InterpretError("+() first arg cannot be $nil");
@@ -56,7 +53,7 @@ const value_t builtin::op::plus __attribute__((init_priority(3000))) = new prim_
             [&otherArgs](Char char_) -> value_t {
                 auto secondArg = otherArgs.at(0);
                 auto secondArgValue = evaluateValue(secondArg.expr, secondArg.env);
-                unless (std::holds_alternative<prim_value_t*>(secondArgValue)) SHOULD_NOT_HAPPEN(); // TODO: tmp
+                ASSERT (std::holds_alternative<prim_value_t*>(secondArgValue)); // TODO: tmp
                 auto secondArgPrimValuePtr = std::get<prim_value_t*>(secondArgValue);
                 if (secondArgPrimValuePtr == nullptr) {
                     throw InterpretError("+(<Char>, <..>) second arg cannot be $nil");
@@ -68,6 +65,7 @@ const value_t builtin::op::plus __attribute__((init_priority(3000))) = new prim_
                 if (std::holds_alternative<Char>(secondArgPrimValuePtr->variant)) {
                     return concatStr(Str(1, char_), Str(1, std::get<Char>(secondArgPrimValuePtr->variant)), otherOtherArgs);
                 }
+                ::activeCallStack.push_back(secondArg.expr);
                 return addChar(char_, secondArgPrimValuePtr, otherOtherArgs);
             },
             [&otherArgs](Byte byte) -> value_t {return addByte(byte, otherArgs);},
@@ -75,9 +73,9 @@ const value_t builtin::op::plus __attribute__((init_priority(3000))) = new prim_
             [&otherArgs](Float float_) -> value_t {return addFloat(float_, otherArgs);},
             [&otherArgs](const Str& str) -> value_t {return concatStr(str, otherArgs);},
             [&otherArgs](const List& list) -> value_t {return concatList(list, otherArgs);},
-            [&otherArgs](const Map& map) -> value_t {return concatMap(map, otherArgs);},
 
             [](Bool) -> value_t {throw InterpretError("+() first arg cannot be Bool");},
+            [](const Map&) -> value_t {throw InterpretError("+() first arg cannot be Map");},
             [](const prim_value_t::Lambda&) -> value_t {throw InterpretError("+() first arg cannot be Lambda");},
         }, firstArgPrimValuePtr->variant);
     }
@@ -88,7 +86,9 @@ static value_t addByte(Byte firstArgValue, const std::vector<FlattenArg>& args) 
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Byte_(argValue);
+        ::activeCallStack.pop_back(); // arg.expr
         sum += intVal;
     }
 
@@ -100,7 +100,9 @@ static value_t addInt(Int firstArgValue, const std::vector<FlattenArg>& args) {
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Int_(argValue);
+        ::activeCallStack.pop_back(); // arg.expr
         sum += intVal;
     }
 
@@ -112,7 +114,9 @@ static value_t addFloat(Float firstArgValue, const std::vector<FlattenArg>& args
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Float_(argValue);
+        ::activeCallStack.pop_back(); // arg.expr
         sum += intVal;
     }
 
@@ -121,10 +125,13 @@ static value_t addFloat(Float firstArgValue, const std::vector<FlattenArg>& args
 
 static value_t addChar(Char firstArgValue, prim_value_t* secondArgValue, const std::vector<FlattenArg>& args) {
     auto sum = uint8_t(uint8_t(firstArgValue) + builtin::prim_ctor::Byte_(secondArgValue));
+    ::activeCallStack.pop_back(); // from before addChar() call
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto intVal = uint8_t(builtin::prim_ctor::Byte_(argValue));
+        ::activeCallStack.pop_back(); // arg.expr
         sum += intVal;
     }
 
@@ -156,20 +163,15 @@ static value_t concatStr(const Str& firstArgValue, const Str& secondArgValue, co
 }
 
 static value_t concatList(const List& firstArgValue, const std::vector<FlattenArg>& args) {
-    std::vector<value_t> res = firstArgValue;
+    List res = firstArgValue;
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto currList = builtin::prim_ctor::List_(argValue);
+        ::activeCallStack.pop_back(); // arg.expr
         res.insert(res.end(), currList.begin(), currList.end());
     }
 
-    return new prim_value_t{List(res)};
+    return new prim_value_t{res};
 }
-
-static value_t concatMap(const Map& firstArgValue, const std::vector<FlattenArg>& args) {
-    TODO();
-    (void)firstArgValue;
-    (void)args;
-}
-

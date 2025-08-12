@@ -20,7 +20,6 @@ namespace op {
     extern const value_t pow;
     extern const value_t leftshift;
     extern const value_t rightshift;
-    extern const value_t bitwise_not;
     extern const value_t bitwise_and;
     extern const value_t bitwise_or;
     extern const value_t bitwise_xor;

@@ -26,6 +26,8 @@ using Map = prim_value_t::Map;
 static value_t bitwise_or_Byte(Byte firstArgValue, const std::vector<FlattenArg>& args);
 static value_t bitwise_or_Int(Int firstArgValue, const std::vector<FlattenArg>& args);
 
+static value_t mergeMap(const Map& firstArgValue, const std::vector<FlattenArg>& args);
+
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
 const value_t builtin::op::bitwise_or __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
@@ -36,7 +38,7 @@ const value_t builtin::op::bitwise_or __attribute__((init_priority(3000))) = new
 
         auto firstArg = args.at(0);
         auto firstArgValue = evaluateValue(firstArg.expr, firstArg.env);
-        unless (std::holds_alternative<prim_value_t*>(firstArgValue)) SHOULD_NOT_HAPPEN(); // TODO: tmp
+        ASSERT (std::holds_alternative<prim_value_t*>(firstArgValue)); // TODO: tmp
         auto firstArgPrimValuePtr = std::get<prim_value_t*>(firstArgValue);
         if (firstArgPrimValuePtr == nullptr) {
             throw InterpretError("|() first arg cannot be $nil");
@@ -47,7 +49,7 @@ const value_t builtin::op::bitwise_or __attribute__((init_priority(3000))) = new
         return std::visit(overload{
             [&otherArgs](Byte byte) -> value_t {return bitwise_or_Byte(byte, otherArgs);},
             [&otherArgs](Int int_) -> value_t {return bitwise_or_Int(int_, otherArgs);},
-            [](const Map&) -> value_t {throw InterpretError("|() first arg cannot be Map");}, // TODO: mergeMap
+            [&otherArgs](const Map& map) -> value_t {return mergeMap(map, otherArgs);},
 
             [](Bool) -> value_t {throw InterpretError("|() first arg cannot be Bool");},
             [](Float) -> value_t {throw InterpretError("|() first arg cannot be Float");},
@@ -65,7 +67,9 @@ static value_t bitwise_or_Byte(Byte firstArgValue, const std::vector<FlattenArg>
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Int_(argValue);
+        ::activeCallStack.pop_back(); // arg.expr
         res |= intVal;
     }
 
@@ -77,8 +81,26 @@ static value_t bitwise_or_Int(Int firstArgValue, const std::vector<FlattenArg>& 
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Int_(argValue);
+        ::activeCallStack.pop_back(); // arg.expr
         res |= intVal;
+    }
+
+    return new prim_value_t{res};
+}
+
+static value_t mergeMap(const Map& firstArgValue, const std::vector<FlattenArg>& args) {
+    auto res = firstArgValue;
+
+    for (auto arg: args) {
+        auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
+        auto mapVal = builtin::prim_ctor::Map_(argValue);
+        ::activeCallStack.pop_back(); // arg.expr
+        for (auto [key, val]: mapVal) {
+            res[key] = val;
+        }
     }
 
     return new prim_value_t{res};

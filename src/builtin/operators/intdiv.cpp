@@ -35,7 +35,7 @@ const value_t builtin::op::intdiv __attribute__((init_priority(3000))) = new pri
 
         auto firstArg = args.at(0);
         auto firstArgValue = evaluateValue(firstArg.expr, firstArg.env);
-        unless (std::holds_alternative<prim_value_t*>(firstArgValue)) SHOULD_NOT_HAPPEN(); // TODO: tmp
+        ASSERT (std::holds_alternative<prim_value_t*>(firstArgValue)); // TODO: tmp
         auto firstArgPrimValuePtr = std::get<prim_value_t*>(firstArgValue);
         if (firstArgPrimValuePtr == nullptr) {
             throw InterpretError("//() first arg cannot be $nil");
@@ -64,8 +64,10 @@ static value_t intdiv(Int firstArgValue, const std::vector<FlattenArg>& args) {
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Int_(argValue);
         if (intVal == 0) throw InterpretError("intdiv by zero");
+        ::activeCallStack.pop_back(); // arg.expr
         res /= intVal;
     }
 

@@ -13,15 +13,17 @@ const value_t builtin::prim_ctor::List __attribute__((init_priority(3000))) = ne
     builtin_lambda_id++,
     IntConst::ZERO,
     [](const std::vector<FlattenArg>& args) -> value_t {
-        std::vector<value_t> res;
+        prim_value_t::List res;
         res.reserve(args.size());
         for (auto arg: args) {
             auto currArgVal = evaluateValue(arg.expr, arg.env);
             res.push_back(currArgVal);
         }
-        return new prim_value_t{prim_value_t::List(res)};
+        return new prim_value_t{res};
     }
 }};
+
+// FROM NOW ON, WE DEFINE FOR `List_` /////////////////
 
 static prim_value_t::List to_list(const prim_value_t&);
 static prim_value_t::List to_list(const type_value_t&);
@@ -45,7 +47,7 @@ prim_value_t::List builtin::prim_ctor::List_(const value_t& container) {
 static prim_value_t::List to_list(const prim_value_t& primVal) {
     return std::visit(overload{
         [](const prim_value_t::Str& str) -> prim_value_t::List {
-            std::vector<value_t> res;
+            prim_value_t::List res;
             res.reserve(str.size());
             for (auto c: str) {
                 res.push_back(new prim_value_t{prim_value_t::Char(c)});
@@ -53,7 +55,15 @@ static prim_value_t::List to_list(const prim_value_t& primVal) {
             return res;
         },
         [](const prim_value_t::List& list) -> prim_value_t::List {return list;},
-        [](const prim_value_t::Map&) -> prim_value_t::List {TODO();},
+        [](const prim_value_t::Map& map) -> prim_value_t::List {
+            auto res = prim_value_t::List();
+            res.reserve(map.size());
+            for (auto [key, val]: map) {
+                res.push_back(new prim_value_t(prim_value_t::List{key, val})); // no need for any deepcopy
+                                                                               // apparently...
+            }
+            return res;
+        },
 
         [](prim_value_t::Bool) -> prim_value_t::List {throw InterpretError("Bool is not a container");},
         [](prim_value_t::Byte) -> prim_value_t::List {throw InterpretError("Byte is not a container");},
