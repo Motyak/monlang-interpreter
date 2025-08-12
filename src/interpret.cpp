@@ -37,6 +37,13 @@ using List = prim_value_t::List;
 using Map = prim_value_t::Map;
 namespace LV2 {using Lambda = Lambda;}
 
+namespace {
+    struct BackupStack {
+        jmp_buf jmpBuf;
+        std::vector<Expression> activeCallStack;
+    };
+}
+
 void interpretProgram(const Program& prog) {
     Environment env;
     for (auto stmt: prog.statements) {
@@ -294,15 +301,19 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
     }
 
     auto function = std::get<prim_value_t::Lambda>(fnPrimValPtr->variant);
-    static auto savedCalledFns = std::map<uint64_t, jmp_buf>{};
+
+    /* recursive tail call elimination */
+    static auto savedCalledFns = std::map<uint64_t, BackupStack>{};
     if (savedCalledFns.contains(function.id)) {
-        if (is_tailcallable) {
-            longjmp(savedCalledFns.at(function.id), 1);
+        if (is_tailcallable && fnCall.arguments.size() == 0) {
+            activeCallStack = savedCalledFns.at(function.id).activeCallStack;
+            longjmp(savedCalledFns.at(function.id).jmpBuf, 1);
         }
     }
-    else {
-        savedCalledFns[function.id]; // creates entry with default val
-        if (setjmp(savedCalledFns.at(function.id))) {
+    else if (fnCall.arguments.size() == 0) {
+        // map auto-vivification creates a default jmpBuf here
+        savedCalledFns[function.id].activeCallStack = activeCallStack;
+        if (setjmp(savedCalledFns.at(function.id).jmpBuf)) {
             ;
         }
     }
