@@ -188,7 +188,7 @@ static value_t buildList(const List& firstArgValue, const std::vector<FlattenArg
 
 static value_t buildList(Int firstArgValue, const List& secondArgValue) {
     auto res = List();
-    res.reserve(secondArgValue.size() * firstArgValue);
+    res.reserve(secondArgValue.size() * firstArgValue > 0 * firstArgValue);
     for (Int i = 1; i <= firstArgValue; ++i) {
         res.insert(res.end(), secondArgValue.begin(), secondArgValue.end());
     }
