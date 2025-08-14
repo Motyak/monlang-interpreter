@@ -171,12 +171,14 @@ void performStatement(const LetStatement& letStmt, Environment* env) {
         throw InterpretError("Unbound symbol `" + leftmostSymbol.name + "`");
     }
 
+    auto* thunkEnv = new Environment{*env}; // no deep copy needed apparently ?
+                                            // .. = env->deepcopy();
     env->symbolTable[letStmt.alias.name] = Environment::LabelToLvalue{
-        (thunk_t<value_t>)[&letStmt, env]() -> value_t {
-            return evaluateValue(letStmt.variable, env);
+        (thunk_t<value_t>)[&letStmt, thunkEnv]() -> value_t {
+            return evaluateValue(letStmt.variable, thunkEnv);
         },
-        (thunk_t<value_t*>)[&letStmt, env]() -> value_t* {
-            return evaluateLvalue(letStmt.variable, env);
+        (thunk_t<value_t*>)[&letStmt, thunkEnv]() -> value_t* {
+            return evaluateLvalue(letStmt.variable, thunkEnv);
         }
     };
 }
@@ -381,18 +383,19 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
 
                 if (parametersBinding.contains(currParam.name)
                         && currParam.name != "_") {
-                    SHOULD_NOT_HAPPEN(); // BUG: Lambda had two parameters with the same name
+                    SHOULD_NOT_HAPPEN(); // then its a bug, Lambda had two parameters with the same name
+                                         // and it wasn't caught earlier
                 }
 
                 if (currArg.passByRef) {
-                    // we should immediatly evaluate any subscript index/range..
-                    // (if they refer to symbols instead of numerals)
+                    auto* thunkEnv = new Environment{*currArg.env}; // no deep copy needed apparently ?
+                                                                    // .. = currArg.env->deepcopy();
                     parametersBinding[currParam.name] = Environment::PassByRef{
-                        (thunk_t<value_t>)[currArg]() -> value_t {
-                            return evaluateValue(currArg.expr, currArg.env);
+                        (thunk_t<value_t>)[currArg, thunkEnv]() -> value_t {
+                            return evaluateValue(currArg.expr, thunkEnv);
                         },
-                        (thunk_t<value_t*>)[currArg]() -> value_t* {
-                            return evaluateLvalue(currArg.expr, currArg.env);
+                        (thunk_t<value_t*>)[currArg, thunkEnv]() -> value_t* {
+                            return evaluateLvalue(currArg.expr, thunkEnv);
                         }
                     };
                 }
