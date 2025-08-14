@@ -11,7 +11,10 @@
 struct Environment {
     using ConstValue = value_t;
     using Variable = value_t*;
-    using LabelToLvalue = thunk_t<value_t*>;
+    struct LabelToLvalue {
+        thunk_t<value_t> value;
+        thunk_t<value_t*> lvalue;
+    };
 
     // argument passed by delayed value (lazy pass by value)
     using PassByDelay_Variant = std::variant<
@@ -19,10 +22,7 @@ struct Environment {
         value_t* // once transformed
     >;
     using PassByDelay = PassByDelay_Variant*;
-    struct PassByRef {
-        thunk_t<value_t> value;
-        thunk_t<value_t*> lvalue;
-    };
+    using PassByRef = LabelToLvalue;
 
     using VariadicArguments = std::vector<FlattenArg>;
 
@@ -30,9 +30,8 @@ struct Environment {
     using SymbolValue = std::variant<
         ConstValue,
         Variable,
-        LabelToLvalue,
+        LabelToLvalue /*or PassByRef*/,
         PassByDelay,
-        PassByRef,
         VariadicArguments
     >;
     std::map<SymbolName, SymbolValue> symbolTable = {};
