@@ -62,7 +62,7 @@ struct prim_value_t {
 
     struct Lambda {
         uint64_t id;
-        value_t requiredParams;
+        value_t requiredArgs;
         std::function<value_t(const std::vector<FlattenArg>&)> stdfunc;
     };
 

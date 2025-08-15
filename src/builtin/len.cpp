@@ -14,7 +14,7 @@
 static value_t strLength(const prim_value_t::Str&);
 static value_t listLength(const prim_value_t::List&);
 static value_t mapLength(const prim_value_t::Map&);
-static value_t requiredParams(const prim_value_t::Lambda&);
+static value_t requiredArgs(const prim_value_t::Lambda&);
 
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
@@ -36,7 +36,7 @@ const value_t builtin::len __attribute__((init_priority(3000))) = new prim_value
             [](const prim_value_t::Str& str) -> value_t {return strLength(str);},
             [](const prim_value_t::List& list) -> value_t {return listLength(list);},
             [](const prim_value_t::Map& map) -> value_t {return mapLength(map);},
-            [](const prim_value_t::Lambda& lambda) -> value_t {return requiredParams(lambda);},
+            [](const prim_value_t::Lambda& lambda) -> value_t {return requiredArgs(lambda);},
 
             [](prim_value_t::Byte) -> value_t {throw InterpretError("len() arg cannot be Byte");},
             [](prim_value_t::Int) -> value_t {throw InterpretError("len() arg cannot be Int");},
@@ -60,6 +60,6 @@ static value_t mapLength(const prim_value_t::Map& map) {
     return new prim_value_t{prim_value_t::Int(map.size())};
 }
 
-static value_t requiredParams(const prim_value_t::Lambda& lambda) {
-    return lambda.requiredParams;
+static value_t requiredArgs(const prim_value_t::Lambda& lambda) {
+    return lambda.requiredArgs;
 }

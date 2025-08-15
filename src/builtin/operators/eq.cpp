@@ -47,7 +47,7 @@ const value_t builtin::op::eq __attribute__((init_priority(3000))) = new prim_va
 
             // // NOTE: at the moment we allow == with $nil, to check for $nil
             // if (is_nil(argVal)) {
-            //     throw InterpretError("==() first arg cannot be $nil");
+            //     throw InterpretError("==() arg cannot be $nil");
             // }
 
             /* compare with lhs (arg from last iteration) */
