@@ -16,7 +16,7 @@
 
 #define unless(x) if(!(x))
 
-static auto SRCNAME = env_get("SRCNAME"); // to override src name in traceback report
+static auto ENV_SRCNAME = env_get("SRCNAME"); // to override src name in traceback report
 
 [[noreturn]] int repl_main(int argc, char* argv[]);
 int stdinput_main(int argc, char* argv[]);
@@ -118,6 +118,8 @@ int stdinput_main(int argc, char* argv[]) {
     (void)argc;
     (void)argv;
 
+    SRCNAME = ENV_SRCNAME.value_or("<stdin>");
+
     auto text = slurp_stdin(/*repeatable*/false);
     Program prog;
     Tokens tokens;
@@ -133,12 +135,12 @@ int stdinput_main(int argc, char* argv[]) {
     }
     catch (const InterpretError& e) {
         std::cerr << "Runtime error: " << e.what() << "\n";
-        reportCallStack(e.callStack, tokens, SRCNAME.value_or("<stdin>"));
+        reportCallStack(e.callStack, tokens, SRCNAME);
         return 101;
     }
     catch (const ProgramAssertion& assert) {
         std::cerr << "die(): " << assert.what() << "\n";
-        reportCallStack(assert.callStack, tokens, SRCNAME.value_or("<stdin>"));
+        reportCallStack(assert.callStack, tokens, SRCNAME);
         return 1;
     }
 
@@ -148,6 +150,8 @@ int stdinput_main(int argc, char* argv[]) {
 int fileinput_main(int argc, char* argv[]) {
     (void)argc;
     const auto filename = argv[1];
+
+    SRCNAME = ENV_SRCNAME.value_or(filename);
 
     std::string text;
     try {
@@ -171,12 +175,12 @@ int fileinput_main(int argc, char* argv[]) {
     }
     catch (const InterpretError& e) {
         std::cerr << "Runtime error: " << e.what() << "\n";
-        reportCallStack(e.callStack, tokens, SRCNAME.value_or(filename));
+        reportCallStack(e.callStack, tokens, SRCNAME);
         return 101;
     }
     catch (const ProgramAssertion& assert) {
         std::cerr << "die(): " << assert.what() << "\n";
-        reportCallStack(assert.callStack, tokens, SRCNAME.value_or(filename));
+        reportCallStack(assert.callStack, tokens, SRCNAME);
         return 1;
     }
 
@@ -186,6 +190,8 @@ int fileinput_main(int argc, char* argv[]) {
 int embed_main(int argc, char* argv[]) {
     (void)argc;
     const auto elf_file = argv[0];
+
+    SRCNAME = ENV_SRCNAME.value_or("<str>");
 
     char magic_sig[7] = {};
     uint32_t src_size = uint32_t(-1);
@@ -218,12 +224,12 @@ int embed_main(int argc, char* argv[]) {
     }
     catch (const InterpretError& e) {
         std::cerr << "Runtime error: " << e.what() << "\n";
-        reportCallStack(e.callStack, tokens);
+        reportCallStack(e.callStack, tokens, SRCNAME);
         return 101;
     }
     catch (const ProgramAssertion& assert) {
         std::cerr << "die(): " << assert.what() << "\n";
-        reportCallStack(assert.callStack, tokens);
+        reportCallStack(assert.callStack, tokens, SRCNAME);
         return 1;
     }
 

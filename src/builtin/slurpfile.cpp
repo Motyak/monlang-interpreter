@@ -18,7 +18,7 @@ const value_t builtin::slurpfile __attribute__((init_priority(3000))) = new prim
     builtin_lambda_id++,
     IntConst::ONE,
     [](const std::vector<FlattenArg>& args) -> value_t {
-        unless (args.size() <= 1) throw InterpretError("slurpfile() takes 1 argument");
+        unless (args.size() == 1) throw InterpretError("slurpfile() takes 1 argument");
         auto arg = args.at(0);
         auto argVal = evaluateValue(arg.expr, arg.env);
         ASSERT (std::holds_alternative<prim_value_t*>(argVal)); // TODO

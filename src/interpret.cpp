@@ -19,6 +19,7 @@
 
 /* set by a "main.cpp", otherwise default values */
 std::string ARG0;
+std::string SRCNAME;
 std::vector<std::string> SRC_ARGS;
 bool INTERACTIVE_MODE = false;
 
@@ -676,6 +677,7 @@ static value_t init_ARGS() {
 
 value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env) {
     static const value_t ARG0 = new prim_value_t{(Str)::ARG0};
+    static const value_t SRCNAME = new prim_value_t{(Str)::SRCNAME};
     static const value_t ARGS = init_ARGS();
 
     if (specialSymbol.name == "$nil") {
@@ -692,6 +694,10 @@ value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env
 
     if (specialSymbol.name == "$arg0") {
         return ARG0;
+    }
+
+    if (specialSymbol.name == "$srcname") {
+        return SRCNAME;
     }
 
     if (specialSymbol.name == "$args") {

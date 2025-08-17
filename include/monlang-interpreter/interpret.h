@@ -38,6 +38,7 @@
 using namespace LV2;
 
 extern std::string ARG0;
+extern std::string SRCNAME;
 extern std::vector<std::string> SRC_ARGS;
 extern bool INTERACTIVE_MODE;
 
