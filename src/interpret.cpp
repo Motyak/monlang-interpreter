@@ -631,6 +631,9 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
             else if (std::holds_alternative<Subscript::Key>(subscript.argument)) {
                 auto key = std::get<Subscript::Key>(subscript.argument);
                 auto keyVal = evaluateValue(key.expr, env);
+                if (subscript.suffix == '?') {
+                    return map.contains(keyVal)? BoolConst::TRUE : BoolConst::FALSE;
+                }
                 unless (map.contains(keyVal)) throw InterpretError("Subscript key not found");
                 return map.at(keyVal);
             }
