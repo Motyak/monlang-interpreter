@@ -19,6 +19,7 @@
 #include <monlang-LV2/ast/stmt/DieStatement.h>
 #include <monlang-LV2/ast/stmt/ForeachStatement.h>
 #include <monlang-LV2/ast/stmt/WhileStatement.h>
+#include <monlang-LV2/ast/stmt/NullStatement.h>
 #include <monlang-LV2/ast/stmt/ExpressionStatement.h>
 
 /* expressions */
@@ -59,6 +60,7 @@ void performStatement(const DieStatement&, const Environment*);
 void performStatement(const ForeachStatement&, const Environment*);
 void performStatement(const WhileStatement&, const Environment*);
 void performStatement(const DoWhileStatement&, const Environment*);
+void performStatement(const NullStatement&, const Environment*);
 void performStatement(const ExpressionStatement&, Environment*);
 
 /* evaluateValue */

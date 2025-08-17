@@ -202,15 +202,18 @@ void performStatement(const VarStatement& varStmt, Environment* env) {
 }
 
 void performStatement(const ReturnStatement&, const Environment*) {
-    SHOULD_NOT_HAPPEN(); // not a top-level statement, caught during static analysis
+    TODO();
+    // SHOULD_NOT_HAPPEN(); // not a top-level statement, caught during static analysis
 }
 
 void performStatement(const BreakStatement&, const Environment*) {
-    SHOULD_NOT_HAPPEN(); // not a top-level statement, caught during static analysis
+    TODO();
+    // SHOULD_NOT_HAPPEN(); // not a top-level statement, caught during static analysis
 }
 
 void performStatement(const ContinueStatement&, const Environment*) {
-    SHOULD_NOT_HAPPEN(); // not a top-level statement, caught during static analysis
+    TODO();
+    // SHOULD_NOT_HAPPEN(); // not a top-level statement, caught during static analysis
 }
 
 void performStatement(const DieStatement&, const Environment*) {
@@ -227,6 +230,10 @@ void performStatement(const WhileStatement&, const Environment*) {
 
 void performStatement(const DoWhileStatement&, const Environment*) {
     TODO();
+}
+
+void performStatement(const NullStatement&, const Environment*) {
+    ;
 }
 
 void performStatement(const ExpressionStatement& exprStmt, Environment* env) {
