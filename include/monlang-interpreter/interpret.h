@@ -68,7 +68,7 @@ value_t evaluateValue(const Operation&, Environment*);
 value_t evaluateValue(const FunctionCall&, Environment*);
 value_t evaluateValue(const Lambda&, Environment*);
 value_t evaluateValue(const BlockExpression&, Environment*);
-value_t evaluateValue(const FieldAccess&, const Environment*);
+value_t evaluateValue(const FieldAccess&, Environment*);
 value_t evaluateValue(const Subscript&, Environment*);
 value_t evaluateValue(const ListLiteral&, Environment*);
 value_t evaluateValue(const MapLiteral&, Environment*);

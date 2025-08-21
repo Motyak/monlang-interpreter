@@ -409,7 +409,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 }
                 else {
                     #ifdef TOGGLE_PASS_BY_VALUE
-                    auto var = new value_t{evaluateValue(currArg.expr, currArg.env)}; // TODO: leak
+                    auto var = new value_t{evaluateValue(currArg.expr, currArg.env)};
                     *var = deepcopy(*var);
                     parametersBinding[currParam.name] = Environment::Variable{var};
                     #else // lazy passing a.k.a pass by delayed
@@ -515,8 +515,27 @@ value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
     return nil_value_t();
 }
 
-value_t evaluateValue(const FieldAccess&, const Environment*) {
-    TODO();
+value_t evaluateValue(const FieldAccess& fieldAccess, Environment* env) {
+    auto object = evaluateValue(fieldAccess.object, env);
+
+    ASSERT (std::holds_alternative<prim_value_t*>(object)); // TODO: tmp
+    auto* objPrimValPtr = std::get<prim_value_t*>(object);
+
+    if (objPrimValPtr == nullptr) {
+        throw InterpretError("Accessing field on a $nil");
+    }
+
+    if (std::holds_alternative<Map>(objPrimValPtr->variant)) {
+        auto map = std::get<Map>(objPrimValPtr->variant);
+        auto key = new prim_value_t{(Str)fieldAccess.field.name};
+        unless (map.contains(key)) {
+            ::activeCallStack.push_back(const_cast<Symbol*>(&fieldAccess.field));
+            throw InterpretError("Field not found `" + fieldAccess.field.name + "`");
+        }
+        return map.at(key);
+    }
+
+    else throw InterpretError("Accessing field on a non-struct");
 }
 
 value_t evaluateValue(const Subscript& subscript, Environment* env) {
@@ -848,12 +867,33 @@ value_t evaluateValue(const Symbol& symbol, Environment* env) {
 // evaluateLvalue
 //==============================================================
 
-value_t* evaluateLvalue(const FieldAccess&, Environment*) {
-    TODO();
+value_t* evaluateLvalue(const FieldAccess& fieldAccess, Environment* env) {
+    auto* lvalue = evaluateLvalue(fieldAccess.object, env);
+    ASSERT (lvalue != nullptr);
+
+    ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
+    auto* lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
+
+    if (lvaluePrimValPtr == nullptr) {
+        throw InterpretError("Accessing field on a $nil");
+    }
+
+    if (std::holds_alternative<Map>(lvaluePrimValPtr->variant)) {
+        auto& map = std::get<Map>(lvaluePrimValPtr->variant);
+        auto key = new prim_value_t{(Str)fieldAccess.field.name};
+        unless (map.contains(key)) {
+            ::activeCallStack.push_back(const_cast<Symbol*>(&fieldAccess.field));
+            throw InterpretError("Field not found `" + fieldAccess.field.name + "`");
+        }
+        return &map[key];
+    }
+
+    else throw InterpretError("Accessing field on a non-struct");
 }
 
 value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
-    //TODO: this is catch during syntax analysis, so should remove ?
+    // this is caught during parsing..
+    // .., but we keep it in case ast was manually/programatically built
     if (!is_lvalue(subscript.array)) {
         throw InterpretError("lvaluing a non-lvalue subscript array");
     }
@@ -971,11 +1011,6 @@ value_t* evaluateLvalue(const Symbol& symbol, Environment* env, bool subscripted
             return std::get<value_t*>(*delayed);
         },
 
-        /*
-            TODO: runtime error: Not an lvalue
-              -> when non-lvalue is passed by ref, or assigned a value
-                -> at this time, we can't trigger it, we need the let stmt
-        */
         [](Environment::ConstValue) -> value_t* {SHOULD_NOT_HAPPEN();},
         [](const Environment::VariadicArguments&) -> value_t* {
             throw InterpretError("Cannot refer to variadic arguments as symbol");
