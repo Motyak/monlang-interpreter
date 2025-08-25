@@ -191,8 +191,6 @@ int embed_main(int argc, char* argv[]) {
     (void)argc;
     const auto elf_file = argv[0];
 
-    SRCNAME = ENV_SRCNAME.value_or("<str>");
-
     char magic_sig[7] = {};
     uint32_t src_size = uint32_t(-1);
     char* src = nullptr;
@@ -209,6 +207,8 @@ int embed_main(int argc, char* argv[]) {
     src = new char[src_size];
     ifs.read(src, src_size);
     unless (ifs.gcount() == src_size) throw EmbedException(); // failed to read file (src)
+
+    SRCNAME = ENV_SRCNAME.value_or("<str>");
 
     Program prog;
     Tokens tokens;
