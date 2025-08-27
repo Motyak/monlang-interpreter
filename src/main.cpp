@@ -257,9 +257,9 @@ static void reportCallStack(
 
         // setup prevIterFnName for next iteration
         if (std::holds_alternative<FunctionCall*>(expr)) {
-            auto fnCall = *std::get<FunctionCall*>(expr);
-            if (std::holds_alternative<Symbol*>(fnCall.function)) {
-                prevIterFnName = std::get<Symbol*>(fnCall.function)->name;
+            auto* fnCallPtr = std::get<FunctionCall*>(expr);
+            if (std::holds_alternative<Symbol*>(fnCallPtr->function)) {
+                prevIterFnName = std::get<Symbol*>(fnCallPtr->function)->name;
             }
         }
     }

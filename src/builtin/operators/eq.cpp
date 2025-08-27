@@ -20,6 +20,12 @@
 
 #define unless(x) if (!(x))
 
+#define POP(vec) \
+    do { \
+        ASSERT (!vec.empty()); \
+        vec.pop_back(); \
+    } while (false)
+
 using Int = prim_value_t::Int;
 using Byte = prim_value_t::Byte;
 using Bool = prim_value_t::Bool;
@@ -53,7 +59,6 @@ const value_t builtin::op::eq __attribute__((init_priority(3000))) = new prim_va
             /* compare with lhs (arg from last iteration) */
             if (!first_it) {
                 ::activeCallStack.push_back(arg.expr);
-                if (is_nil(lhsVal) && !is_nil(argVal)) return BoolConst::FALSE;
                 res &= is_nil(argVal)? is_nil(lhsVal) : compareValue(lhsVal, argVal);
             }
 
@@ -92,34 +97,39 @@ static bool compareValue(const value_t& lhsVal, const value_t& rhsVal) {
 
 static bool comparePrimValPtr(prim_value_t* primValPtr_lhs, prim_value_t* primValPtr_rhs) {
     static bool recursiveCall = false;
+    ASSERT (primValPtr_rhs != nullptr);
+    if (primValPtr_lhs == nullptr) {
+        if (!recursiveCall) POP(activeCallStack); // from before compareValue() call in builtin::op::eq()
+        return false;
+    }
     ASSERT (primValPtr_lhs != nullptr);
     return std::visit(overload{
         [primValPtr_rhs](Bool bool_) -> bool {
-            defer {if (!recursiveCall) ::activeCallStack.pop_back();}; // from before compareValue() call in builtin::op::eq()
+            defer {if (!recursiveCall) POP(activeCallStack);}; // from before compareValue() call in builtin::op::eq()
             return bool_ == builtin::prim_ctor::Bool_(primValPtr_rhs);
         },
         [primValPtr_rhs](Byte byte) -> bool {
-            defer {if (!recursiveCall) ::activeCallStack.pop_back();}; // from before compareValue() call in builtin::op::eq()
+            defer {if (!recursiveCall) POP(activeCallStack);}; // from before compareValue() call in builtin::op::eq()
             return byte == builtin::prim_ctor::Byte_(primValPtr_rhs);
         },
         [primValPtr_rhs](Int int_) -> bool {
-            defer {if (!recursiveCall) ::activeCallStack.pop_back();}; // from before compareValue() call in builtin::op::eq()
+            defer {if (!recursiveCall) POP(activeCallStack);}; // from before compareValue() call in builtin::op::eq()
             return int_ == builtin::prim_ctor::Int_(primValPtr_rhs);
         },
         [primValPtr_rhs](Float float_) -> bool {
-            defer {if (!recursiveCall) ::activeCallStack.pop_back();}; // from before compareValue() call in builtin::op::eq()
+            defer {if (!recursiveCall) POP(activeCallStack);}; // from before compareValue() call in builtin::op::eq()
             return float_ == builtin::prim_ctor::Float_(primValPtr_rhs);
         },
         [primValPtr_rhs](Char char_) -> bool {
-            defer {if (!recursiveCall) ::activeCallStack.pop_back();}; // from before compareValue() call in builtin::op::eq()
+            defer {if (!recursiveCall) POP(activeCallStack);}; // from before compareValue() call in builtin::op::eq()
             return char_ == builtin::prim_ctor::Char_(primValPtr_rhs);
         },
         [primValPtr_rhs](const Str& str) -> bool {
-            defer {if (!recursiveCall) ::activeCallStack.pop_back();}; // from before compareValue() call in builtin::op::eq()
+            defer {if (!recursiveCall) POP(activeCallStack);}; // from before compareValue() call in builtin::op::eq()
             return str == builtin::prim_ctor::Str_(primValPtr_rhs);
         },
         [primValPtr_rhs](const List& list) -> bool {
-            defer {if (!recursiveCall) ::activeCallStack.pop_back();}; // from before compareValue() call in builtin::op::eq()
+            defer {if (!recursiveCall) POP(activeCallStack);}; // from before compareValue() call in builtin::op::eq()
             auto rhsAsList = builtin::prim_ctor::List_(primValPtr_rhs);
             if (list.size() != rhsAsList.size()) {
                 return false;
@@ -135,7 +145,7 @@ static bool comparePrimValPtr(prim_value_t* primValPtr_lhs, prim_value_t* primVa
             return true;
         },
         [primValPtr_rhs](const Map& map) -> bool {
-            defer {if (!recursiveCall) ::activeCallStack.pop_back();}; // from before compareValue() call in builtin::op::eq()
+            defer {if (!recursiveCall) POP(activeCallStack);}; // from before compareValue() call in builtin::op::eq()
             auto rhsAsMap = builtin::prim_ctor::Map_(primValPtr_rhs);
             if (map.size() != rhsAsMap.size()) {
                 return false;
@@ -157,7 +167,7 @@ static bool comparePrimValPtr(prim_value_t* primValPtr_lhs, prim_value_t* primVa
         },
         [primValPtr_rhs](const prim_value_t::Lambda& lambda) -> bool {
             auto rhs = builtin::prim_ctor::Lambda_(primValPtr_rhs);
-            if (!recursiveCall) ::activeCallStack.pop_back(); // from before compareValue() call in builtin::op::eq()
+            if (!recursiveCall) POP(activeCallStack); // from before compareValue() call in builtin::op::eq()
             return lambda.id == rhs.id;
         },
     }, primValPtr_lhs->variant);
