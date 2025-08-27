@@ -53,6 +53,7 @@ const value_t builtin::op::eq __attribute__((init_priority(3000))) = new prim_va
             /* compare with lhs (arg from last iteration) */
             if (!first_it) {
                 ::activeCallStack.push_back(arg.expr);
+                if (is_nil(lhsVal) && !is_nil(argVal)) return BoolConst::FALSE;
                 res &= is_nil(argVal)? is_nil(lhsVal) : compareValue(lhsVal, argVal);
             }
 
