@@ -151,8 +151,7 @@ void performStatement(const Accumulation& acc, Environment* env) {
 
     performStatement(assignment, env);
 
-    delete opPtr;
-    delete fnCallPtr;
+    // we should not delete opPtr or fnCallPtr
 }
 
 void performStatement(const LetStatement& letStmt, Environment* env) {
@@ -263,8 +262,7 @@ value_t evaluateValue(const Operation& operation, Environment* env) {
     auto res = evaluateValue((Expression)fnCallPtr, env);
     res = deepcopy(res);
 
-    delete opPtr;
-    delete fnCallPtr;
+    // we should not delete opPtr or fnCallPtr
 
     return res;
 }
