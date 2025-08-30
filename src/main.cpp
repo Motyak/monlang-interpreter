@@ -139,7 +139,12 @@ int stdinput_main(int argc, char* argv[]) {
         return 101;
     }
     catch (const ProgramAssertion& assert) {
-        std::cerr << "die(): " << assert.what() << "\n";
+        if (*assert.what() == '\0') {
+            std::cerr << "die() with no message\n";
+        }
+        else {
+            std::cerr << "die(): " << assert.what() << "\n";
+        }
         reportCallStack(assert.callStack, tokens, SRCNAME);
         return 1;
     }
@@ -179,7 +184,12 @@ int fileinput_main(int argc, char* argv[]) {
         return 101;
     }
     catch (const ProgramAssertion& assert) {
-        std::cerr << "die(): " << assert.what() << "\n";
+        if (*assert.what() == '\0') {
+            std::cerr << "die() with no message\n";
+        }
+        else {
+            std::cerr << "die(): " << assert.what() << "\n";
+        }
         reportCallStack(assert.callStack, tokens, SRCNAME);
         return 1;
     }
@@ -228,7 +238,12 @@ int embed_main(int argc, char* argv[]) {
         return 101;
     }
     catch (const ProgramAssertion& assert) {
-        std::cerr << "die(): " << assert.what() << "\n";
+        if (*assert.what() == '\0') {
+            std::cerr << "die() with no message\n";
+        }
+        else {
+            std::cerr << "die(): " << assert.what() << "\n";
+        }
         reportCallStack(assert.callStack, tokens, SRCNAME);
         return 1;
     }
