@@ -8,7 +8,8 @@
 #include <variant>
 #include <map>
 
-struct Environment {
+class Environment {
+  public:
     using ConstValue = value_t;
     using Variable = value_t*;
     struct LabelToLvalue {

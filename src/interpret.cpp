@@ -166,7 +166,7 @@ void performStatement(const LetStatement& letStmt, Environment* env) {
     }
 
     auto leftmostSymbol = leftmost(letStmt.variable);
-    if (!env->symbolTable.contains(leftmostSymbol.name)) {
+    if (!env->contains(leftmostSymbol.name)) {
         ::activeCallStack.push_back(letStmt.variable);
         throw InterpretError("Unbound symbol `" + leftmostSymbol.name + "`");
     }
