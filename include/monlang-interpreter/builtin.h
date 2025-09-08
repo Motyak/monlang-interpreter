@@ -20,6 +20,7 @@
 #include <monlang-interpreter/builtin/exit.h>
 #include <monlang-interpreter/builtin/sleep.h>
 #include <monlang-interpreter/builtin/len.h>
+#include <monlang-interpreter/builtin/typefn.h>
 #include <monlang-interpreter/builtin/bitwise_not.h>
 
 #include <monlang-interpreter/builtin/operators.h>
@@ -37,6 +38,7 @@ BUILTIN_TABLE __attribute__((init_priority(6000))) = {
     {"exit", builtin::exit},
     {"sleep", builtin::sleep},
     {"len", builtin::len},
+    {"$type", builtin::typefn},
     {"~", builtin::bitwise_not},
 
     /* operators */

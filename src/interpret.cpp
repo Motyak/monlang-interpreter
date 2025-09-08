@@ -731,18 +731,22 @@ value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env
         return ARGS;
     }
 
-    if (!env->contains(specialSymbol.name)) {
-        throw InterpretError("Unbound symbol `" + specialSymbol.name + "`");
+    if (env->contains(specialSymbol.name)) {
+        auto specialSymbolVal = env->at(specialSymbol.name);
+        return std::visit(overload{
+            [](const Environment::ConstValue& const_) -> value_t {return const_;},
+            [](Environment::Variable) -> value_t {SHOULD_NOT_HAPPEN();},
+            [](const Environment::LabelToLvalue& /*or PassByRef*/) -> value_t {SHOULD_NOT_HAPPEN();},
+            [](const Environment::PassByDelay&) -> value_t {SHOULD_NOT_HAPPEN();},
+            [](const Environment::VariadicArguments&) -> value_t {SHOULD_NOT_HAPPEN();},
+        }, specialSymbolVal);
     }
 
-    auto specialSymbolVal = env->at(specialSymbol.name);
-    return std::visit(overload{
-        [](const Environment::ConstValue& const_) -> value_t {return const_;},
-        [](Environment::Variable) -> value_t {SHOULD_NOT_HAPPEN();},
-        [](const Environment::LabelToLvalue& /*or PassByRef*/) -> value_t {SHOULD_NOT_HAPPEN();},
-        [](const Environment::PassByDelay&) -> value_t {SHOULD_NOT_HAPPEN();},
-        [](const Environment::VariadicArguments&) -> value_t {SHOULD_NOT_HAPPEN();},
-    }, specialSymbolVal);
+    else if (BUILTIN_TABLE.contains(specialSymbol.name)) {
+        return BUILTIN_TABLE.at(specialSymbol.name);
+    }
+
+    throw InterpretError("Unbound symbol `" + specialSymbol.name + "`");
 }
 
 value_t evaluateValue(const Numeral& numeral, const Environment*) {

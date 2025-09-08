@@ -26,6 +26,7 @@ obj/builtin/sleep.o \
 obj/builtin/exit.o \
 obj/builtin/die.o \
 obj/builtin/len.o \
+obj/builtin/typefn.o \
 obj/builtin/bitwise_not.o \
 $(OPERATORS_OBJS) \
 $(PRIM_CTORS_OBJS) \
