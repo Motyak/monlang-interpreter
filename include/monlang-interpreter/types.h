@@ -105,7 +105,7 @@ struct struct_value_t {
 
 struct enum_value_t {
     std::string_view type;
-    std::string_view enumerate_name;
+    std::string_view enumerate_name; // TODO: no need ?
     value_t enumerate_value;
 };
 

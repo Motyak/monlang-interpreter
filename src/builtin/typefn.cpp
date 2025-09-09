@@ -22,7 +22,12 @@ const value_t builtin::typefn __attribute__((init_priority(3000))) = new prim_va
         unless (args.size() == 1) throw InterpretError("$type() takes 1 arg");
         auto arg = args.at(0);
         auto argVal = evaluateValue(arg.expr, arg.env);
-        auto type = builtin::prim_ctor::Str_(argVal);
+
+        if (is_nil(argVal)) {
+            static auto nil_type = new prim_value_t{prim_value_t::Str("$nil")};
+            return nil_type;
+        }
+
         return std::visit(overload{
             [](prim_value_t* val) -> value_t {return get_type(*val);},
             [](type_value_t* val) -> value_t {return new prim_value_t{(prim_value_t::Str)val->type};},
