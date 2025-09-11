@@ -983,40 +983,45 @@ value_t* evaluateLvalue(const Symbol& symbol, Environment* env, bool subscripted
         return &DISPOSABLE_LVALUE;
     }
 
-    if (!env->contains(symbol.name)) {
-        throw InterpretError("Unbound symbol `" + symbol.name + "`");
+    if (env->contains(symbol.name)) {
+        auto symbolVal = env->at(symbol.name);
+        return std::visit(overload{
+            [](Environment::Variable var) -> value_t* {return var;},
+            [](Environment::LabelToLvalue& label_ref) -> value_t* {return label_ref.lvalue();},
+            [subscripted](const Environment::PassByDelay& delayed) -> value_t* {
+                if (std::holds_alternative<thunk_with_memoization_t<value_t>*>(*delayed)) {
+                    auto* thunk = std::get<thunk_with_memoization_t<value_t>*>(*delayed);
+                    if (thunk->memoized || subscripted) {
+                        /* init var with evaluated value */
+                        auto initVal = (*thunk)();
+                        *delayed = new value_t(initVal);
+                    }
+                    else {
+                        *delayed = new value_t(); // discard unevaluated value
+                    }
+                }
+
+                else if (std::holds_alternative<value_t*>(*delayed)) {
+                    ; // nothing to do
+                }
+
+                else SHOULD_NOT_HAPPEN();
+
+                return std::get<value_t*>(*delayed);
+            },
+
+            [](Environment::ConstValue) -> value_t* {SHOULD_NOT_HAPPEN();},
+            [](const Environment::VariadicArguments&) -> value_t* {
+                throw InterpretError("Cannot refer to variadic arguments as symbol");
+            },
+        }, symbolVal);
     }
 
-    auto symbolVal = env->at(symbol.name);
-    return std::visit(overload{
-        [](Environment::Variable var) -> value_t* {return var;},
-        [](Environment::LabelToLvalue& label_ref) -> value_t* {return label_ref.lvalue();},
-        [subscripted](const Environment::PassByDelay& delayed) -> value_t* {
-            if (std::holds_alternative<thunk_with_memoization_t<value_t>*>(*delayed)) {
-                auto* thunk = std::get<thunk_with_memoization_t<value_t>*>(*delayed);
-                if (thunk->memoized || subscripted) {
-                    /* init var with evaluated value */
-                    auto initVal = (*thunk)();
-                    *delayed = new value_t(initVal);
-                }
-                else {
-                    *delayed = new value_t(); // discard unevaluated value
-                }
-            }
+    else if (BUILTIN_TABLE.contains(symbol.name)) {
+        throw InterpretError("Cannot modify the builtins directly");
+    }
 
-            else if (std::holds_alternative<value_t*>(*delayed)) {
-                ; // nothing to do
-            }
-
-            else SHOULD_NOT_HAPPEN();
-
-            return std::get<value_t*>(*delayed);
-        },
-
-        [](Environment::ConstValue) -> value_t* {SHOULD_NOT_HAPPEN();},
-        [](const Environment::VariadicArguments&) -> value_t* {
-            throw InterpretError("Cannot refer to variadic arguments as symbol");
-        },
-    }, symbolVal);
-
+    else {
+        throw InterpretError("Unbound symbol `" + symbol.name + "`");
+    }
 }
