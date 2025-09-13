@@ -288,16 +288,23 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
         are concatenated together
     */
     std::vector<FlattenArg> flattenArgs;
-
     for (auto arg: fnCall.arguments) {
         /* handle "variadic arguments" argument */
         /* breakable block */for (int z = 1; z <= 1; ++z)
         {
             unless (std::holds_alternative<Symbol*>(arg.expr)) break;
             auto symbol = std::get<Symbol*>(arg.expr);
+            if (symbol->name == "_" && arg.passByRef) {
+                ::activeCallStack.push_back(arg.expr);
+                throw InterpretError("Can't pass special name by ref");
+            }
             unless (env->contains(symbol->name)) break;
             auto symbolVal = env->at(symbol->name);
             unless (std::holds_alternative<Environment::VariadicArguments>(symbolVal)) break;
+            if (arg.passByRef) {
+                ::activeCallStack.push_back(arg.expr);
+                throw InterpretError("Can't pass variadic arguments by ref");
+            }
             auto varargs = std::get<Environment::VariadicArguments>(symbolVal);
 
             flattenArgs.insert(flattenArgs.end(), varargs.begin(), varargs.end());
