@@ -877,7 +877,7 @@ value_t evaluateValue(const Symbol& symbol, Environment* env) {
 //==============================================================
 
 value_t* evaluateLvalue(const FieldAccess& fieldAccess, Environment* env) {
-    auto* lvalue = evaluateLvalue(fieldAccess.object, env);
+    auto* lvalue = evaluateLvalue(fieldAccess.object, env, /*subscripted*/true);
     ASSERT (lvalue != nullptr);
 
     ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
@@ -901,12 +901,6 @@ value_t* evaluateLvalue(const FieldAccess& fieldAccess, Environment* env) {
 }
 
 value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
-    // this is caught during parsing..
-    // .., but we keep it in case ast was manually/programatically built
-    if (!is_lvalue(subscript.array)) {
-        throw InterpretError("lvaluing a non-lvalue subscript array");
-    }
-
     auto* lvalue = evaluateLvalue(subscript.array, env, /*subscripted*/true);
     ASSERT (lvalue != nullptr);
     ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
