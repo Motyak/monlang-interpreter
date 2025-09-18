@@ -764,40 +764,49 @@ value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env
     throw InterpretError("Unbound symbol `" + specialSymbol.name + "`");
 }
 
+static long long str2llong(const std::string& str, int base = 10) {
+    try {
+        return std::stoll(str, nullptr, base);
+    }
+    catch (const std::out_of_range&) {
+        throw InterpretError("Numeral out of range");
+    }
+}
+
 value_t evaluateValue(const Numeral& numeral, const Environment*) {
     if (numeral.type == "int") {
-        return new prim_value_t(Int(std::stoll(numeral.int1)));
+        return new prim_value_t(Int(str2llong(numeral.int1)));
     }
 
     if (numeral.type == "hex") {
-        return new prim_value_t(Int(std::stoll(numeral.int1, nullptr, 16)));
+        return new prim_value_t(Int(str2llong(numeral.int1, 16)));
     }
     
     if (numeral.type == "bin") {
-        return new prim_value_t(Int(std::stoll(numeral.int1, nullptr, 2)));
+        return new prim_value_t(Int(str2llong(numeral.int1, 2)));
     }
 
     if (numeral.type == "oct") {
-        return new prim_value_t(Int(std::stoll(numeral.int1, nullptr, 8)));
+        return new prim_value_t(Int(str2llong(numeral.int1, 8)));
     }
 
     if (numeral.type == "frac") {
-        auto numerator = std::stoll(numeral.int1);
-        auto denominator = std::stoll(numeral.int2);
+        auto numerator = str2llong(numeral.int1);
+        auto denominator = str2llong(numeral.int2);
         auto division = (double)numerator / denominator;
         return new prim_value_t(Float(division));
     }
 
     if (numeral.type == "pow") {
-        auto base = std::stoll(numeral.int1);
-        auto exponent = std::stoll(numeral.int2);
+        auto base = str2llong(numeral.int1);
+        auto exponent = str2llong(numeral.int2);
         auto power = std::pow(base, exponent);
         return new prim_value_t(Int(power));
     }
 
     if (numeral.type == "fix_only") {
-        auto int_part = std::stoll(numeral.int1);
-        auto numerator = std::stoll(numeral.fixed);
+        auto int_part = str2llong(numeral.int1);
+        auto numerator = str2llong(numeral.fixed);
         auto denominator = std::pow(10, numeral.fixed.size());
         auto division = (double)numerator / denominator;
         auto sum = int_part + (int_part < 0? -division : division);
@@ -806,8 +815,8 @@ value_t evaluateValue(const Numeral& numeral, const Environment*) {
     }
 
     if (numeral.type == "per_only") {
-        auto int_part = std::stoll(numeral.int1);
-        auto numerator = std::stoll(numeral.periodic);
+        auto int_part = str2llong(numeral.int1);
+        auto numerator = str2llong(numeral.periodic);
         auto denominator = std::pow(10, numeral.periodic.size()) - 1;
         auto division = (double)numerator / denominator;
         auto sum = int_part + (int_part < 0? -division : division);
@@ -816,11 +825,11 @@ value_t evaluateValue(const Numeral& numeral, const Environment*) {
     }
 
     if (numeral.type == "fix_and_per") {
-        auto int_part = std::stoll(numeral.int1);
-        auto fixed_part_numerator = std::stoll(numeral.fixed);
+        auto int_part = str2llong(numeral.int1);
+        auto fixed_part_numerator = str2llong(numeral.fixed);
         auto fixed_part_denominator = std::pow(10, numeral.fixed.size());
         auto fixed_part_division = (double)fixed_part_numerator / fixed_part_denominator;
-        auto periodic_part_numerator = std::stoll(numeral.periodic);
+        auto periodic_part_numerator = str2llong(numeral.periodic);
         auto periodic_part_denominator = (std::pow(10, numeral.periodic.size()) - 1) * fixed_part_denominator;
         auto periodic_part_division = (double)periodic_part_numerator / periodic_part_denominator;
         auto sum = int_part < 0? int_part - fixed_part_division - periodic_part_division
