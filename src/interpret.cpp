@@ -580,7 +580,7 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                 auto intFromVal = builtin::prim_ctor::Int_(fromVal);
                 unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
                 Int fromPos = intFromVal < 0? Int(str.size()) - abs(intFromVal) : intFromVal - 1;
-                unless (fromPos < Int(str.size())) throw InterpretError("Subscript range 'from' is out of bounds");
+                unless (0 <= fromPos && fromPos < Int(str.size())) throw InterpretError("Subscript range 'from' is out of bounds");
                 ::activeCallStack.pop_back(); // variant_cast(range.from)
 
                 /* to */
@@ -589,8 +589,12 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                 auto intToVal = builtin::prim_ctor::Int_(toVal);
                 unless (intToVal != 0) throw InterpretError("Subscript range 'to' is zero");
                 Int toPos = intToVal < 0? Int(str.size()) - abs(intToVal) : intToVal - 1;
+                unless (toPos >= 0) throw InterpretError("Subscript range 'to' is out of bounds");
                 if (range.exclusive) {
                     toPos -= fromPos <= toPos? 1 : -1;
+                }
+                else if (toPos < fromPos) {
+                    toPos = fromPos;
                 }
                 unless (toPos < Int(str.size())) throw InterpretError("Subscript range 'to' is out of bounds");
                 ::activeCallStack.pop_back(); // variant_cast(range.to)
@@ -628,7 +632,7 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                 auto intFromVal = builtin::prim_ctor::Int_(fromVal);
                 unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
                 Int fromPos = intFromVal < 0? Int(list.size()) - abs(intFromVal) : intFromVal - 1;
-                unless (fromPos < Int(list.size())) throw InterpretError("Subscript range 'from' is out of bounds");
+                unless (0 <= fromPos && fromPos < Int(list.size())) throw InterpretError("Subscript range 'from' is out of bounds");
                 ::activeCallStack.pop_back(); // variant_cast(range.from)
 
                 /* to */
@@ -637,8 +641,12 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                 auto intToVal = builtin::prim_ctor::Int_(toVal);
                 unless (intToVal != 0) throw InterpretError("Subscript range 'to' is zero");
                 Int toPos = intToVal < 0? Int(list.size()) - abs(intToVal) : intToVal - 1;
+                unless (toPos >= 0) throw InterpretError("Subscript range 'to' is out of bounds");
                 if (range.exclusive) {
                     toPos -= fromPos <= toPos? 1 : -1;
+                }
+                else if (toPos < fromPos) {
+                    toPos = fromPos;
                 }
                 unless (toPos < Int(list.size())) throw InterpretError("Subscript range 'to' is out of bounds");
                 ::activeCallStack.pop_back(); // variant_cast(range.to)
