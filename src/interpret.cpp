@@ -324,13 +324,13 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
     static auto savedCalledFns = std::map<uint64_t, BackupStack>{};
     if (savedCalledFns.contains(function.id)) {
         if (is_tailcallable && fnCall.arguments.size() == 0) {
-            activeCallStack = savedCalledFns.at(function.id).activeCallStack;
+            ::activeCallStack = savedCalledFns.at(function.id).activeCallStack;
             longjmp(savedCalledFns.at(function.id).jmpBuf, 1);
         }
     }
     else if (fnCall.arguments.size() == 0) {
         // map auto-vivification creates a default jmpBuf here
-        savedCalledFns[function.id].activeCallStack = activeCallStack;
+        savedCalledFns[function.id].activeCallStack = ::activeCallStack;
         if (setjmp(savedCalledFns.at(function.id).jmpBuf)) {
             ;
         }

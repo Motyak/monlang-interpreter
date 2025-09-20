@@ -7,7 +7,7 @@
 
 ./echo.elf\ -i -
 ./echo.elf\ -i srcfile
-  -> execute l'interp en mode interactive
+  -> execute l'interp en mode interactif
 
 ---
 
@@ -18,10 +18,10 @@
   -> execute l'embed
 
 ./echo.elf\ -i --
-  -> execute l'embed en mode interactive
+  -> execute l'embed en mode interactif
 
 ./echo.elf\ -i -- <arg(s)>
-  -> execute l'embed en mode interactive
+  -> execute l'embed en mode interactif
 
 ---
 
