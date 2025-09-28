@@ -918,6 +918,9 @@ value_t* evaluateLvalue(const FieldAccess& fieldAccess, Environment* env) {
 }
 
 value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
+    if (subscript.suffix == '?') {
+        throw InterpretError("lvaluing a subscript[]?");
+    }
     auto* lvalue = evaluateLvalue(subscript.array, env, /*subscripted*/true);
     ASSERT (lvalue != nullptr);
     ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
