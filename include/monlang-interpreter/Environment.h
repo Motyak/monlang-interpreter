@@ -42,7 +42,7 @@ class Environment {
     bool contains(const SymbolName&) const;
     const SymbolValue& at(const SymbolName&) const;
     SymbolValue& at(const SymbolName&);
-    Environment* deepcopy();
+    Environment* rec_copy();
 };
 
 #endif // ENVIRONMENT_H

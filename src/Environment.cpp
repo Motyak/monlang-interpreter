@@ -37,7 +37,7 @@ Environment::at(const SymbolName& symbolName) {
     SHOULD_NOT_HAPPEN(); // should call ::contains before calling ::at
 }
 
-Environment* Environment::deepcopy() {
+Environment* Environment::rec_copy() {
     auto* newEnv = new Environment{*this};
     auto* currEnv = newEnv;
     while (currEnv->enclosingEnv) {
