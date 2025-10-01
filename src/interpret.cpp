@@ -171,8 +171,7 @@ void performStatement(const LetStatement& letStmt, Environment* env) {
         throw InterpretError("Unbound symbol `" + leftmostSymbol.name + "`");
     }
 
-    auto* thunkEnv = new Environment{*env}; // no rec copy needed apparently ?
-                                            // .. = env->rec_copy();
+    auto* thunkEnv = new Environment{*env}; // no need for rec_copy() here ?
     env->symbolTable[letStmt.alias.name] = Environment::LabelToLvalue{
         (thunk_t<value_t>)[&letStmt, thunkEnv]() -> value_t {
             return evaluateValue(letStmt.variable, thunkEnv);
@@ -401,8 +400,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 }
 
                 if (currArg.passByRef) {
-                    auto* thunkEnv = new Environment{*currArg.env}; // no rec copy needed apparently ?
-                                                                    // .. = currArg.env->rec_copy();
+                    auto* thunkEnv = currArg.env->rec_copy();
                     parametersBinding[currParam.name] = Environment::PassByRef{
                         (thunk_t<value_t>)[currArg, thunkEnv]() -> value_t {
                             return evaluateValue(currArg.expr, thunkEnv);
@@ -418,8 +416,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                     *var = deepcopy(*var);
                     parametersBinding[currParam.name] = Environment::Variable{var};
                     #else // lazy passing a.k.a pass by delayed
-                    auto* thunkEnv = new Environment{*currArg.env}; // no rec copy needed apparently ?
-                                                                    // .. = currArg.env->rec_copy();
+                    auto* thunkEnv = currArg.env->rec_copy();
                     auto* delayed = new thunk_with_memoization_t<value_t>{
                         [currArg, thunkEnv]() -> value_t {
                             auto res = evaluateValue(currArg.expr, thunkEnv);
