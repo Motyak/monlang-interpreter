@@ -1,6 +1,9 @@
 #include <monlang-interpreter/Environment.h>
+#include <monlang-interpreter/deepcopy.h>
 
 #include <utils/assert-utils.h>
+
+#define unless(x) if(!(x))
 
 bool Environment::contains(const SymbolName& symbolName) const {
     auto* currEnv = this;
@@ -43,6 +46,27 @@ Environment* Environment::rec_copy() {
     while (currEnv->enclosingEnv) {
         currEnv->enclosingEnv = new Environment{*currEnv->enclosingEnv};
         currEnv = currEnv->enclosingEnv;
+    }
+    return newEnv;
+}
+
+static void fork_variables(Environment* env) {
+    using Variable = Environment::Variable;
+    for (auto& [symName, symVal]: env->symbolTable) {
+        unless (std::holds_alternative<Variable>(symVal)) continue;
+        auto& var = std::get<Variable>(symVal);
+        var = new value_t(deepcopy(*var));
+    }
+}
+
+Environment* Environment::rec_deepcopy() {
+    auto* newEnv = new Environment{*this};
+    auto* currEnv = newEnv;
+    fork_variables(currEnv);
+    while (currEnv->enclosingEnv) {
+        currEnv->enclosingEnv = new Environment{*currEnv->enclosingEnv};
+        currEnv = currEnv->enclosingEnv;
+        fork_variables(currEnv);
     }
     return newEnv;
 }

@@ -3,3 +3,8 @@ bin/main.elf
 obj
 dist
 lib/libs.a
+
+bin/.gdbinit
+bin/*.ml
+bin/*.elf
+bin/*.elf -i

@@ -42,7 +42,8 @@ class Environment {
     bool contains(const SymbolName&) const;
     const SymbolValue& at(const SymbolName&) const;
     SymbolValue& at(const SymbolName&);
-    Environment* rec_copy();
+    Environment* rec_copy(); // fork symbols (shallow copy on variables)
+    Environment* rec_deepcopy(); // fork symbols AND variables
 };
 
 #endif // ENVIRONMENT_H
