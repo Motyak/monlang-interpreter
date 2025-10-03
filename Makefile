@@ -15,6 +15,7 @@ obj/interpret.o \
 obj/monlang_parser.o \
 obj/Environment.o \
 obj/MapKeyCmp.o \
+obj/PathResolution.o \
 $(BUILTIN_OBJS) \
 
 BUILTIN_OBJS = \

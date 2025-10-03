@@ -69,7 +69,7 @@ value_t evaluateValue(const FunctionCall&, Environment*);
 value_t evaluateValue(const Lambda&, Environment*);
 value_t evaluateValue(const BlockExpression&, Environment*);
 value_t evaluateValue(const FieldAccess&, Environment*);
-value_t evaluateValue(const Subscript&, Environment*);
+value_t evaluateValue(const Subscript&, Environment*, std::optional<value_t> arrayVal = std::nullopt);
 value_t evaluateValue(const ListLiteral&, Environment*);
 value_t evaluateValue(const MapLiteral&, Environment*);
 value_t evaluateValue(const SpecialSymbol&, const Environment*);
@@ -79,7 +79,7 @@ value_t evaluateValue(const Symbol&, const Environment*);
 
 /* evaluateLvalue */
 value_t* evaluateLvalue(const FieldAccess&, Environment*);
-value_t* evaluateLvalue(const Subscript&, Environment*);
-value_t* evaluateLvalue(const Symbol&, Environment*, bool subscripted = false);
+value_t* evaluateLvalue(const Subscript&, Environment*, std::optional<value_t*> arrayLval = std::nullopt);
+value_t* evaluateLvalue(const Symbol&, const Environment*, bool subscripted = false);
 
 #endif // INTERPRET_H

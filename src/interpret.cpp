@@ -5,6 +5,7 @@
 #include <monlang-interpreter/InterpretError.h>
 #include <monlang-interpreter/builtin.h>
 #include <monlang-interpreter/deepcopy.h>
+#include <monlang-interpreter/PathResolution.h>
 
 #include <utils/assert-utils.h>
 #include <utils/variant-utils.h>
@@ -400,13 +401,14 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 }
 
                 if (currArg.passByRef) {
+                    auto* pathResolution = new PathResolution{currArg.expr, currArg.env->rec_deepcopy()};
                     auto* thunkEnv = currArg.env->rec_copy();
                     parametersBinding[currParam.name] = Environment::PassByRef{
-                        (thunk_t<value_t>)[currArg, thunkEnv]() -> value_t {
-                            return evaluateValue(currArg.expr, thunkEnv);
+                        (thunk_t<value_t>)[pathResolution, thunkEnv]() -> value_t {
+                            return pathResolution->value(thunkEnv);
                         },
-                        (thunk_t<value_t*>)[currArg, thunkEnv]() -> value_t* {
-                            return evaluateLvalue(currArg.expr, thunkEnv);
+                        (thunk_t<value_t*>)[pathResolution, thunkEnv]() -> value_t* {
+                            return pathResolution->lvalue(thunkEnv);
                         }
                     };
                 }
@@ -540,9 +542,15 @@ value_t evaluateValue(const FieldAccess& fieldAccess, Environment* env) {
     else throw InterpretError("Accessing field on a non-struct");
 }
 
-value_t evaluateValue(const Subscript& subscript, Environment* env) {
-    auto arrVal = evaluateValue(subscript.array, env);
-    arrVal = deepcopy(arrVal);
+value_t evaluateValue(const Subscript& subscript, Environment* env, std::optional<value_t> arrayVal) {
+    value_t arrVal;
+    if (arrayVal) {
+        arrVal = *arrayVal;
+    }
+    else {
+        arrVal = evaluateValue(subscript.array, env);
+        arrVal = deepcopy(arrVal);
+    }
     ASSERT (std::holds_alternative<prim_value_t*>(arrVal)); // TODO: tmp
     auto* arrPrimValPtr = std::get<prim_value_t*>(arrVal);
     if (arrPrimValPtr == nullptr) {
@@ -842,7 +850,7 @@ value_t evaluateValue(const StrLiteral& strLiteral, const Environment*) {
     return new prim_value_t((Str)strLiteral.str);
 }
 
-value_t evaluateValue(const Symbol& symbol, Environment* env) {
+value_t evaluateValue(const Symbol& symbol, const Environment* env) {
     if (symbol.name == "_") {
         return nil_value_t();
     }
@@ -914,11 +922,17 @@ value_t* evaluateLvalue(const FieldAccess& fieldAccess, Environment* env) {
     else throw InterpretError("Accessing field on a non-struct");
 }
 
-value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
+value_t* evaluateLvalue(const Subscript& subscript, Environment* env, std::optional<value_t*> arrayLval) {
     if (subscript.suffix == '?') {
         throw InterpretError("lvaluing a subscript[]?");
     }
-    auto* lvalue = evaluateLvalue(subscript.array, env, /*subscripted*/true);
+    value_t* lvalue;
+    if (arrayLval) {
+        lvalue = *arrayLval;
+    }
+    else {
+        lvalue = evaluateLvalue(subscript.array, env, /*subscripted*/true);
+    }
     ASSERT (lvalue != nullptr);
     ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
     auto* lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
@@ -995,7 +1009,7 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
     }, lvaluePrimValPtr->variant);
 }
 
-value_t* evaluateLvalue(const Symbol& symbol, Environment* env, bool subscripted) {
+value_t* evaluateLvalue(const Symbol& symbol, const Environment* env, bool subscripted) {
     static value_t DISPOSABLE_LVALUE;
     if (symbol.name == "_") {
         return &DISPOSABLE_LVALUE;
