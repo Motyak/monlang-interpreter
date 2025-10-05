@@ -57,9 +57,7 @@ value_t EvaluateValue::operator()(Subscript* subscript) {
 
 value_t EvaluateValue::operator()(FieldAccess* fieldAccess) {
     auto objectVal = std::visit(*this, Lvalue(fieldAccess->object).variant);
-    // FieldAccess path value is always a literal, so we can..
-    // ..simply evaluate FieldAccess with respect with envAtResolution
-    return evaluateValue(*fieldAccess, envAtResolution, objectVal);
+    return evaluateValue(*fieldAccess, nullptr, objectVal);
 }
 
 // base case
@@ -82,9 +80,7 @@ value_t* EvaluateLvalue::operator()(Subscript* subscript) {
 
 value_t* EvaluateLvalue::operator()(FieldAccess* fieldAccess) {
     auto objectVal = std::visit(*this, Lvalue(fieldAccess->object).variant);
-    // FieldAccess path value is always a literal, so we can..
-    // ..simply evaluate FieldAccess with respect with envAtResolution
-    return evaluateLvalue(*fieldAccess, envAtResolution, objectVal);
+    return evaluateLvalue(*fieldAccess, nullptr, objectVal);
 }
 
 // base case
