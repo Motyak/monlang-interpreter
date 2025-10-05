@@ -519,8 +519,14 @@ value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
     return nil_value_t();
 }
 
-value_t evaluateValue(const FieldAccess& fieldAccess, Environment* env) {
-    auto object = evaluateValue(fieldAccess.object, env);
+value_t evaluateValue(const FieldAccess& fieldAccess, Environment* env, std::optional<value_t> objectVal) {
+    value_t object;
+    if (objectVal) {
+        object = *objectVal;
+    }
+    else {
+        object = evaluateValue(fieldAccess.object, env);
+    }
 
     ASSERT (std::holds_alternative<prim_value_t*>(object)); // TODO: tmp
     auto* objPrimValPtr = std::get<prim_value_t*>(object);
@@ -898,8 +904,14 @@ value_t evaluateValue(const Symbol& symbol, const Environment* env) {
 // evaluateLvalue
 //==============================================================
 
-value_t* evaluateLvalue(const FieldAccess& fieldAccess, Environment* env) {
-    auto* lvalue = evaluateLvalue(fieldAccess.object, env, /*subscripted*/true);
+value_t* evaluateLvalue(const FieldAccess& fieldAccess, Environment* env, std::optional<value_t*> objectLval) {
+    value_t* lvalue;
+    if (objectLval) {
+        lvalue = *objectLval;
+    }
+    else {
+        lvalue = evaluateLvalue(fieldAccess.object, env, /*subscripted*/true);
+    }
     ASSERT (lvalue != nullptr);
 
     ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
