@@ -172,16 +172,32 @@ void performStatement(const LetStatement& letStmt, Environment* env) {
         throw InterpretError("Unbound symbol `" + leftmostSymbol.name + "`");
     }
 
-    auto* pathResolution = new PathResolution{letStmt.variable, env->rec_deepcopy()};
-    auto* thunkEnv = new Environment{*env}; // no need for rec_copy() here ?
-    env->symbolTable[letStmt.alias.name] = Environment::LabelToLvalue{
-        (thunk_t<value_t>)[pathResolution, thunkEnv]() -> value_t {
-            return pathResolution->value(thunkEnv);
-        },
-        (thunk_t<value_t*>)[pathResolution, thunkEnv]() -> value_t* {
-            return pathResolution->lvalue(thunkEnv);
-        }
-    };
+    #ifndef TOGGLE_LEGACY_REF
+    if (containsAnySubscript(letStmt.variable)) {
+        auto* pathResolution = new PathResolution{letStmt.variable, env->rec_deepcopy()};
+        auto* thunkEnv = new Environment{*env}; // no need for rec_copy() here ?
+        env->symbolTable[letStmt.alias.name] = Environment::LabelToLvalue{
+            (thunk_t<value_t>)[pathResolution, thunkEnv]() -> value_t {
+                return pathResolution->value(thunkEnv);
+            },
+            (thunk_t<value_t*>)[pathResolution, thunkEnv]() -> value_t* {
+                return pathResolution->lvalue(thunkEnv);
+            }
+        };
+    }
+    else
+    #endif
+    {
+        auto* thunkEnv = new Environment{*env}; // no need for rec_copy() here ?
+        env->symbolTable[letStmt.alias.name] = Environment::LabelToLvalue{
+            (thunk_t<value_t>)[&letStmt, thunkEnv]() -> value_t {
+                return evaluateValue(letStmt.variable, thunkEnv);
+            },
+            (thunk_t<value_t*>)[&letStmt, thunkEnv]() -> value_t* {
+                return evaluateLvalue(letStmt.variable, thunkEnv);
+            }
+        };
+    }
 }
 
 void performStatement(const VarStatement& varStmt, Environment* env) {
@@ -402,16 +418,33 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 }
 
                 if (currArg.passByRef) {
-                    auto* pathResolution = new PathResolution{currArg.expr, currArg.env->rec_deepcopy()};
-                    auto* thunkEnv = currArg.env->rec_copy();
-                    parametersBinding[currParam.name] = Environment::PassByRef{
-                        (thunk_t<value_t>)[pathResolution, thunkEnv]() -> value_t {
-                            return pathResolution->value(thunkEnv);
-                        },
-                        (thunk_t<value_t*>)[pathResolution, thunkEnv]() -> value_t* {
-                            return pathResolution->lvalue(thunkEnv);
-                        }
-                    };
+                    #ifndef TOGGLE_LEGACY_REF
+                    // if Argument::passByRef is set, then we know Argument::expr is an lvalue
+                    if (containsAnySubscript(/*Lvalue*/currArg.expr)) {
+                        auto* pathResolution = new PathResolution{currArg.expr, currArg.env->rec_deepcopy()};
+                        auto* thunkEnv = currArg.env->rec_copy();
+                        parametersBinding[currParam.name] = Environment::PassByRef{
+                            (thunk_t<value_t>)[pathResolution, thunkEnv]() -> value_t {
+                                return pathResolution->value(thunkEnv);
+                            },
+                            (thunk_t<value_t*>)[pathResolution, thunkEnv]() -> value_t* {
+                                return pathResolution->lvalue(thunkEnv);
+                            }
+                        };
+                    }
+                    else
+                    #endif
+                    {
+                        auto* thunkEnv = currArg.env->rec_copy();
+                        parametersBinding[currParam.name] = Environment::PassByRef{
+                            (thunk_t<value_t>)[currArg, thunkEnv]() -> value_t {
+                                return evaluateValue(currArg.expr, thunkEnv);
+                            },
+                            (thunk_t<value_t*>)[currArg, thunkEnv]() -> value_t* {
+                                return evaluateLvalue(currArg.expr, thunkEnv);
+                            }
+                        };
+                    }
                 }
                 else {
                     #ifdef TOGGLE_PASS_BY_VALUE
