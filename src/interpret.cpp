@@ -172,13 +172,14 @@ void performStatement(const LetStatement& letStmt, Environment* env) {
         throw InterpretError("Unbound symbol `" + leftmostSymbol.name + "`");
     }
 
+    auto* pathResolution = new PathResolution{letStmt.variable, env->rec_deepcopy()};
     auto* thunkEnv = new Environment{*env}; // no need for rec_copy() here ?
     env->symbolTable[letStmt.alias.name] = Environment::LabelToLvalue{
-        (thunk_t<value_t>)[&letStmt, thunkEnv]() -> value_t {
-            return evaluateValue(letStmt.variable, thunkEnv);
+        (thunk_t<value_t>)[pathResolution, thunkEnv]() -> value_t {
+            return pathResolution->value(thunkEnv);
         },
-        (thunk_t<value_t*>)[&letStmt, thunkEnv]() -> value_t* {
-            return evaluateLvalue(letStmt.variable, thunkEnv);
+        (thunk_t<value_t*>)[pathResolution, thunkEnv]() -> value_t* {
+            return pathResolution->lvalue(thunkEnv);
         }
     };
 }
