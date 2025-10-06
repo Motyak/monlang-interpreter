@@ -519,15 +519,8 @@ value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
     return nil_value_t();
 }
 
-value_t evaluateValue(const FieldAccess& fieldAccess, Environment* env, std::optional<value_t> objectVal) {
-    value_t object;
-    if (objectVal) {
-        object = *objectVal;
-    }
-    else {
-        object = evaluateValue(fieldAccess.object, env);
-    }
-
+value_t evaluateValue(const FieldAccess& fieldAccess, Environment* env) {
+    auto object = evaluateValue(fieldAccess.object, env);
     ASSERT (std::holds_alternative<prim_value_t*>(object)); // TODO: tmp
     auto* objPrimValPtr = std::get<prim_value_t*>(object);
 
@@ -548,15 +541,9 @@ value_t evaluateValue(const FieldAccess& fieldAccess, Environment* env, std::opt
     else throw InterpretError("Accessing field on a non-struct");
 }
 
-value_t evaluateValue(const Subscript& subscript, Environment* env, std::optional<value_t> arrayVal) {
-    value_t arrVal;
-    if (arrayVal) {
-        arrVal = *arrayVal;
-    }
-    else {
-        arrVal = evaluateValue(subscript.array, env);
-        arrVal = deepcopy(arrVal);
-    }
+value_t evaluateValue(const Subscript& subscript, Environment* env) {
+    auto arrVal = evaluateValue(subscript.array, env);
+    arrVal = deepcopy(arrVal);
     ASSERT (std::holds_alternative<prim_value_t*>(arrVal)); // TODO: tmp
     auto* arrPrimValPtr = std::get<prim_value_t*>(arrVal);
     if (arrPrimValPtr == nullptr) {
@@ -904,14 +891,8 @@ value_t evaluateValue(const Symbol& symbol, const Environment* env) {
 // evaluateLvalue
 //==============================================================
 
-value_t* evaluateLvalue(const FieldAccess& fieldAccess, Environment* env, std::optional<value_t*> objectLval) {
-    value_t* lvalue;
-    if (objectLval) {
-        lvalue = *objectLval;
-    }
-    else {
-        lvalue = evaluateLvalue(fieldAccess.object, env, /*subscripted*/true);
-    }
+value_t* evaluateLvalue(const FieldAccess& fieldAccess, Environment* env) {
+    auto* lvalue = evaluateLvalue(fieldAccess.object, env, /*subscripted*/true);
     ASSERT (lvalue != nullptr);
 
     ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
@@ -934,17 +915,11 @@ value_t* evaluateLvalue(const FieldAccess& fieldAccess, Environment* env, std::o
     else throw InterpretError("Accessing field on a non-struct");
 }
 
-value_t* evaluateLvalue(const Subscript& subscript, Environment* env, std::optional<value_t*> arrayLval) {
+value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
     if (subscript.suffix == '?') {
         throw InterpretError("lvaluing a subscript[]?");
     }
-    value_t* lvalue;
-    if (arrayLval) {
-        lvalue = *arrayLval;
-    }
-    else {
-        lvalue = evaluateLvalue(subscript.array, env, /*subscripted*/true);
-    }
+    auto* lvalue = evaluateLvalue(subscript.array, env, /*subscripted*/true);
     ASSERT (lvalue != nullptr);
     ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
     auto* lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
