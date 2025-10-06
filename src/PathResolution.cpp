@@ -229,8 +229,8 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
                 }
                 else {
                     auto key = std::get<Subscript::Key>(subscript.argument);
-                    auto keyVal = ::evaluateValue(key.expr, this->pathValuesEnv);
-                    //                                      ^~~~~~~~~~~~~~~~~~~
+                    keyVal = ::evaluateValue(key.expr, this->pathValuesEnv);
+                    //                                 ^~~~~~~~~~~~~~~~~~~
                     this->pathValues.push_back(keyVal);
                 }
                 if (subscript.suffix == '?') {
