@@ -80,6 +80,6 @@ value_t evaluateValue(const Symbol&, const Environment*);
 /* evaluateLvalue */
 value_t* evaluateLvalue(const FieldAccess&, Environment*);
 value_t* evaluateLvalue(const Subscript&, Environment*);
-value_t* evaluateLvalue(const Symbol&, Environment*, bool subscripted = false);
+value_t* evaluateLvalue(const Symbol&, const Environment*, bool subscripted = false);
 
 #endif // INTERPRET_H

@@ -5,6 +5,7 @@
 #include <monlang-interpreter/InterpretError.h>
 #include <monlang-interpreter/builtin.h>
 #include <monlang-interpreter/deepcopy.h>
+#include <monlang-interpreter/PathResolution.h>
 
 #include <utils/assert-utils.h>
 #include <utils/variant-utils.h>
@@ -171,15 +172,32 @@ void performStatement(const LetStatement& letStmt, Environment* env) {
         throw InterpretError("Unbound symbol `" + leftmostSymbol.name + "`");
     }
 
-    auto* thunkEnv = new Environment{*env}; // no need for rec_copy() here ?
-    env->symbolTable[letStmt.alias.name] = Environment::LabelToLvalue{
-        (thunk_t<value_t>)[&letStmt, thunkEnv]() -> value_t {
-            return evaluateValue(letStmt.variable, thunkEnv);
-        },
-        (thunk_t<value_t*>)[&letStmt, thunkEnv]() -> value_t* {
-            return evaluateLvalue(letStmt.variable, thunkEnv);
-        }
-    };
+    #ifndef TOGGLE_LEGACY_REF
+    if (containsAnySubscript(letStmt.variable)) {
+        auto* pathResolution = new PathResolution{letStmt.variable, env->rec_deepcopy()};
+        auto* thunkEnv = new Environment{*env}; // no need for rec_copy() here ?
+        env->symbolTable[letStmt.alias.name] = Environment::LabelToLvalue{
+            (thunk_t<value_t>)[pathResolution, thunkEnv]() -> value_t {
+                return pathResolution->value(thunkEnv);
+            },
+            (thunk_t<value_t*>)[pathResolution, thunkEnv]() -> value_t* {
+                return pathResolution->lvalue(thunkEnv);
+            }
+        };
+    }
+    else
+    #endif
+    {
+        auto* thunkEnv = new Environment{*env}; // no need for rec_copy() here ?
+        env->symbolTable[letStmt.alias.name] = Environment::LabelToLvalue{
+            (thunk_t<value_t>)[&letStmt, thunkEnv]() -> value_t {
+                return evaluateValue(letStmt.variable, thunkEnv);
+            },
+            (thunk_t<value_t*>)[&letStmt, thunkEnv]() -> value_t* {
+                return evaluateLvalue(letStmt.variable, thunkEnv);
+            }
+        };
+    }
 }
 
 void performStatement(const VarStatement& varStmt, Environment* env) {
@@ -400,15 +418,33 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 }
 
                 if (currArg.passByRef) {
-                    auto* thunkEnv = currArg.env->rec_copy();
-                    parametersBinding[currParam.name] = Environment::PassByRef{
-                        (thunk_t<value_t>)[currArg, thunkEnv]() -> value_t {
-                            return evaluateValue(currArg.expr, thunkEnv);
-                        },
-                        (thunk_t<value_t*>)[currArg, thunkEnv]() -> value_t* {
-                            return evaluateLvalue(currArg.expr, thunkEnv);
-                        }
-                    };
+                    #ifndef TOGGLE_LEGACY_REF
+                    // if Argument::passByRef is set, then we know Argument::expr is an lvalue
+                    if (containsAnySubscript(/*Lvalue*/currArg.expr)) {
+                        auto* pathResolution = new PathResolution{currArg.expr, currArg.env->rec_deepcopy()};
+                        auto* thunkEnv = currArg.env->rec_copy();
+                        parametersBinding[currParam.name] = Environment::PassByRef{
+                            (thunk_t<value_t>)[pathResolution, thunkEnv]() -> value_t {
+                                return pathResolution->value(thunkEnv);
+                            },
+                            (thunk_t<value_t*>)[pathResolution, thunkEnv]() -> value_t* {
+                                return pathResolution->lvalue(thunkEnv);
+                            }
+                        };
+                    }
+                    else
+                    #endif
+                    {
+                        auto* thunkEnv = currArg.env->rec_copy();
+                        parametersBinding[currParam.name] = Environment::PassByRef{
+                            (thunk_t<value_t>)[currArg, thunkEnv]() -> value_t {
+                                return evaluateValue(currArg.expr, thunkEnv);
+                            },
+                            (thunk_t<value_t*>)[currArg, thunkEnv]() -> value_t* {
+                                return evaluateLvalue(currArg.expr, thunkEnv);
+                            }
+                        };
+                    }
                 }
                 else {
                     #ifdef TOGGLE_PASS_BY_VALUE
@@ -519,7 +555,6 @@ value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
 
 value_t evaluateValue(const FieldAccess& fieldAccess, Environment* env) {
     auto object = evaluateValue(fieldAccess.object, env);
-
     ASSERT (std::holds_alternative<prim_value_t*>(object)); // TODO: tmp
     auto* objPrimValPtr = std::get<prim_value_t*>(object);
 
@@ -842,7 +877,7 @@ value_t evaluateValue(const StrLiteral& strLiteral, const Environment*) {
     return new prim_value_t((Str)strLiteral.str);
 }
 
-value_t evaluateValue(const Symbol& symbol, Environment* env) {
+value_t evaluateValue(const Symbol& symbol, const Environment* env) {
     if (symbol.name == "_") {
         return nil_value_t();
     }
@@ -995,7 +1030,7 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
     }, lvaluePrimValPtr->variant);
 }
 
-value_t* evaluateLvalue(const Symbol& symbol, Environment* env, bool subscripted) {
+value_t* evaluateLvalue(const Symbol& symbol, const Environment* env, bool subscripted) {
     static value_t DISPOSABLE_LVALUE;
     if (symbol.name == "_") {
         return &DISPOSABLE_LVALUE;
