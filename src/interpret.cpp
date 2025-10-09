@@ -63,29 +63,13 @@ void performStatement(const Statement& stmt, Environment* env) {
 value_t evaluateValue(const Expression& expr, Environment* env) {
     return std::visit(overload{
         [expr, env](FunctionCall* fnCall){
-            bool should_pop = false;
-            /*breakable block*/for (int i = 1; i <= 1; ++i)
-            {
-                if (std::holds_alternative<Symbol*>(fnCall->function)) {
-                    auto symbolName = std::get<Symbol*>(fnCall->function)->name;
-                    if (!env->contains(symbolName) && !BUILTIN_TABLE.contains(symbolName)) {
-                        break;
-                    }
-                }
-
-                ::activeCallStack.push_back(expr);
-                should_pop = true;
-            }
-
-            defer {
-                if (should_pop) {
-                    ::activeCallStack.pop_back();
-                }
-            };
-
+            // evaluateValue(FunctionCall) handles its own..
+            // ..special activeCallStack pushing/poping
             return evaluateValue(*fnCall, env);
         },
         [env](Operation* op){
+            // we don't push for (Operation) because..
+            // ..its redundant with (FunctionCall)
             return evaluateValue(*op, env);
         },
         [env](auto* expr){
@@ -353,7 +337,21 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
         }
     }
 
+    // we only want to push the FunctionCall on the activeCallStack..
+    // ..once we reach the function's body execution..
+    // ..(and if the function has a bound name)
+    bool should_pop = false;
+    if (std::holds_alternative<Symbol*>(fnCall.function)) {
+        auto symbolName = std::get<Symbol*>(fnCall.function)->name;
+        if (env->contains(symbolName) || BUILTIN_TABLE.contains(symbolName)) {
+            ::activeCallStack.push_back(const_cast<FunctionCall*>(&fnCall));
+            should_pop = true;
+        }
+    }
     auto res = function.stdfunc(flattenArgs);
+    if (should_pop) {
+        ::activeCallStack.pop_back();
+    }
     savedCalledFns.erase(function.id);
     return res;
 }
