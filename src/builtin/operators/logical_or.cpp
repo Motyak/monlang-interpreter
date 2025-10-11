@@ -7,6 +7,7 @@
 #include <monlang-interpreter/InterpretError.h>
 
 #include <utils/assert-utils.h>
+#include <utils/vec-utils.h>
 
 #define unless(x) if (!(x))
 
@@ -26,7 +27,7 @@ const value_t builtin::op::logical_or __attribute__((init_priority(3000))) = new
             // Bool_ is responsible for $nil handling
             ::activeCallStack.push_back(arg.expr);
             auto argBool = builtin::prim_ctor::Bool_(argPrimValPtr);
-            ::activeCallStack.pop_back(); // arg.expr
+            safe_pop_back(::activeCallStack); // arg.expr
             if (argBool) {
                 return BoolConst::TRUE;
             }

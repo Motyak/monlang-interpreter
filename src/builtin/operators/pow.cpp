@@ -9,6 +9,7 @@
 #include <utils/assert-utils.h>
 #include <utils/variant-utils.h>
 #include <utils/loop-utils.h>
+#include <utils/vec-utils.h>
 
 #include <cmath>
 
@@ -68,7 +69,7 @@ static value_t powByte(Byte firstArgValue, const std::vector<FlattenArg>& args) 
         auto argValue = evaluateValue(arg.expr, arg.env);
         ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Int_(argValue);
-        ::activeCallStack.pop_back(); // arg.expr
+        safe_pop_back(::activeCallStack); // arg.expr
         res = std::pow(res, intVal);
     }
 
@@ -82,7 +83,7 @@ static value_t powInt(Int firstArgValue, const std::vector<FlattenArg>& args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
         ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Int_(argValue);
-        ::activeCallStack.pop_back(); // arg.expr
+        safe_pop_back(::activeCallStack); // arg.expr
         res = std::pow(res, intVal);
     }
 
@@ -96,7 +97,7 @@ static value_t powFloat(Float firstArgValue, const std::vector<FlattenArg>& args
         auto argValue = evaluateValue(arg.expr, arg.env);
         ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Int_(argValue);
-        ::activeCallStack.pop_back(); // arg.expr
+        safe_pop_back(::activeCallStack); // arg.expr
         res = std::pow(res, intVal);
     }
 

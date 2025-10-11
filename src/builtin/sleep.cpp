@@ -8,6 +8,7 @@
 
 #include <utils/assert-utils.h>
 #include <utils/defer-util.h>
+#include <utils/vec-utils.h>
 
 #include <thread>
 
@@ -23,7 +24,7 @@ const value_t builtin::sleep __attribute__((init_priority(3000))) = new prim_val
         auto arg = args.at(0);
         auto argVal = evaluateValue(arg.expr, arg.env);
         ::activeCallStack.push_back(arg.expr);
-        defer {::activeCallStack.pop_back();};
+        defer {safe_pop_back(::activeCallStack);};
         auto duration = builtin::prim_ctor::Float_(argVal);
         std::this_thread::sleep_for(std::chrono::milliseconds{int64_t(duration * 1000)});
         return nil_value_t();

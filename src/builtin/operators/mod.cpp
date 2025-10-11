@@ -9,6 +9,7 @@
 #include <utils/assert-utils.h>
 #include <utils/variant-utils.h>
 #include <utils/loop-utils.h>
+#include <utils/vec-utils.h>
 
 #include <cmath>
 
@@ -67,7 +68,7 @@ static value_t mod(Int firstArgValue, const std::vector<FlattenArg>& args) {
         ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Int_(argValue);
         if (intVal == 0) throw InterpretError("mod by zero");
-        ::activeCallStack.pop_back(); // arg.expr
+        safe_pop_back(::activeCallStack); // arg.expr
         res %= intVal;
     }
 

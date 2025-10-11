@@ -9,6 +9,7 @@
 #include <utils/assert-utils.h>
 #include <utils/variant-utils.h>
 #include <utils/loop-utils.h>
+#include <utils/vec-utils.h>
 
 #define unless(x) if (!(x))
 
@@ -88,7 +89,7 @@ static value_t addByte(Byte firstArgValue, const std::vector<FlattenArg>& args) 
         auto argValue = evaluateValue(arg.expr, arg.env);
         ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Byte_(argValue);
-        ::activeCallStack.pop_back(); // arg.expr
+        safe_pop_back(::activeCallStack); // arg.expr
         sum += intVal;
     }
 
@@ -102,7 +103,7 @@ static value_t addInt(Int firstArgValue, const std::vector<FlattenArg>& args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
         ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Int_(argValue);
-        ::activeCallStack.pop_back(); // arg.expr
+        safe_pop_back(::activeCallStack); // arg.expr
         sum += intVal;
     }
 
@@ -116,7 +117,7 @@ static value_t addFloat(Float firstArgValue, const std::vector<FlattenArg>& args
         auto argValue = evaluateValue(arg.expr, arg.env);
         ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Float_(argValue);
-        ::activeCallStack.pop_back(); // arg.expr
+        safe_pop_back(::activeCallStack); // arg.expr
         sum += intVal;
     }
 
@@ -125,13 +126,13 @@ static value_t addFloat(Float firstArgValue, const std::vector<FlattenArg>& args
 
 static value_t addChar(Char firstArgValue, prim_value_t* secondArgValue, const std::vector<FlattenArg>& args) {
     auto sum = uint8_t(uint8_t(firstArgValue) + builtin::prim_ctor::Byte_(secondArgValue));
-    ::activeCallStack.pop_back(); // from before addChar() call
+    safe_pop_back(::activeCallStack); // from before addChar() call
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
         ::activeCallStack.push_back(arg.expr);
         auto intVal = uint8_t(builtin::prim_ctor::Byte_(argValue));
-        ::activeCallStack.pop_back(); // arg.expr
+        safe_pop_back(::activeCallStack); // arg.expr
         sum += intVal;
     }
 
@@ -169,7 +170,7 @@ static value_t concatList(const List& firstArgValue, const std::vector<FlattenAr
         auto argValue = evaluateValue(arg.expr, arg.env);
         ::activeCallStack.push_back(arg.expr);
         auto currList = builtin::prim_ctor::List_(argValue);
-        ::activeCallStack.pop_back(); // arg.expr
+        safe_pop_back(::activeCallStack); // arg.expr
         res.insert(res.end(), currList.begin(), currList.end());
     }
 

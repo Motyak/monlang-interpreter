@@ -8,7 +8,7 @@
 
 #include <utils/assert-utils.h>
 #include <utils/variant-utils.h>
-#include <utils/stdfunc-utils.h>
+#include <utils/vec-utils.h>
 
 #define unless(x) if (!(x))
 
@@ -40,7 +40,7 @@ const value_t builtin::op::gt __attribute__((init_priority(3000))) = new prim_va
             if (is_nil(argVal)) {
                 throw InterpretError(">() arg cannot be $nil");
             }
-            ::activeCallStack.pop_back();
+            safe_pop_back(::activeCallStack);
 
             /* compare with lhs (arg from last iteration) */
             if (!first_it) {
@@ -86,27 +86,27 @@ static int comparePrimValPtr(prim_value_t* primValPtr_lhs, prim_value_t* primVal
     return std::visit(overload{
         [primValPtr_rhs](Bool bool_) -> int {
             auto rhsAsBool = builtin::prim_ctor::Bool_(primValPtr_rhs);
-            ::activeCallStack.pop_back(); // from before compareValue() call
+            safe_pop_back(::activeCallStack); // from before compareValue() call
             return bool_ < rhsAsBool? -1 : bool_ > rhsAsBool? 1 : 0;
         },
         [primValPtr_rhs](Byte byte) -> int {
             auto rhsAsByte = builtin::prim_ctor::Byte_(primValPtr_rhs);
-            ::activeCallStack.pop_back(); // from before compareValue() call
+            safe_pop_back(::activeCallStack); // from before compareValue() call
             return byte < rhsAsByte? -1 : byte > rhsAsByte? 1 : 0;
         },
         [primValPtr_rhs](Int int_) -> int {
             auto rhsAsInt = builtin::prim_ctor::Int_(primValPtr_rhs);
-            ::activeCallStack.pop_back(); // from before compareValue() call
+            safe_pop_back(::activeCallStack); // from before compareValue() call
             return int_ < rhsAsInt? -1 : int_ > rhsAsInt? 1 : 0;
         },
         [primValPtr_rhs](Float float_) -> int {
             auto rhsAsFloat = builtin::prim_ctor::Float_(primValPtr_rhs);
-            ::activeCallStack.pop_back(); // from before compareValue() call
+            safe_pop_back(::activeCallStack); // from before compareValue() call
             return float_ < rhsAsFloat? -1 : float_ > rhsAsFloat? 1 : 0;
         },
         [primValPtr_rhs](Char char_) -> int {
             auto rhsAsChar = builtin::prim_ctor::Char_(primValPtr_rhs);
-            ::activeCallStack.pop_back(); // from before compareValue() call
+            safe_pop_back(::activeCallStack); // from before compareValue() call
             return char_ < rhsAsChar? -1 : char_ > rhsAsChar? 1 : 0;
         },
         [primValPtr_rhs](const Str& str) -> int {

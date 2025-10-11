@@ -7,6 +7,7 @@
 #include <utils/variant-utils.h>
 #include <utils/assert-utils.h>
 #include <utils/defer-util.h>
+#include <utils/vec-utils.h>
 
 #define unless(x) if(!(x))
 
@@ -24,7 +25,7 @@ const value_t builtin::prim_ctor::Bool __attribute__((init_priority(3000))) = ne
         auto argVal = evaluateValue(arg.expr, arg.env);
 
         ::activeCallStack.push_back(arg.expr);
-        defer {::activeCallStack.pop_back();};
+        defer {safe_pop_back(::activeCallStack);};
         return Bool_(argVal)? BoolConst::TRUE : BoolConst::FALSE;
     }
 }};
