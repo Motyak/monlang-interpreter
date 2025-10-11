@@ -9,6 +9,7 @@
 #include <utils/assert-utils.h>
 #include <utils/variant-utils.h>
 #include <utils/loop-utils.h>
+#include <utils/vec-utils.h>
 
 #define unless(x) if (!(x))
 
@@ -112,13 +113,13 @@ const value_t builtin::op::mul __attribute__((init_priority(3000))) = new prim_v
 
 static value_t mulByte(Byte firstArgValue, prim_value_t* secondArgValue, const std::vector<FlattenArg>& args) {
     Int res = Int(firstArgValue) * Int(builtin::prim_ctor::Byte_(secondArgValue));
-    ::activeCallStack.pop_back(); // from before mulByte() call
+    safe_pop_back(::activeCallStack); // from before mulByte() call
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
         ::activeCallStack.push_back(arg.expr);
         auto intVal = Int(builtin::prim_ctor::Byte_(argValue));
-        ::activeCallStack.pop_back(); // arg.expr
+        safe_pop_back(::activeCallStack); // arg.expr
         res *= intVal;
     }
 
@@ -127,13 +128,13 @@ static value_t mulByte(Byte firstArgValue, prim_value_t* secondArgValue, const s
 
 static value_t mulInt(Int firstArgValue, prim_value_t* secondArgValue, const std::vector<FlattenArg>& args) {
     Int res = firstArgValue * builtin::prim_ctor::Int_(secondArgValue);
-    ::activeCallStack.pop_back(); // from before mulInt() call
+    safe_pop_back(::activeCallStack); // from before mulInt() call
 
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
         ::activeCallStack.push_back(arg.expr);
         auto intVal = builtin::prim_ctor::Int_(argValue);
-        ::activeCallStack.pop_back(); // arg.expr
+        safe_pop_back(::activeCallStack); // arg.expr
         res *= intVal;
     }
 
@@ -147,7 +148,7 @@ static value_t mulFloat(Float firstArgValue, const std::vector<FlattenArg>& args
         auto argValue = evaluateValue(arg.expr, arg.env);
         ::activeCallStack.push_back(arg.expr);
         auto floatVal = builtin::prim_ctor::Float_(argValue);
-        ::activeCallStack.pop_back(); // arg.expr
+        safe_pop_back(::activeCallStack); // arg.expr
         res *= floatVal;
     }
 
@@ -160,7 +161,7 @@ static value_t buildStr(const Str& firstArgValue, const std::vector<FlattenArg>&
         auto argValue = evaluateValue(arg.expr, arg.env);
         ::activeCallStack.push_back(arg.expr);
         auto intValue = builtin::prim_ctor::Int_(argValue);
-        ::activeCallStack.pop_back(); // arg.expr
+        safe_pop_back(::activeCallStack); // arg.expr
         multiplier *= intValue;
     }
     return buildStr(multiplier, firstArgValue);
@@ -180,7 +181,7 @@ static value_t buildList(const List& firstArgValue, const std::vector<FlattenArg
         auto argValue = evaluateValue(arg.expr, arg.env);
         ::activeCallStack.push_back(arg.expr);
         auto intValue = builtin::prim_ctor::Int_(argValue);
-        ::activeCallStack.pop_back(); // arg.expr
+        safe_pop_back(::activeCallStack); // arg.expr
         multiplier *= intValue;
     }
     return buildList(multiplier, firstArgValue);

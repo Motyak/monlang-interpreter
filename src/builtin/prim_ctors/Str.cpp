@@ -6,6 +6,7 @@
 #include <monlang-interpreter/builtin/print.h>
 
 #include <utils/assert-utils.h>
+#include <utils/vec-utils.h>
 
 #include <sstream>
 
@@ -31,6 +32,6 @@ prim_value_t::Str builtin::prim_ctor::Str_(const value_t& val) {
     std::ostringstream oss;
     print_({val}, oss);
     auto res = oss.str();
-    res.pop_back(); // remove trailing newline
+    safe_pop_back(res); // remove trailing newline
     return res;
 }

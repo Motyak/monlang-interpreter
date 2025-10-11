@@ -7,6 +7,7 @@
 
 #include <utils/assert-utils.h>
 #include <utils/defer-util.h>
+#include <utils/vec-utils.h>
 
 #define unless(x) if(!(x))
 
@@ -80,7 +81,7 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
                     auto nthVal = ::evaluateValue(variant_cast(index.nth), this->pathValuesEnv);
                     //                                                     ^~~~~~~~~~~~~~~~~~~
                     ::activeCallStack.push_back(variant_cast(index.nth));
-                    defer {::activeCallStack.pop_back();};
+                    defer {safe_pop_back(::activeCallStack);};
                     auto intVal = builtin::prim_ctor::Int_(nthVal);
 
                     unless (intVal != 0) throw InterpretError("Subscript index is zero");
@@ -111,7 +112,7 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
                     unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
                     fromPos = intFromVal < 0? Int(str.size()) - abs(intFromVal) : intFromVal - 1;
                     unless (0 <= fromPos && fromPos < Int(str.size())) throw InterpretError("Subscript range 'from' is out of bounds");
-                    ::activeCallStack.pop_back(); // variant_cast(range.from)
+                    safe_pop_back(::activeCallStack); // variant_cast(range.from)
 
                     /* to */
                     ::activeCallStack.push_back(variant_cast(range.to));
@@ -128,7 +129,7 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
                         toPos = fromPos;
                     }
                     unless (toPos < Int(str.size())) throw InterpretError("Subscript range 'to' is out of bounds");
-                    ::activeCallStack.pop_back(); // variant_cast(range.to)
+                    safe_pop_back(::activeCallStack); // variant_cast(range.to)
 
                     this->pathValues.push_back(std::make_pair(fromPos, toPos));
                 }
@@ -153,7 +154,7 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
                     auto nthVal = ::evaluateValue(variant_cast(index.nth), this->pathValuesEnv);
                     //                                                     ^~~~~~~~~~~~~~~~~~~
                     ::activeCallStack.push_back(variant_cast(index.nth));
-                    defer {::activeCallStack.pop_back();};
+                    defer {safe_pop_back(::activeCallStack);};
                     auto intVal = builtin::prim_ctor::Int_(nthVal);
 
                     unless (intVal != 0) throw InterpretError("Subscript index is zero");
@@ -184,7 +185,7 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
                     unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
                     fromPos = intFromVal < 0? Int(list.size()) - abs(intFromVal) : intFromVal - 1;
                     unless (0 <= fromPos && fromPos < Int(list.size())) throw InterpretError("Subscript range 'from' is out of bounds");
-                    ::activeCallStack.pop_back(); // variant_cast(range.from)
+                    safe_pop_back(::activeCallStack); // variant_cast(range.from)
 
                     /* to */
                     ::activeCallStack.push_back(variant_cast(range.to));
@@ -201,7 +202,7 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
                         toPos = fromPos;
                     }
                     unless (toPos < Int(list.size())) throw InterpretError("Subscript range 'to' is out of bounds");
-                    ::activeCallStack.pop_back(); // variant_cast(range.to)
+                    safe_pop_back(::activeCallStack); // variant_cast(range.to)
 
                     this->pathValues.push_back(std::make_pair(fromPos, toPos));
                 }
@@ -288,7 +289,7 @@ value_t PathResolution::evaluateValue(const Symbol& symbol, Environment* envAtRe
 
 value_t* PathResolution::evaluateLvalue(const Lvalue& lvalue, Environment* envAtResolution, bool subscripted) {
     ::activeCallStack.push_back(lvalue);
-    defer {::activeCallStack.pop_back();};
+    defer {safe_pop_back(::activeCallStack);};
     return std::visit(overload{
         [this, envAtResolution, subscripted](Symbol* symbol){
             return this->evaluateLvalue(*symbol, envAtResolution, subscripted);
@@ -333,7 +334,7 @@ value_t* PathResolution::evaluateLvalue(const Subscript& subscript, Environment*
                     auto nthVal = ::evaluateValue(variant_cast(index.nth), this->pathValuesEnv);
                     //                                                     ^~~~~~~~~~~~~~~~~~~
                     ::activeCallStack.push_back(variant_cast(index.nth));
-                    defer {::activeCallStack.pop_back();};
+                    defer {safe_pop_back(::activeCallStack);};
                     auto intVal = builtin::prim_ctor::Int_(nthVal);
 
                     unless (intVal != 0) throw InterpretError("Subscript index is zero");
@@ -360,7 +361,7 @@ value_t* PathResolution::evaluateLvalue(const Subscript& subscript, Environment*
                     auto nthVal = ::evaluateValue(variant_cast(index.nth), this->pathValuesEnv);
                     //                                                     ^~~~~~~~~~~~~~~~~~~
                     ::activeCallStack.push_back(variant_cast(index.nth));
-                    defer {::activeCallStack.pop_back();};
+                    defer {safe_pop_back(::activeCallStack);};
                     auto intVal = builtin::prim_ctor::Int_(nthVal);
 
                     unless (intVal != 0) throw InterpretError("Subscript index is zero");

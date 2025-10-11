@@ -6,6 +6,7 @@
 
 #include <utils/assert-utils.h>
 #include <utils/variant-utils.h>
+#include <utils/vec-utils.h>
 
 #define unless(x) if(!(x))
 
@@ -29,7 +30,7 @@ const value_t builtin::prim_ctor::Map __attribute__((init_priority(3000))) = new
             unless (argAsList.size() == 2) {
                 throw InterpretError("Map() list arguments must contain 2 elements");
             }
-            ::activeCallStack.pop_back(); // arg.expr
+            safe_pop_back(::activeCallStack); // arg.expr
             res[argAsList.at(0)] = argAsList.at(1);
         }
         return new prim_value_t{res};

@@ -9,6 +9,7 @@
 #include <utils/assert-utils.h>
 #include <utils/variant-utils.h>
 #include <utils/loop-utils.h>
+#include <utils/vec-utils.h>
 
 #include <cmath>
 
@@ -66,7 +67,7 @@ static value_t divFloat(Float firstArgValue, const std::vector<FlattenArg>& args
         auto argValue = evaluateValue(arg.expr, arg.env);
         ::activeCallStack.push_back(arg.expr);
         auto floatVal = builtin::prim_ctor::Float_(argValue);
-        ::activeCallStack.pop_back(); // arg.expr
+        safe_pop_back(::activeCallStack); // arg.expr
         res /= floatVal;
     }
 

@@ -11,6 +11,7 @@
 #include <utils/variant-utils.h>
 #include <utils/str-utils.h>
 #include <utils/defer-util.h>
+#include <utils/vec-utils.h>
 
 #include <cmath>
 #include <vector>
@@ -74,7 +75,7 @@ value_t evaluateValue(const Expression& expr, Environment* env) {
         },
         [env](auto* expr){
             ::activeCallStack.push_back(expr);
-            defer {::activeCallStack.pop_back();};
+            defer {safe_pop_back(::activeCallStack);};
             return evaluateValue(*expr, env);
         },
     }, expr);
@@ -82,7 +83,7 @@ value_t evaluateValue(const Expression& expr, Environment* env) {
 
 value_t* evaluateLvalue(const Lvalue& lvalue, Environment* env, bool subscripted) {
     ::activeCallStack.push_back(lvalue);
-    defer {::activeCallStack.pop_back();};
+    defer {safe_pop_back(::activeCallStack);};
     return std::visit(overload{
         [env, subscripted](Symbol* symbol){
             return evaluateLvalue(*symbol, env, subscripted);
@@ -111,7 +112,7 @@ void performStatement(const Assignment& assignment, Environment* env) {
     if (std::holds_alternative<char*>(*lvalue)) {
         auto* c = std::get<char*>(*lvalue);
         ::activeCallStack.push_back(assignment.value);
-        defer {::activeCallStack.pop_back();};
+        defer {safe_pop_back(::activeCallStack);};
         auto newChar = builtin::prim_ctor::Char_(new_value);
         auto old_value = value_t(new prim_value_t{Char(*c)});
         *c = newChar;
@@ -350,7 +351,7 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
     }
     auto res = function.stdfunc(flattenArgs);
     if (should_pop) {
-        ::activeCallStack.pop_back();
+        safe_pop_back(::activeCallStack);
     }
     savedCalledFns.erase(function.id);
     return res;
@@ -592,7 +593,7 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                 auto index = std::get<Subscript::Index>(subscript.argument);
                 auto nthVal = evaluateValue(variant_cast(index.nth), env);
                 ::activeCallStack.push_back(variant_cast(index.nth));
-                defer {::activeCallStack.pop_back();};
+                defer {safe_pop_back(::activeCallStack);};
                 auto intVal = builtin::prim_ctor::Int_(nthVal);
 
                 unless (intVal != 0) throw InterpretError("Subscript index is zero");
@@ -611,7 +612,7 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                 unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
                 Int fromPos = intFromVal < 0? Int(str.size()) - abs(intFromVal) : intFromVal - 1;
                 unless (0 <= fromPos && fromPos < Int(str.size())) throw InterpretError("Subscript range 'from' is out of bounds");
-                ::activeCallStack.pop_back(); // variant_cast(range.from)
+                safe_pop_back(::activeCallStack); // variant_cast(range.from)
 
                 /* to */
                 ::activeCallStack.push_back(variant_cast(range.to));
@@ -627,7 +628,7 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                     toPos = fromPos;
                 }
                 unless (toPos < Int(str.size())) throw InterpretError("Subscript range 'to' is out of bounds");
-                ::activeCallStack.pop_back(); // variant_cast(range.to)
+                safe_pop_back(::activeCallStack); // variant_cast(range.to)
 
                 return new prim_value_t{str.substr(fromPos, toPos - fromPos + 1)};
             }
@@ -644,7 +645,7 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                 auto index = std::get<Subscript::Index>(subscript.argument);
                 auto nthVal = evaluateValue(variant_cast(index.nth), env);
                 ::activeCallStack.push_back(variant_cast(index.nth));
-                defer {::activeCallStack.pop_back();};
+                defer {safe_pop_back(::activeCallStack);};
                 auto intVal = builtin::prim_ctor::Int_(nthVal);
 
                 unless (intVal != 0) throw InterpretError("Subscript index is zero");
@@ -663,7 +664,7 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                 unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
                 Int fromPos = intFromVal < 0? Int(list.size()) - abs(intFromVal) : intFromVal - 1;
                 unless (0 <= fromPos && fromPos < Int(list.size())) throw InterpretError("Subscript range 'from' is out of bounds");
-                ::activeCallStack.pop_back(); // variant_cast(range.from)
+                safe_pop_back(::activeCallStack); // variant_cast(range.from)
 
                 /* to */
                 ::activeCallStack.push_back(variant_cast(range.to));
@@ -679,7 +680,7 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                     toPos = fromPos;
                 }
                 unless (toPos < Int(list.size())) throw InterpretError("Subscript range 'to' is out of bounds");
-                ::activeCallStack.pop_back(); // variant_cast(range.to)
+                safe_pop_back(::activeCallStack); // variant_cast(range.to)
 
                 auto res = List(list.begin() + fromPos, list.begin() + + toPos + 1);
                 return new prim_value_t{res};
@@ -973,7 +974,7 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
                 auto index = std::get<Subscript::Index>(subscript.argument);
                 auto nthVal = evaluateValue(variant_cast(index.nth), env);
                 ::activeCallStack.push_back(variant_cast(index.nth));
-                defer {::activeCallStack.pop_back();};
+                defer {safe_pop_back(::activeCallStack);};
                 auto intVal = builtin::prim_ctor::Int_(nthVal);
 
                 unless (intVal != 0) throw InterpretError("Subscript index is zero");
@@ -992,7 +993,7 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
                 auto index = std::get<Subscript::Index>(subscript.argument);
                 auto nthVal = evaluateValue(variant_cast(index.nth), env);
                 ::activeCallStack.push_back(variant_cast(index.nth));
-                defer {::activeCallStack.pop_back();};
+                defer {safe_pop_back(::activeCallStack);};
                 auto intVal = builtin::prim_ctor::Int_(nthVal);
 
                 unless (intVal != 0) throw InterpretError("Subscript index is zero");
