@@ -1,5 +1,5 @@
 ./echo.elf
-  -> execute l'interp en mode REPL
+  -> execute l'embed (echo.ml)
 
 ./echo.elf -
 ./echo.elf srcfile
@@ -11,19 +11,17 @@
 
 ---
 
-./echo.elf --
-  -> execute l'embed (echo.ml)
-
 ./echo.elf -- <arg(s)>
   -> execute l'embed
-
-./echo.elf\ -i --
-  -> execute l'embed en mode interactif
 
 ./echo.elf\ -i -- <arg(s)>
   -> execute l'embed en mode interactif
 
 ---
+
+./interp.elf
+  -> fallback sur le mode REPL
+    -> requiert le ELF original, ne fonctionne pas sur un ELF embeddé
 
 ./interp.elf -- <arg(s)>
   -> fallback sur le mode REPL (utile pour passer des arguments en mode REPL)

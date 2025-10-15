@@ -1,5 +1,6 @@
 #!/bin/bash
 set -o errexit
+set -o nounset
 
 ELF_FILE="$1"
 SRC_FILE="$2"
