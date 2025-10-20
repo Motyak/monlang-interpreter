@@ -266,7 +266,7 @@ value_t PathResolution::evaluateValue(const FieldAccess& fieldAccess, Environmen
     }
 
     if (std::holds_alternative<Map>(objPrimValPtr->variant)) {
-        auto map = std::get<Map>(objPrimValPtr->variant);
+        const auto& map = std::get<Map>(objPrimValPtr->variant);
         auto key = new prim_value_t{(Str)fieldAccess.field.name};
         unless (map.contains(key)) {
             ::activeCallStack.push_back(const_cast<Symbol*>(&fieldAccess.field));

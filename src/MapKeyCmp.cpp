@@ -62,38 +62,38 @@ static int cmp(prim_value_t* lhs, prim_value_t* rhs) {
         return lhsIndex < rhsIndex? -1 : 1;
     }
     return std::visit(overload{
-        [&rhs](Bool lhs) -> int {
+        [rhs](Bool lhs) -> int {
             auto rhsAsBool = std::get<Bool>(rhs->variant);
             return lhs < rhsAsBool? -1 : lhs > rhsAsBool? 1 : 0;
         },
 
-        [&rhs](Byte lhs) -> int {
+        [rhs](Byte lhs) -> int {
             auto rhsAsByte = std::get<Byte>(rhs->variant);
             return lhs < rhsAsByte? -1 : lhs > rhsAsByte? 1 : 0;
         },
 
-        [&rhs](Int lhs) -> int {
+        [rhs](Int lhs) -> int {
             auto rhsAsInt = std::get<Int>(rhs->variant);
             return lhs < rhsAsInt? -1 : lhs > rhsAsInt? 1 : 0;
         },
 
-        [&rhs](Float lhs) -> int {
+        [rhs](Float lhs) -> int {
             auto rhsAsFloat = std::get<Float>(rhs->variant);
             return lhs < rhsAsFloat? -1 : lhs > rhsAsFloat? 1 : 0;
         },
 
-        [&rhs](Char lhs) -> int {
+        [rhs](Char lhs) -> int {
             auto rhsAsChar = std::get<Char>(rhs->variant);
             return lhs < rhsAsChar? -1 : lhs > rhsAsChar? 1 : 0;
         },
 
-        [&rhs](const Str& lhs) -> int {
-            auto rhsAsStr = std::get<Str>(rhs->variant);
+        [rhs](const Str& lhs) -> int {
+            const auto& rhsAsStr = std::get<Str>(rhs->variant);
             return lhs < rhsAsStr? -1 : lhs > rhsAsStr? 1 : 0;
         },
 
-        [&rhs](const List& lhs) -> int {
-            auto rhsList = std::get<List>(rhs->variant);
+        [rhs](const List& lhs) -> int {
+            const auto& rhsList = std::get<List>(rhs->variant);
             auto lhsSize = lhs.size();
             auto rhsSize = rhsList.size();
             if (lhsSize != rhsSize) {
@@ -108,8 +108,8 @@ static int cmp(prim_value_t* lhs, prim_value_t* rhs) {
             return 0;
         },
 
-        [&rhs](const Map& lhs) -> int {
-            auto rhsMap = std::get<Map>(rhs->variant);
+        [rhs](const Map& lhs) -> int {
+            const auto& rhsMap = std::get<Map>(rhs->variant);
             auto lhsSize = lhs.size();
             auto rhsSize = rhsMap.size();
             if (lhsSize != rhsSize) {
@@ -130,8 +130,8 @@ static int cmp(prim_value_t* lhs, prim_value_t* rhs) {
             return 0;
         },
 
-        [&rhs](const prim_value_t::Lambda& lhs) -> int {
-            auto rhsAsLambda = std::get<prim_value_t::Lambda>(rhs->variant);
+        [rhs](const prim_value_t::Lambda& lhs) -> int {
+            const auto& rhsAsLambda = std::get<prim_value_t::Lambda>(rhs->variant);
             return lhs.id < rhsAsLambda.id? -1 : lhs.id > rhsAsLambda.id? 1 : 0;
         },
 

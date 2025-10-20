@@ -63,7 +63,7 @@ void performStatement(const Statement& stmt, Environment* env) {
 
 value_t evaluateValue(const Expression& expr, Environment* env) {
     return std::visit(overload{
-        [expr, env](FunctionCall* fnCall){
+        [env](FunctionCall* fnCall){
             // evaluateValue(FunctionCall) handles its own..
             // ..special activeCallStack pushing/poping
             return evaluateValue(*fnCall, env);
@@ -114,15 +114,11 @@ void performStatement(const Assignment& assignment, Environment* env) {
         ::activeCallStack.push_back(assignment.value);
         defer {safe_pop_back(::activeCallStack);};
         auto newChar = builtin::prim_ctor::Char_(new_value);
-        auto old_value = value_t(new prim_value_t{Char(*c)});
         *c = newChar;
-        env->symbolTable["$old"] = Environment::ConstValue{old_value};
         return;
     }
 
-    auto old_value = *lvalue;
     *lvalue = new_value;
-    env->symbolTable["$old"] = Environment::ConstValue{old_value};
 }
 
 void performStatement(const Accumulation& acc, Environment* env) {
@@ -320,7 +316,7 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
         CONTINUE:
     }
 
-    auto function = std::get<prim_value_t::Lambda>(fnPrimValPtr->variant);
+    const auto& function = std::get<prim_value_t::Lambda>(fnPrimValPtr->variant);
 
     /* recursive tail call elimination */
     static auto savedCalledFns = std::map<uint64_t, BackupStack>{};
@@ -562,7 +558,7 @@ value_t evaluateValue(const FieldAccess& fieldAccess, Environment* env) {
     }
 
     if (std::holds_alternative<Map>(objPrimValPtr->variant)) {
-        auto map = std::get<Map>(objPrimValPtr->variant);
+        const auto& map = std::get<Map>(objPrimValPtr->variant);
         auto key = new prim_value_t{(Str)fieldAccess.field.name};
         unless (map.contains(key)) {
             ::activeCallStack.push_back(const_cast<Symbol*>(&fieldAccess.field));
