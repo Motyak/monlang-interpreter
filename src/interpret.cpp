@@ -500,9 +500,9 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 performStatement(lambda.body.statements.at(i), &lambdaEnv);
             }
 
-                auto backup_is_tailcallable = is_tailcallable;
-                is_tailcallable = check_if_tailcallable(lambda.body.statements.at(i));
-                defer {is_tailcallable = backup_is_tailcallable;};
+            auto backup_is_tailcallable = is_tailcallable;
+            is_tailcallable = check_if_tailcallable(lambda.body.statements.at(i));
+            defer {is_tailcallable = backup_is_tailcallable;};
 
             if (std::holds_alternative<ExpressionStatement*>(lambda.body.statements.at(i))) {
                 auto exprStmt = *std::get<ExpressionStatement*>(lambda.body.statements.at(i));
