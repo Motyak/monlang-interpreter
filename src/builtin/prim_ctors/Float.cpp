@@ -13,18 +13,18 @@
 
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
-const value_t builtin::prim_ctor::Float __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
+const value_t builtin::prim_ctor::Float __attribute__((init_priority(3000))) = std::make_unique<prim_value_t>(prim_value_t::Lambda{
     builtin_lambda_id++,
-    IntConst::ONE,
+    IntConst::ONE(),
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() == 1) throw InterpretError("Float() takes 1 argument");
         auto arg = args.at(0);
         auto argVal = evaluateValue(arg.expr, arg.env);
         ::activeCallStack.push_back(arg.expr);
         defer {safe_pop_back(::activeCallStack);};
-        return new prim_value_t(Float_(argVal));
+        return std::make_unique<prim_value_t>(Float_(argVal));
     }
-}};
+});
 
 static prim_value_t::Float to_float(const prim_value_t&);
 static prim_value_t::Float to_float(const type_value_t&);
@@ -33,7 +33,7 @@ static prim_value_t::Float to_float(const enum_value_t&);
 
 prim_value_t::Float builtin::prim_ctor::Float_(const value_t& val) {
     return std::visit(overload{
-        [](auto* val) -> prim_value_t::Float {
+        [](const std::unique_ptr<prim_value_t>& val) -> prim_value_t::Float {
             if (val == nullptr){
                 throw InterpretError("Float() arg cannot be $nil");
             }
@@ -42,6 +42,7 @@ prim_value_t::Float builtin::prim_ctor::Float_(const value_t& val) {
             }
         },
         [](char*) -> prim_value_t::Float {SHOULD_NOT_HAPPEN();},
+        [](auto*) -> prim_value_t::Float {TODO();},
     }, val);
 }
 

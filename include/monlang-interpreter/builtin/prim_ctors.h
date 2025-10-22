@@ -10,14 +10,14 @@
 #include <monlang-interpreter/types.h>
 
 namespace BoolConst {
-    extern const value_t TRUE;
-    extern const value_t FALSE;
+    value_t TRUE();
+    value_t FALSE();
 }
 
 namespace IntConst {
-    extern const value_t ZERO;
-    extern const value_t ONE;
-    extern const value_t TWO;
+    value_t ZERO();
+    value_t ONE();
+    value_t TWO();
 }
 
 namespace builtin {

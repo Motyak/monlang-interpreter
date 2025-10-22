@@ -1,6 +1,7 @@
 include utils.mk # askmake, not, shell_onrun, shouldrebuild
 
-export CXX := ccache g++
+# export CXX := ccache g++
+export CXX := ccache g++ -fmax-errors=1
 
 SHELL := /bin/bash
 RM := rm -rf

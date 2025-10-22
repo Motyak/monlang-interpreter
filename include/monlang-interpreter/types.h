@@ -18,6 +18,8 @@
 #include <monlang-interpreter/MapKeyCmp.h>
 #include <monlang-LV2/ast/expr/FunctionCall.h>
 
+#include <utils/variant-utils.h>
+
 #include <variant>
 #include <cstdint>
 #include <string>
@@ -25,6 +27,7 @@
 #include <map>
 #include <functional>
 #include <optional>
+#include <memory>
 
 #define nil_value_t() ((prim_value_t*)nullptr)
 
@@ -41,7 +44,7 @@ struct struct_value_t;
 struct enum_value_t;
 
 using value_t = std::variant<
-    prim_value_t*, // primitive
+    std::unique_ptr<prim_value_t>, // primitive
     /* user-defined */
     type_value_t*,
     struct_value_t*,
@@ -80,15 +83,15 @@ struct prim_value_t {
     Variant variant;
 };
 
-inline prim_value_t::Bool asBool(const prim_value_t& val) {return std::get<prim_value_t::Bool>(val.variant);}
-inline prim_value_t::Byte asByte(const prim_value_t& val) {return std::get<prim_value_t::Byte>(val.variant);}
-inline prim_value_t::Int asInt(const prim_value_t& val) {return std::get<prim_value_t::Int>(val.variant);}
-inline prim_value_t::Float asFloat(const prim_value_t& val) {return std::get<prim_value_t::Float>(val.variant);}
-inline prim_value_t::Char asChar(const prim_value_t& val) {return std::get<prim_value_t::Char>(val.variant);}
-inline prim_value_t::Str asStr(const prim_value_t& val) {return std::get<prim_value_t::Str>(val.variant);}
-inline prim_value_t::List asList(const prim_value_t& val) {return std::get<prim_value_t::List>(val.variant);}
-inline prim_value_t::Map asMap(const prim_value_t& val) {return std::get<prim_value_t::Map>(val.variant);}
-inline prim_value_t::Lambda asLambda(const prim_value_t& val) {return std::get<prim_value_t::Lambda>(val.variant);}
+// inline prim_value_t::Bool asBool(const prim_value_t& val) {return std::get<prim_value_t::Bool>(val.variant);}
+// inline prim_value_t::Byte asByte(const prim_value_t& val) {return std::get<prim_value_t::Byte>(val.variant);}
+// inline prim_value_t::Int asInt(const prim_value_t& val) {return std::get<prim_value_t::Int>(val.variant);}
+// inline prim_value_t::Float asFloat(const prim_value_t& val) {return std::get<prim_value_t::Float>(val.variant);}
+// inline prim_value_t::Char asChar(const prim_value_t& val) {return std::get<prim_value_t::Char>(val.variant);}
+// inline prim_value_t::Str asStr(const prim_value_t& val) {return std::get<prim_value_t::Str>(val.variant);}
+// inline prim_value_t::List asList(const prim_value_t& val) {return std::get<prim_value_t::List>(val.variant);}
+// inline prim_value_t::Map asMap(const prim_value_t& val) {return std::get<prim_value_t::Map>(val.variant);}
+// inline prim_value_t::Lambda asLambda(const prim_value_t& val) {return std::get<prim_value_t::Lambda>(val.variant);}
 
 struct type_value_t {
     std::string_view type;
@@ -142,10 +145,10 @@ R thunk_with_memoization_t<R>::operator()() {
 }
 
 inline bool is_nil(const value_t& value) {
-    return std::visit(
+    return std::visit(overload{
+        [](const std::unique_ptr<prim_value_t>& value){return value == nullptr;},
         [](auto* value){return value == nullptr;}
-        , value
-    );
+    }, value);
 }
 
 #endif // TYPES_H

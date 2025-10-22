@@ -11,14 +11,14 @@
 
 #define unless(x) if(!(x))
 
-const value_t BoolConst::TRUE __attribute__((init_priority(2000))) = new prim_value_t{prim_value_t::Bool(true)};
-const value_t BoolConst::FALSE __attribute__((init_priority(2000))) = new prim_value_t{prim_value_t::Bool(false)};
+value_t BoolConst::TRUE(){return std::make_unique<prim_value_t>(prim_value_t::Bool(true));}
+value_t BoolConst::FALSE(){return std::make_unique<prim_value_t>(prim_value_t::Bool(false));}
 
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
-const value_t builtin::prim_ctor::Bool __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
+const value_t builtin::prim_ctor::Bool __attribute__((init_priority(3000))) = std::make_unique<prim_value_t>(prim_value_t::Lambda{
     builtin_lambda_id++,
-    IntConst::ONE,
+    IntConst::ONE(),
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() == 1) throw InterpretError("Bool() takes 1 argument");
         auto arg = args.at(0);
@@ -26,9 +26,9 @@ const value_t builtin::prim_ctor::Bool __attribute__((init_priority(3000))) = ne
 
         ::activeCallStack.push_back(arg.expr);
         defer {safe_pop_back(::activeCallStack);};
-        return Bool_(argVal)? BoolConst::TRUE : BoolConst::FALSE;
+        return Bool_(argVal)? BoolConst::TRUE() : BoolConst::FALSE();
     }
-}};
+});
 
 static prim_value_t::Bool to_bool(const prim_value_t&);
 static prim_value_t::Bool to_bool(const type_value_t&);
@@ -37,7 +37,7 @@ static prim_value_t::Bool to_bool(const enum_value_t&);
 
 prim_value_t::Bool builtin::prim_ctor::Bool_(const value_t& val) {
     return std::visit(overload{
-        [](auto* val) -> prim_value_t::Bool {
+        [](const std::unique_ptr<prim_value_t>& val) -> prim_value_t::Bool {
             if (val == nullptr) {
                 #ifdef TOGGLE_NIL_CAST_TO_BOOL
                 return false;
@@ -48,6 +48,7 @@ prim_value_t::Bool builtin::prim_ctor::Bool_(const value_t& val) {
             return to_bool(*val);
         },
         [](char*) -> prim_value_t::Bool {SHOULD_NOT_HAPPEN();},
+        [](auto*) -> prim_value_t::Bool {TODO();},
     }, val);
 }
 
@@ -59,10 +60,10 @@ static prim_value_t::Bool to_bool(const prim_value_t& primVal) {
 
         [](prim_value_t::Float) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Float");},
         [](prim_value_t::Char) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Char");},
-        [](prim_value_t::Str) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Str");},
-        [](prim_value_t::List) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a List");},
-        [](prim_value_t::Map) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Map");},
-        [](prim_value_t::Lambda) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Lambda");},
+        [](const prim_value_t::Str&) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Str");},
+        [](const prim_value_t::List&) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a List");},
+        [](const prim_value_t::Map&) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Map");},
+        [](const prim_value_t::Lambda&) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Lambda");},
     }, primVal.variant);
 }
 

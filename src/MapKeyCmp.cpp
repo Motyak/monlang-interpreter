@@ -14,7 +14,7 @@ using List = prim_value_t::List;
 using Map = prim_value_t::Map;
 
 static int cmp(const value_t& lhs, const value_t& rhs);
-static int cmp(prim_value_t* lhs, prim_value_t* rhs);
+static int cmp(const std::unique_ptr<prim_value_t>& lhs, const std::unique_ptr<prim_value_t>& rhs);
 static int cmp(type_value_t* lhs, type_value_t* rhs);
 static int cmp(struct_value_t* lhs, struct_value_t* rhs);
 static int cmp(enum_value_t* lhs, enum_value_t* rhs);
@@ -29,7 +29,7 @@ bool MapKeyCmp::operator()(const value_t& lhs, const value_t& rhs) const {
         return lhsIndex < rhsIndex;
     }
     return std::visit(overload{
-        [&rhs](prim_value_t* lhs) -> bool {return cmp(lhs, std::get<prim_value_t*>(rhs)) < 0;},
+        [&rhs](const std::unique_ptr<prim_value_t>& lhs) -> bool {return cmp(lhs, std::get<std::unique_ptr<prim_value_t>>(rhs)) < 0;},
         [&rhs](type_value_t* lhs) -> bool {return cmp(lhs, std::get<type_value_t*>(rhs)) < 0;},
         [&rhs](struct_value_t* lhs) -> bool {return cmp(lhs, std::get<struct_value_t*>(rhs)) < 0;},
         [&rhs](enum_value_t* lhs) -> bool {return cmp(lhs, std::get<enum_value_t*>(rhs)) < 0;},
@@ -47,7 +47,7 @@ static int cmp(const value_t& lhs, const value_t& rhs) {
         return lhsIndex < rhsIndex? -1 : 1;
     }
     return std::visit(overload{
-        [&rhs](prim_value_t* lhs) -> int {return cmp(lhs, std::get<prim_value_t*>(rhs));},
+        [&rhs](const std::unique_ptr<prim_value_t>& lhs) -> int {return cmp(lhs, std::get<std::unique_ptr<prim_value_t>>(rhs));},
         [&rhs](type_value_t* lhs) -> int {return cmp(lhs, std::get<type_value_t*>(rhs));},
         [&rhs](struct_value_t* lhs) -> int {return cmp(lhs, std::get<struct_value_t*>(rhs));},
         [&rhs](enum_value_t* lhs) -> int {return cmp(lhs, std::get<enum_value_t*>(rhs));},
@@ -55,44 +55,44 @@ static int cmp(const value_t& lhs, const value_t& rhs) {
     }, lhs);
 }
 
-static int cmp(prim_value_t* lhs, prim_value_t* rhs) {
+static int cmp(const std::unique_ptr<prim_value_t>& lhs, const std::unique_ptr<prim_value_t>& rhs) {
     auto lhsIndex = lhs->variant.index();
     auto rhsIndex = rhs->variant.index();
     if (lhsIndex != rhsIndex) {
         return lhsIndex < rhsIndex? -1 : 1;
     }
     return std::visit(overload{
-        [rhs](Bool lhs) -> int {
+        [&rhs](Bool lhs) -> int {
             auto rhsAsBool = std::get<Bool>(rhs->variant);
             return lhs < rhsAsBool? -1 : lhs > rhsAsBool? 1 : 0;
         },
 
-        [rhs](Byte lhs) -> int {
+        [&rhs](Byte lhs) -> int {
             auto rhsAsByte = std::get<Byte>(rhs->variant);
             return lhs < rhsAsByte? -1 : lhs > rhsAsByte? 1 : 0;
         },
 
-        [rhs](Int lhs) -> int {
+        [&rhs](Int lhs) -> int {
             auto rhsAsInt = std::get<Int>(rhs->variant);
             return lhs < rhsAsInt? -1 : lhs > rhsAsInt? 1 : 0;
         },
 
-        [rhs](Float lhs) -> int {
+        [&rhs](Float lhs) -> int {
             auto rhsAsFloat = std::get<Float>(rhs->variant);
             return lhs < rhsAsFloat? -1 : lhs > rhsAsFloat? 1 : 0;
         },
 
-        [rhs](Char lhs) -> int {
+        [&rhs](Char lhs) -> int {
             auto rhsAsChar = std::get<Char>(rhs->variant);
             return lhs < rhsAsChar? -1 : lhs > rhsAsChar? 1 : 0;
         },
 
-        [rhs](const Str& lhs) -> int {
+        [&rhs](const Str& lhs) -> int {
             const auto& rhsAsStr = std::get<Str>(rhs->variant);
             return lhs < rhsAsStr? -1 : lhs > rhsAsStr? 1 : 0;
         },
 
-        [rhs](const List& lhs) -> int {
+        [&rhs](const List& lhs) -> int {
             const auto& rhsList = std::get<List>(rhs->variant);
             auto lhsSize = lhs.size();
             auto rhsSize = rhsList.size();
@@ -108,7 +108,7 @@ static int cmp(prim_value_t* lhs, prim_value_t* rhs) {
             return 0;
         },
 
-        [rhs](const Map& lhs) -> int {
+        [&rhs](const Map& lhs) -> int {
             const auto& rhsMap = std::get<Map>(rhs->variant);
             auto lhsSize = lhs.size();
             auto rhsSize = rhsMap.size();
@@ -130,7 +130,7 @@ static int cmp(prim_value_t* lhs, prim_value_t* rhs) {
             return 0;
         },
 
-        [rhs](const prim_value_t::Lambda& lhs) -> int {
+        [&rhs](const prim_value_t::Lambda& lhs) -> int {
             const auto& rhsAsLambda = std::get<prim_value_t::Lambda>(rhs->variant);
             return lhs.id < rhsAsLambda.id? -1 : lhs.id > rhsAsLambda.id? 1 : 0;
         },

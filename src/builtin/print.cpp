@@ -23,7 +23,7 @@ static void print(const enum_value_t&, std::ostream&);
 
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
-const value_t builtin::print __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
+const value_t builtin::print __attribute__((init_priority(3000))) = std::make_unique<prim_value_t>(prim_value_t::Lambda{
     builtin_lambda_id++,
     IntConst::ZERO,
     [](const std::vector<FlattenArg>& varargs) -> value_t {
@@ -38,7 +38,7 @@ const value_t builtin::print __attribute__((init_priority(3000))) = new prim_val
         std::cout << "\n";
         return nil_value_t();
     }
-}};
+});
 
 static void print(const value_t& val, std::ostream& out, bool shouldQuot) {
     if (is_nil(val)) {
