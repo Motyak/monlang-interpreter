@@ -25,6 +25,7 @@
 #include <map>
 #include <functional>
 #include <optional>
+#include <memory>
 
 #define nil_value_t() ((prim_value_t*)nullptr)
 
@@ -32,7 +33,7 @@ struct Environment;
 
 // flatten / normalized argument
 struct FlattenArg : public FunctionCall::Argument {
-    Environment* env = nullptr;
+    std::shared_ptr<Environment> env = nullptr;
 };
 
 struct prim_value_t;
@@ -50,6 +51,13 @@ using value_t = std::variant<
     char*
 >;
 
+using owned_value_t = std::variant<
+    std::unique_ptr<prim_value_t>,
+    std::unique_ptr<type_value_t>,
+    std::unique_ptr<struct_value_t>,
+    std::unique_ptr<enum_value_t>
+>;
+
 struct prim_value_t {
     using Bool = bool;
     using Byte = uint8_t;
@@ -57,12 +65,12 @@ struct prim_value_t {
     using Float = double;
     using Char = char;
     using Str = std::string;
-    using List = std::vector<value_t>;
-    using Map = std::map<value_t, value_t, MapKeyCmp>;
+    using List = std::vector<owned_value_t>;
+    using Map = std::map<owned_value_t, owned_value_t, MapKeyCmp>;
 
     struct Lambda {
         uint64_t id;
-        value_t requiredArgs;
+        owned_value_t requiredArgs;
         std::function<value_t(const std::vector<FlattenArg>&)> stdfunc;
     };
 
@@ -80,21 +88,23 @@ struct prim_value_t {
     Variant variant;
 };
 
-inline prim_value_t::Bool asBool(const prim_value_t& val) {return std::get<prim_value_t::Bool>(val.variant);}
-inline prim_value_t::Byte asByte(const prim_value_t& val) {return std::get<prim_value_t::Byte>(val.variant);}
-inline prim_value_t::Int asInt(const prim_value_t& val) {return std::get<prim_value_t::Int>(val.variant);}
-inline prim_value_t::Float asFloat(const prim_value_t& val) {return std::get<prim_value_t::Float>(val.variant);}
-inline prim_value_t::Char asChar(const prim_value_t& val) {return std::get<prim_value_t::Char>(val.variant);}
-inline prim_value_t::Str asStr(const prim_value_t& val) {return std::get<prim_value_t::Str>(val.variant);}
-inline prim_value_t::List asList(const prim_value_t& val) {return std::get<prim_value_t::List>(val.variant);}
-inline prim_value_t::Map asMap(const prim_value_t& val) {return std::get<prim_value_t::Map>(val.variant);}
-inline prim_value_t::Lambda asLambda(const prim_value_t& val) {return std::get<prim_value_t::Lambda>(val.variant);}
+// inline prim_value_t::Bool asBool(const prim_value_t& val) {return std::get<prim_value_t::Bool>(val.variant);}
+// inline prim_value_t::Byte asByte(const prim_value_t& val) {return std::get<prim_value_t::Byte>(val.variant);}
+// inline prim_value_t::Int asInt(const prim_value_t& val) {return std::get<prim_value_t::Int>(val.variant);}
+// inline prim_value_t::Float asFloat(const prim_value_t& val) {return std::get<prim_value_t::Float>(val.variant);}
+// inline prim_value_t::Char asChar(const prim_value_t& val) {return std::get<prim_value_t::Char>(val.variant);}
+// inline prim_value_t::Str asStr(const prim_value_t& val) {return std::get<prim_value_t::Str>(val.variant);}
+// inline prim_value_t::List asList(const prim_value_t& val) {return std::get<prim_value_t::List>(val.variant);}
+// inline prim_value_t::Map asMap(const prim_value_t& val) {return std::get<prim_value_t::Map>(val.variant);}
+// inline prim_value_t::Lambda asLambda(const prim_value_t& val) {return std::get<prim_value_t::Lambda>(val.variant);}
 
+// TODO
 struct type_value_t {
     std::string_view type;
     value_t value;
 };
 
+// TODO
 struct struct_value_t {
     std::string_view
     type;
@@ -103,6 +113,7 @@ struct struct_value_t {
     fields;
 };
 
+// TODO
 struct enum_value_t {
     std::string_view type;
     std::string_view enumerate_name; // TODO: no need ?
@@ -141,10 +152,11 @@ R thunk_with_memoization_t<R>::operator()() {
     return *this->memoized;
 }
 
-inline bool is_nil(const value_t& value) {
+template <typename... Targs>
+bool is_nil(const std::variant<Targs...>& variantPtrs) {
     return std::visit(
-        [](auto* value){return value == nullptr;}
-        , value
+        [](const auto& value){return value == nullptr;}
+        , variantPtrs
     );
 }
 

@@ -10,8 +10,8 @@
 
 class Environment {
   public:
-    using ConstValue = value_t;
-    using Variable = value_t*;
+    using ConstValue = owned_value_t;
+    using Variable = std::shared_ptr<owned_value_t>;
     struct LabelToLvalue {
         thunk_t<value_t> value;
         thunk_t<value_t*> lvalue;
@@ -20,14 +20,14 @@ class Environment {
     // argument passed by delayed value (lazy pass by value)
     using PassByDelay_Variant = std::variant<
         thunk_with_memoization_t<value_t>*, // ptr is necessary here
-        value_t* // once transformed
+        owned_value_t // once transformed
     >;
-    using PassByDelay = PassByDelay_Variant*;
+    using PassByDelay = std::shared_ptr<PassByDelay_Variant>;
     using PassByRef = LabelToLvalue;
 
     using VariadicArguments = std::vector<FlattenArg>;
 
-    using SymbolName = std::string;
+    using SymbolName = std::string_view;
     using SymbolValue = std::variant<
         ConstValue,
         Variable,
@@ -37,13 +37,13 @@ class Environment {
     >;
     std::map<SymbolName, SymbolValue> symbolTable = {};
 
-    Environment* enclosingEnv = nullptr;
+    std::shared_ptr<Environment> enclosingEnv = nullptr;
 
     bool contains(const SymbolName&) const;
     const SymbolValue& at(const SymbolName&) const;
     SymbolValue& at(const SymbolName&);
-    Environment* rec_copy(); // fork symbols (shallow copy on variables)
-    Environment* rec_deepcopy(); // fork symbols AND variables
+    std::shared_ptr<Environment> rec_copy(); // fork symbols (shallow copy on variables)
+    std::shared_ptr<Environment> rec_deepcopy(); // fork symbols AND variables
 };
 
 #endif // ENVIRONMENT_H

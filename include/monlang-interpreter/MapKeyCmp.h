@@ -2,29 +2,27 @@
 #define MAP_KEY_CMP_H
 
 #include <variant>
+#include <memory>
 
-// forward declare value_t ////////////////////
+// forward declare owned_value_t ////////////////////
 
 struct prim_value_t;
 struct type_value_t;
 struct struct_value_t;
 struct enum_value_t;
 
-using value_t = std::variant<
-    prim_value_t*, // primitive
-    /* user-defined */
-    type_value_t*,
-    struct_value_t*,
-    enum_value_t*,
-    /* for evaluating Str subscript as lvalue */
-    char*
+using owned_value_t = std::variant<
+    std::unique_ptr<prim_value_t>,
+    std::unique_ptr<type_value_t>,
+    std::unique_ptr<struct_value_t>,
+    std::unique_ptr<enum_value_t>
 >;
 
 ///////////////////////////////////////////////
 
 class MapKeyCmp {
   public:
-    bool operator()(const value_t&, const value_t&) const;
+    bool operator()(const owned_value_t&, const owned_value_t&) const;
 };
 
 #endif // MAP_KEY_CMP_H

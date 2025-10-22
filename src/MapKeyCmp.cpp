@@ -13,13 +13,13 @@ using Str = prim_value_t::Str;
 using List = prim_value_t::List;
 using Map = prim_value_t::Map;
 
-static int cmp(const value_t& lhs, const value_t& rhs);
+static int cmp(const owned_value_t& lhs, const owned_value_t& rhs);
 static int cmp(prim_value_t* lhs, prim_value_t* rhs);
 static int cmp(type_value_t* lhs, type_value_t* rhs);
 static int cmp(struct_value_t* lhs, struct_value_t* rhs);
 static int cmp(enum_value_t* lhs, enum_value_t* rhs);
 
-bool MapKeyCmp::operator()(const value_t& lhs, const value_t& rhs) const {
+bool MapKeyCmp::operator()(const owned_value_t& lhs, const owned_value_t& rhs) const {
     if (is_nil(lhs) && is_nil(rhs)) return false;
     if (is_nil(lhs) && !is_nil(rhs)) return true;
     if (!is_nil(lhs) && is_nil(rhs)) return false;
@@ -29,15 +29,27 @@ bool MapKeyCmp::operator()(const value_t& lhs, const value_t& rhs) const {
         return lhsIndex < rhsIndex;
     }
     return std::visit(overload{
-        [&rhs](prim_value_t* lhs) -> bool {return cmp(lhs, std::get<prim_value_t*>(rhs)) < 0;},
-        [&rhs](type_value_t* lhs) -> bool {return cmp(lhs, std::get<type_value_t*>(rhs)) < 0;},
-        [&rhs](struct_value_t* lhs) -> bool {return cmp(lhs, std::get<struct_value_t*>(rhs)) < 0;},
-        [&rhs](enum_value_t* lhs) -> bool {return cmp(lhs, std::get<enum_value_t*>(rhs)) < 0;},
+        [&rhs](const std::unique_ptr<prim_value_t>& lhs) -> bool {
+            return cmp(lhs.get(), std::get<std::unique_ptr<prim_value_t>>(rhs).get()) < 0;
+        },
+
+        [&rhs](const std::unique_ptr<type_value_t>& lhs) -> bool {
+            return cmp(lhs.get(), std::get<std::unique_ptr<type_value_t>>(rhs).get()) < 0;
+        },
+
+        [&rhs](const std::unique_ptr<struct_value_t>& lhs) -> bool {
+            return cmp(lhs.get(), std::get<std::unique_ptr<struct_value_t>>(rhs).get()) < 0;
+        },
+
+        [&rhs](const std::unique_ptr<enum_value_t>& lhs) -> bool {
+            return cmp(lhs.get(), std::get<std::unique_ptr<enum_value_t>>(rhs).get()) < 0;
+        },
+
         [](char*) -> bool {SHOULD_NOT_HAPPEN();},
     }, lhs);
 }
 
-static int cmp(const value_t& lhs, const value_t& rhs) {
+static int cmp(const owned_value_t& lhs, const owned_value_t& rhs) {
     if (is_nil(lhs) && is_nil(rhs)) return 0;
     if (is_nil(lhs) && !is_nil(rhs)) return -1;
     if (!is_nil(lhs) && is_nil(rhs)) return 1;
@@ -47,11 +59,23 @@ static int cmp(const value_t& lhs, const value_t& rhs) {
         return lhsIndex < rhsIndex? -1 : 1;
     }
     return std::visit(overload{
-        [&rhs](prim_value_t* lhs) -> int {return cmp(lhs, std::get<prim_value_t*>(rhs));},
-        [&rhs](type_value_t* lhs) -> int {return cmp(lhs, std::get<type_value_t*>(rhs));},
-        [&rhs](struct_value_t* lhs) -> int {return cmp(lhs, std::get<struct_value_t*>(rhs));},
-        [&rhs](enum_value_t* lhs) -> int {return cmp(lhs, std::get<enum_value_t*>(rhs));},
-        [](char*) -> int {SHOULD_NOT_HAPPEN();},
+        [&rhs](const std::unique_ptr<prim_value_t>& lhs) -> bool {
+            return cmp(lhs.get(), std::get<std::unique_ptr<prim_value_t>>(rhs).get()) < 0;
+        },
+
+        [&rhs](const std::unique_ptr<type_value_t>& lhs) -> bool {
+            return cmp(lhs.get(), std::get<std::unique_ptr<type_value_t>>(rhs).get()) < 0;
+        },
+
+        [&rhs](const std::unique_ptr<struct_value_t>& lhs) -> bool {
+            return cmp(lhs.get(), std::get<std::unique_ptr<struct_value_t>>(rhs).get()) < 0;
+        },
+
+        [&rhs](const std::unique_ptr<enum_value_t>& lhs) -> bool {
+            return cmp(lhs.get(), std::get<std::unique_ptr<enum_value_t>>(rhs).get()) < 0;
+        },
+
+        [](char*) -> bool {SHOULD_NOT_HAPPEN();},
     }, lhs);
 }
 
