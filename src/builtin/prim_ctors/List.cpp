@@ -19,7 +19,7 @@ const value_t builtin::prim_ctor::List __attribute__((init_priority(3000))) = ne
             auto currArgVal = evaluateValue(arg.expr, arg.env);
             res.push_back(own(currArgVal));
         }
-        return new prim_value_t{res};
+        return new prim_value_t{std::move(res)};
     }
 }};
 
@@ -54,14 +54,21 @@ static prim_value_t::List to_list(const prim_value_t& primVal) {
             }
             return res;
         },
-        [](const prim_value_t::List& list) -> prim_value_t::List {return list;},
+        [](const prim_value_t::List& list) -> prim_value_t::List {
+            auto res = prim_value_t::List();
+            for (const auto& item: list) {
+                res.push_back(copy_own(item));
+            }
+            return res;
+        },
         [](const prim_value_t::Map& map) -> prim_value_t::List {
             auto res = prim_value_t::List();
             res.reserve(map.size());
             for (const auto& [key, val]: map) {
-                res.push_back(std::make_unique<prim_value_t>(
-                    prim_value_t::List{copy_own(key), copy_own(val)} // no need for any deepcopy
-                ));                                                  // apparently...
+                auto pair = prim_value_t::List{};
+                pair.push_back(copy_own(key));  // no need for any deepcopy apparently...
+                pair.push_back(copy_own(val));  //
+                res.push_back(std::make_unique<prim_value_t>(std::move(pair)));
             }
             return res;
         },

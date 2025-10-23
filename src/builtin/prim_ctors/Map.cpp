@@ -14,7 +14,7 @@ extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
 const value_t builtin::prim_ctor::Map __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     builtin_lambda_id++,
-    IntConst::ZERO,
+    own(IntConst::ZERO()),
     [](const std::vector<FlattenArg>& args) -> value_t {
         prim_value_t::Map res;
         for (auto arg: args) {
@@ -26,14 +26,14 @@ const value_t builtin::prim_ctor::Map __attribute__((init_priority(3000))) = new
             unless (std::holds_alternative<prim_value_t::List>(argPrimValPtr->variant)) {
                 throw InterpretError("Map() argument isn't a list");
             }
-            auto argAsList = std::get<prim_value_t::List>(argPrimValPtr->variant);
+            const auto& argAsList = std::get<prim_value_t::List>(argPrimValPtr->variant);
             unless (argAsList.size() == 2) {
                 throw InterpretError("Map() list arguments must contain 2 elements");
             }
             safe_pop_back(::activeCallStack); // arg.expr
-            res[argAsList.at(0)] = argAsList.at(1);
+            res[copy_own(argAsList.at(0))] = copy_own(argAsList.at(1));
         }
-        return new prim_value_t{res};
+        return new prim_value_t{std::move(res)};
     }
 }};
 
@@ -62,21 +62,27 @@ static prim_value_t::Map to_map(const prim_value_t& primVal) {
     return std::visit(overload{
         [](const prim_value_t::List& list) -> prim_value_t::Map {
             auto res = prim_value_t::Map();
-            for (auto elem: list) {
-                ASSERT (std::holds_alternative<prim_value_t*>(elem));
-                auto elemPrimValPtr = std::get<prim_value_t*>(elem);
+            for (const auto& elem: list) {
+                ASSERT (std::holds_alternative<std::unique_ptr<prim_value_t>>(elem));
+                const auto& elemPrimValPtr = std::get<std::unique_ptr<prim_value_t>>(elem);
                 unless (std::holds_alternative<prim_value_t::List>(elemPrimValPtr->variant)) {
                     throw InterpretError("this List is not a Map");
                 }
-                auto elemAsList = std::get<prim_value_t::List>(elemPrimValPtr->variant);
+                const auto& elemAsList = std::get<prim_value_t::List>(elemPrimValPtr->variant);
                 unless (elemAsList.size() == 2) {
                     throw InterpretError("this List is not a Map");
                 }
-                res[elemAsList.at(0)] = elemAsList.at(1);
+                res[copy_own(elemAsList.at(0))] = copy_own(elemAsList.at(1));
             }
             return res;
         },
-        [](const prim_value_t::Map& map) -> prim_value_t::Map {return map;},
+        [](const prim_value_t::Map& map) -> prim_value_t::Map {
+            auto res = prim_value_t::Map();
+            for (const auto& [key, val]: map) {
+                res[copy_own(key)] = copy_own(val);
+            }
+            return res;
+        },
 
         [](prim_value_t::Bool) -> prim_value_t::Map {throw InterpretError("Bool is not a Map");},
         [](prim_value_t::Byte) -> prim_value_t::Map {throw InterpretError("Byte is not a Map");},
