@@ -15,7 +15,7 @@ extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
 const value_t builtin::prim_ctor::Lambda __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     builtin_lambda_id++,
-    IntConst::ONE,
+    own(IntConst::ONE()),
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() == 1) throw InterpretError("Lambda() takes 1 argument");
         auto arg = args.at(0);
@@ -47,7 +47,17 @@ prim_value_t::Lambda builtin::prim_ctor::Lambda_(const value_t& val) {
 
 static prim_value_t::Lambda to_lambda(const prim_value_t& primVal) {
     return std::visit(overload{
-        [](const prim_value_t::Lambda& lambda) -> prim_value_t::Lambda {return lambda;},
+        [](const prim_value_t::Lambda& lambda) -> prim_value_t::Lambda {
+            return prim_value_t::Lambda{
+                lambda.id,
+                std::make_unique<prim_value_t>(
+                    std::get<prim_value_t::Int>(
+                        std::get<std::unique_ptr<prim_value_t>>(lambda.requiredArgs)->variant
+                    )
+                ),
+                lambda.stdfunc
+            };
+        },
 
         [](prim_value_t::Bool) -> prim_value_t::Lambda {throw InterpretError("Lambda() arg cannot be a Bool");},
         [](prim_value_t::Byte) -> prim_value_t::Lambda {throw InterpretError("Lambda() arg cannot be a Byte");},

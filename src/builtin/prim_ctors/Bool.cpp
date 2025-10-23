@@ -11,14 +11,14 @@
 
 #define unless(x) if(!(x))
 
-const value_t BoolConst::TRUE __attribute__((init_priority(2000))) = new prim_value_t{prim_value_t::Bool(true)};
-const value_t BoolConst::FALSE __attribute__((init_priority(2000))) = new prim_value_t{prim_value_t::Bool(false)};
+value_t BoolConst::TRUE(){return new prim_value_t{prim_value_t::Bool(true)};}
+value_t BoolConst::FALSE(){return new prim_value_t{prim_value_t::Bool(false)};}
 
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
 const value_t builtin::prim_ctor::Bool __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     builtin_lambda_id++,
-    IntConst::ONE,
+    own(IntConst::ONE()),
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() == 1) throw InterpretError("Bool() takes 1 argument");
         auto arg = args.at(0);
@@ -26,7 +26,7 @@ const value_t builtin::prim_ctor::Bool __attribute__((init_priority(3000))) = ne
 
         ::activeCallStack.push_back(arg.expr);
         defer {safe_pop_back(::activeCallStack);};
-        return Bool_(argVal)? BoolConst::TRUE : BoolConst::FALSE;
+        return Bool_(argVal)? BoolConst::TRUE() : BoolConst::FALSE();
     }
 }};
 
@@ -59,10 +59,10 @@ static prim_value_t::Bool to_bool(const prim_value_t& primVal) {
 
         [](prim_value_t::Float) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Float");},
         [](prim_value_t::Char) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Char");},
-        [](prim_value_t::Str) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Str");},
-        [](prim_value_t::List) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a List");},
-        [](prim_value_t::Map) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Map");},
-        [](prim_value_t::Lambda) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Lambda");},
+        [](const prim_value_t::Str&) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Str");},
+        [](const prim_value_t::List&) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a List");},
+        [](const prim_value_t::Map&) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Map");},
+        [](const prim_value_t::Lambda&) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Lambda");},
     }, primVal.variant);
 }
 

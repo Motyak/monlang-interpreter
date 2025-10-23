@@ -11,15 +11,15 @@
 
 #define unless(x) if(!(x))
 
-const value_t IntConst::ZERO __attribute__((init_priority(2000))) = new prim_value_t{prim_value_t::Int(0)};
-const value_t IntConst::ONE __attribute__((init_priority(2000))) = new prim_value_t{prim_value_t::Int(1)};
-const value_t IntConst::TWO __attribute__((init_priority(2000))) = new prim_value_t{prim_value_t::Int(2)};
+value_t IntConst::ZERO(){return new prim_value_t{prim_value_t::Int(0)};}
+value_t IntConst::ONE(){return new prim_value_t{prim_value_t::Int(1)};}
+value_t IntConst::TWO(){return new prim_value_t{prim_value_t::Int(2)};}
 
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
 const value_t builtin::prim_ctor::Int __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     builtin_lambda_id++,
-    IntConst::ONE,
+    own(IntConst::ONE()),
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() == 1) throw InterpretError("Int() takes 1 argument");
         auto arg = args.at(0);

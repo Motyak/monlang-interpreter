@@ -44,42 +44,42 @@ extern std::vector<std::string> SRC_ARGS;
 extern bool INTERACTIVE_MODE;
 
 void interpretProgram(const Program&);
-void performStatement(const Statement&, Environment*);
-value_t evaluateValue(const Expression&, Environment*);
-value_t* evaluateLvalue(const Lvalue&, Environment*, bool subscripted = false);
+void performStatement(const Statement&, std::shared_ptr<Environment>);
+value_t evaluateValue(const Expression&, std::shared_ptr<Environment>);
+value_t* evaluateLvalue(const Lvalue&, std::shared_ptr<Environment>, bool subscripted = false);
 
 /* performStatement */
-void performStatement(const Assignment&, Environment*);
-void performStatement(const Accumulation&, Environment*);
-void performStatement(const LetStatement&, Environment*);
-void performStatement(const VarStatement&, Environment*);
-void performStatement(const ReturnStatement&, const Environment*);
-void performStatement(const BreakStatement&, const Environment*);
-void performStatement(const ContinueStatement&, const Environment*);
-void performStatement(const DieStatement&, const Environment*);
-void performStatement(const ForeachStatement&, const Environment*);
-void performStatement(const WhileStatement&, const Environment*);
-void performStatement(const DoWhileStatement&, const Environment*);
-void performStatement(const NullStatement&, const Environment*);
-void performStatement(const ExpressionStatement&, Environment*);
+void performStatement(const Assignment&, std::shared_ptr<Environment>);
+void performStatement(const Accumulation&, std::shared_ptr<Environment>);
+void performStatement(const LetStatement&, std::shared_ptr<Environment>);
+void performStatement(const VarStatement&, std::shared_ptr<Environment>);
+void performStatement(const ReturnStatement&, const std::shared_ptr<Environment>);
+void performStatement(const BreakStatement&, const std::shared_ptr<Environment>);
+void performStatement(const ContinueStatement&, const std::shared_ptr<Environment>);
+void performStatement(const DieStatement&, const std::shared_ptr<Environment>);
+void performStatement(const ForeachStatement&, const std::shared_ptr<Environment>);
+void performStatement(const WhileStatement&, const std::shared_ptr<Environment>);
+void performStatement(const DoWhileStatement&, const std::shared_ptr<Environment>);
+void performStatement(const NullStatement&, const std::shared_ptr<Environment>);
+void performStatement(const ExpressionStatement&, std::shared_ptr<Environment>);
 
 /* evaluateValue */
-value_t evaluateValue(const Operation&, Environment*);
-value_t evaluateValue(const FunctionCall&, Environment*);
-value_t evaluateValue(const Lambda&, Environment*);
-value_t evaluateValue(const BlockExpression&, Environment*);
-value_t evaluateValue(const FieldAccess&, Environment*);
-value_t evaluateValue(const Subscript&, Environment*);
-value_t evaluateValue(const ListLiteral&, Environment*);
-value_t evaluateValue(const MapLiteral&, Environment*);
-value_t evaluateValue(const SpecialSymbol&, const Environment*);
-value_t evaluateValue(const Numeral&, const Environment*);
-value_t evaluateValue(const StrLiteral&, const Environment*);
-value_t evaluateValue(const Symbol&, const Environment*);
+value_t evaluateValue(const Operation&, std::shared_ptr<Environment>);
+value_t evaluateValue(const FunctionCall&, std::shared_ptr<Environment>);
+value_t evaluateValue(const Lambda&, std::shared_ptr<Environment>);
+value_t evaluateValue(const BlockExpression&, std::shared_ptr<Environment>);
+value_t evaluateValue(const FieldAccess&, std::shared_ptr<Environment>);
+value_t evaluateValue(const Subscript&, std::shared_ptr<Environment>);
+value_t evaluateValue(const ListLiteral&, std::shared_ptr<Environment>);
+value_t evaluateValue(const MapLiteral&, std::shared_ptr<Environment>);
+value_t evaluateValue(const SpecialSymbol&, const std::shared_ptr<Environment>);
+value_t evaluateValue(const Numeral&, const std::shared_ptr<Environment>);
+value_t evaluateValue(const StrLiteral&, const std::shared_ptr<Environment>);
+value_t evaluateValue(const Symbol&, const std::shared_ptr<Environment>);
 
 /* evaluateLvalue */
-value_t* evaluateLvalue(const FieldAccess&, Environment*);
-value_t* evaluateLvalue(const Subscript&, Environment*);
-value_t* evaluateLvalue(const Symbol&, const Environment*, bool subscripted = false);
+value_t* evaluateLvalue(const FieldAccess&, std::shared_ptr<Environment>);
+value_t* evaluateLvalue(const Subscript&, std::shared_ptr<Environment>);
+value_t* evaluateLvalue(const Symbol&, const std::shared_ptr<Environment>, bool subscripted = false);
 
 #endif // INTERPRET_H

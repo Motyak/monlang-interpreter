@@ -15,7 +15,7 @@ extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
 const value_t builtin::prim_ctor::Float __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     builtin_lambda_id++,
-    IntConst::ONE,
+    own(IntConst::ONE()),
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() == 1) throw InterpretError("Float() takes 1 argument");
         auto arg = args.at(0);

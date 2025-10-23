@@ -11,13 +11,13 @@ extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
 const value_t builtin::prim_ctor::List __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     builtin_lambda_id++,
-    IntConst::ZERO,
+    own(IntConst::ZERO()),
     [](const std::vector<FlattenArg>& args) -> value_t {
         prim_value_t::List res;
         res.reserve(args.size());
         for (auto arg: args) {
             auto currArgVal = evaluateValue(arg.expr, arg.env);
-            res.push_back(currArgVal);
+            res.push_back(own(currArgVal));
         }
         return new prim_value_t{res};
     }
@@ -50,7 +50,7 @@ static prim_value_t::List to_list(const prim_value_t& primVal) {
             prim_value_t::List res;
             res.reserve(str.size());
             for (auto c: str) {
-                res.push_back(new prim_value_t{prim_value_t::Char(c)});
+                res.push_back(std::make_unique<prim_value_t>(prim_value_t::Char(c)));
             }
             return res;
         },
@@ -58,9 +58,10 @@ static prim_value_t::List to_list(const prim_value_t& primVal) {
         [](const prim_value_t::Map& map) -> prim_value_t::List {
             auto res = prim_value_t::List();
             res.reserve(map.size());
-            for (auto [key, val]: map) {
-                res.push_back(new prim_value_t(prim_value_t::List{key, val})); // no need for any deepcopy
-                                                                               // apparently...
+            for (const auto& [key, val]: map) {
+                res.push_back(std::make_unique<prim_value_t>(
+                    prim_value_t::List{copy_own(key), copy_own(val)} // no need for any deepcopy
+                ));                                                  // apparently...
             }
             return res;
         },
