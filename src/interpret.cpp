@@ -480,7 +480,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, std::shared_ptr<Environment> en
                 };
             }
 
-            auto lambdaEnv = std::make_shared<Environment>(Environment{.symbolTable = parametersBinding, .enclosingEnv = envAtCreation});
+            auto lambdaEnv = std::make_shared<Environment>(Environment{.symbolTable = std::move(parametersBinding), .enclosingEnv = envAtCreation});
 
             /*
 
@@ -687,8 +687,11 @@ value_t evaluateValue(const Subscript& subscript, std::shared_ptr<Environment> e
                 unless (toPos < Int(list.size())) throw InterpretError("Subscript range 'to' is out of bounds");
                 safe_pop_back(::activeCallStack); // variant_cast(range.to)
 
-                auto res = List(list.begin() + fromPos, list.begin() + + toPos + 1);
-                return new prim_value_t{res};
+                auto res = List();
+                for (auto it = list.begin() + fromPos; it != list.begin() + toPos + 1; ++it) {
+                    res.push_back(copy_own(*it));
+                }
+                return new prim_value_t{std::move(res)};
             }
 
             else SHOULD_NOT_HAPPEN();
@@ -732,7 +735,7 @@ value_t evaluateValue(const ListLiteral& listLiteral, std::shared_ptr<Environmen
         auto currArgVal = evaluateValue(arg, env);
         res.push_back(own(currArgVal));
     }
-    return new prim_value_t{res};
+    return new prim_value_t{std::move(res)};
 }
 
 value_t evaluateValue(const MapLiteral& mapLiteral, std::shared_ptr<Environment> env) {
@@ -742,7 +745,7 @@ value_t evaluateValue(const MapLiteral& mapLiteral, std::shared_ptr<Environment>
         auto currValVal = evaluateValue(val, env);
         res[own(currKeyVal)] = own(currValVal);
     }
-    return new prim_value_t{res};
+    return new prim_value_t{std::move(res)};
 }
 
 static value_t init_ARGS() {
@@ -750,7 +753,7 @@ static value_t init_ARGS() {
     for (Str arg: SRC_ARGS) {
         strs.push_back(own(new prim_value_t{arg}));
     }
-    return new prim_value_t{strs};
+    return new prim_value_t{std::move(strs)};
 }
 
 value_t evaluateValue(const SpecialSymbol& specialSymbol, const std::shared_ptr<Environment> env) {
