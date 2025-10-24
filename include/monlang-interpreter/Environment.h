@@ -14,7 +14,7 @@ class Environment {
     using Variable = std::shared_ptr<owned_value_t>;
     struct LabelToLvalue {
         thunk_t<value_t> value;
-        thunk_t<value_t*> lvalue;
+        thunk_t<lvalue_t> lvalue;
     };
 
     // argument passed by delayed value (lazy pass by value)

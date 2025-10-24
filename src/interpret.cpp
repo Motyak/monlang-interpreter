@@ -4,7 +4,7 @@
 
 #include <monlang-interpreter/InterpretError.h>
 #include <monlang-interpreter/builtin.h>
-#include <monlang-interpreter/deepcopy.h>
+// #include <monlang-interpreter/deepcopy.h>
 #include <monlang-interpreter/PathResolution.h>
 
 #include <utils/assert-utils.h>
@@ -48,20 +48,20 @@ namespace {
 }
 
 void interpretProgram(const Program& prog) {
-    Environment env;
+    auto env = std::make_shared<Environment>();
     for (auto stmt: prog.statements) {
-        performStatement(stmt, &env);
+        performStatement(stmt, env);
     }
 }
 
-void performStatement(const Statement& stmt, Environment* env) {
+void performStatement(const Statement& stmt, std::shared_ptr<Environment> env) {
     std::visit(
         [env](auto* stmt){performStatement(*stmt, env);},
         stmt
     );
 }
 
-value_t evaluateValue(const Expression& expr, Environment* env) {
+value_t evaluateValue(const Expression& expr, std::shared_ptr<Environment> env) {
     return std::visit(overload{
         [env](FunctionCall* fnCall){
             // evaluateValue(FunctionCall) handles its own..
@@ -81,7 +81,7 @@ value_t evaluateValue(const Expression& expr, Environment* env) {
     }, expr);
 }
 
-value_t* evaluateLvalue(const Lvalue& lvalue, Environment* env, bool subscripted) {
+lvalue_t evaluateLvalue(const Lvalue& lvalue, std::shared_ptr<Environment> env, bool subscripted) {
     ::activeCallStack.push_back(lvalue);
     defer {safe_pop_back(::activeCallStack);};
     return std::visit(overload{
@@ -98,19 +98,19 @@ value_t* evaluateLvalue(const Lvalue& lvalue, Environment* env, bool subscripted
 // performStatement
 //==============================================================
 
-void performStatement(const Assignment& assignment, Environment* env) {
+void performStatement(const Assignment& assignment, std::shared_ptr<Environment> env) {
     auto new_value = evaluateValue(assignment.value, env);
-    new_value = deepcopy(new_value);
+    // new_value = deepcopy(new_value);
     if (std::holds_alternative<Symbol*>(assignment.variable.variant)
             && std::get<Symbol*>(assignment.variable.variant)->name == "_") {
         return;
     }
-    auto* lvalue = evaluateLvalue(assignment.variable, env);
-    ASSERT (lvalue != nullptr);
+    auto lvalue = evaluateLvalue(assignment.variable, env);
+    ASSERT (!is_nil(lvalue));
 
     /* special case: assign to Str char */
-    if (std::holds_alternative<char*>(*lvalue)) {
-        auto* c = std::get<char*>(*lvalue);
+    if (std::holds_alternative<char*>(lvalue)) {
+        auto* c = std::get<char*>(lvalue);
         ::activeCallStack.push_back(assignment.value);
         defer {safe_pop_back(::activeCallStack);};
         auto newChar = builtin::prim_ctor::Char_(new_value);
@@ -118,10 +118,15 @@ void performStatement(const Assignment& assignment, Environment* env) {
         return;
     }
 
-    *lvalue = new_value;
+    else if (std::holds_alternative<owned_value_t*>(lvalue)) {
+        auto* owned = std::get<owned_value_t*>(lvalue);
+        *owned = own(new_value);
+    }
+
+    else SHOULD_NOT_HAPPEN();
 }
 
-void performStatement(const Accumulation& acc, Environment* env) {
+void performStatement(const Accumulation& acc, std::shared_ptr<Environment> env) {
     auto opPtr = new Symbol{acc.operator_};
     auto lhs = (Expression)acc.variable;
     auto rhs = acc.value;
@@ -136,7 +141,7 @@ void performStatement(const Accumulation& acc, Environment* env) {
     // we should not delete opPtr or fnCallPtr
 }
 
-void performStatement(const LetStatement& letStmt, Environment* env) {
+void performStatement(const LetStatement& letStmt, std::shared_ptr<Environment> env) {
     if (letStmt.alias.name == "_") {
         ::activeCallStack.push_back(const_cast<Symbol*>(&letStmt.alias));
         throw InterpretError("Redefinition of a special name");
@@ -153,7 +158,8 @@ void performStatement(const LetStatement& letStmt, Environment* env) {
         throw InterpretError("Unbound symbol `" + leftmostSymbol.name + "`");
     }
 
-    #ifndef TOGGLE_LEGACY_REF
+    #if false // TODO: tmp
+    // #ifndef TOGGLE_LEGACY_REF
     if (containsAnySubscript(letStmt.variable)) {
         auto* pathResolution = new PathResolution{letStmt.variable, env->rec_deepcopy()};
         auto* thunkEnv = new Environment{*env}; // no need for rec_copy() here ?
@@ -169,19 +175,19 @@ void performStatement(const LetStatement& letStmt, Environment* env) {
     else
     #endif
     {
-        auto* thunkEnv = new Environment{*env}; // no need for rec_copy() here ?
+        auto thunkEnv = env; // no need for rec_copy() here ?
         env->symbolTable[letStmt.alias.name] = Environment::LabelToLvalue{
             (thunk_t<value_t>)[&letStmt, thunkEnv]() -> value_t {
                 return evaluateValue(letStmt.variable, thunkEnv);
             },
-            (thunk_t<value_t*>)[&letStmt, thunkEnv]() -> value_t* {
+            (thunk_t<lvalue_t>)[&letStmt, thunkEnv]() -> lvalue_t {
                 return evaluateLvalue(letStmt.variable, thunkEnv);
             }
         };
     }
 }
 
-void performStatement(const VarStatement& varStmt, Environment* env) {
+void performStatement(const VarStatement& varStmt, std::shared_ptr<Environment> env) {
     if (varStmt.variable.name == "_") {
         ::activeCallStack.push_back(const_cast<Symbol*>(&varStmt.variable));
         throw InterpretError("Redefinition of a special name");
@@ -193,47 +199,47 @@ void performStatement(const VarStatement& varStmt, Environment* env) {
     }
 
     auto value = evaluateValue(varStmt.value, env);
-    value = deepcopy(value);
-    auto* var = new value_t(value);
-    env->symbolTable[varStmt.variable.name] = Environment::Variable{var};
+    // value = deepcopy(value);
+    auto var = std::make_shared<owned_value_t>(own(value));
+    env->symbolTable[varStmt.variable.name] = var;
 }
 
-void performStatement(const ReturnStatement&, const Environment*) {
+void performStatement(const ReturnStatement&, const std::shared_ptr<Environment>) {
     TODO();
     // SHOULD_NOT_HAPPEN(); // not a top-level statement, caught during static analysis
 }
 
-void performStatement(const BreakStatement&, const Environment*) {
+void performStatement(const BreakStatement&, const std::shared_ptr<Environment>) {
     TODO();
     // SHOULD_NOT_HAPPEN(); // not a top-level statement, caught during static analysis
 }
 
-void performStatement(const ContinueStatement&, const Environment*) {
+void performStatement(const ContinueStatement&, const std::shared_ptr<Environment>) {
     TODO();
     // SHOULD_NOT_HAPPEN(); // not a top-level statement, caught during static analysis
 }
 
-void performStatement(const DieStatement&, const Environment*) {
+void performStatement(const DieStatement&, const std::shared_ptr<Environment>) {
     TODO();
 }
 
-void performStatement(const ForeachStatement&, const Environment*) {
+void performStatement(const ForeachStatement&, const std::shared_ptr<Environment>) {
     TODO();
 }
 
-void performStatement(const WhileStatement&, const Environment*) {
+void performStatement(const WhileStatement&, const std::shared_ptr<Environment>) {
     TODO();
 }
 
-void performStatement(const DoWhileStatement&, const Environment*) {
+void performStatement(const DoWhileStatement&, const std::shared_ptr<Environment>) {
     TODO();
 }
 
-void performStatement(const NullStatement&, const Environment*) {
+void performStatement(const NullStatement&, const std::shared_ptr<Environment>) {
     ;
 }
 
-void performStatement(const ExpressionStatement& exprStmt, Environment* env) {
+void performStatement(const ExpressionStatement& exprStmt, std::shared_ptr<Environment> env) {
     value_t value = nil_value_t();
     if (exprStmt.expression) {
         value = evaluateValue(*exprStmt.expression, env);
@@ -250,7 +256,7 @@ void performStatement(const ExpressionStatement& exprStmt, Environment* env) {
 // evaluateValue
 //==============================================================
 
-value_t evaluateValue(const Operation& operation, Environment* env) {
+value_t evaluateValue(const Operation& operation, std::shared_ptr<Environment> env) {
     auto opPtr = new Symbol{operation.operator_};
     auto lhs = operation.leftOperand;
     auto rhs = operation.rightOperand;
@@ -258,14 +264,14 @@ value_t evaluateValue(const Operation& operation, Environment* env) {
     fnCallPtr->_tokenId = operation.operator_._tokenId;
 
     auto res = evaluateValue((Expression)fnCallPtr, env);
-    res = deepcopy(res);
+    // res = deepcopy(res);
 
     // we should not delete opPtr or fnCallPtr
 
     return res;
 }
 
-value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
+value_t evaluateValue(const FunctionCall& fnCall, std::shared_ptr<Environment> env) {
     auto fnVal = evaluateValue(fnCall.function, env);
     ASSERT (std::holds_alternative<prim_value_t*>(fnVal)); // TODO: tmp
     auto* fnPrimValPtr = std::get<prim_value_t*>(fnVal);
@@ -297,7 +303,7 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
                 throw InterpretError("Can't pass special name by ref");
             }
             unless (env->contains(symbol->name)) break;
-            auto symbolVal = env->at(symbol->name);
+            const auto& symbolVal = env->at(symbol->name);
             unless (std::holds_alternative<Environment::VariadicArguments>(symbolVal)) break;
             if (arg.passByRef) {
                 ::activeCallStack.push_back(arg.expr);
@@ -366,7 +372,7 @@ static bool check_if_tailcallable(const Statement& stmt) {
     #endif
 }
 
-value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
+value_t evaluateValue(const LV2::Lambda& lambda, std::shared_ptr<Environment> env) {
     for (size_t i = 0; i < lambda.parameters.size(); ++i) {
         if (lambda.parameters[i].name == "_") continue;
         for (size_t j = i + 1; j < lambda.parameters.size(); ++j) {
@@ -376,13 +382,13 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
         }
     }
 
-    Environment* envAtCreation = env->rec_copy();
+    std::shared_ptr<Environment> envAtCreation = env->rec_copy();
     static uint64_t lambda_id = 1000;
     ASSERT (lambda_id > builtin_lambda_id);
     ASSERT (lambda_id != uint64_t(-1));
     auto lambdaVal = prim_value_t::Lambda{
         lambda_id++,
-        new prim_value_t{Int(lambda.parameters.size())},
+        own(new prim_value_t{Int(lambda.parameters.size())}),
         [envAtCreation, lambda](const std::vector<FlattenArg>& flattenArgs) -> value_t {
             /*
                 create a temporary new environment, based on the captured-one,
@@ -413,11 +419,12 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 }
 
                 if (currArg.passByRef) {
-                    #ifndef TOGGLE_LEGACY_REF
+                    #if false // TODO: tmp
+                    // #ifndef TOGGLE_LEGACY_REF
                     // if Argument::passByRef is set, then we know Argument::expr is an lvalue
                     if (containsAnySubscript(/*Lvalue*/currArg.expr)) {
                         auto* pathResolution = new PathResolution{currArg.expr, currArg.env->rec_deepcopy()};
-                        auto* thunkEnv = currArg.env->rec_copy();
+                        auto thunkEnv = currArg.env->rec_copy();
                         parametersBinding[currParam.name] = Environment::PassByRef{
                             (thunk_t<value_t>)[pathResolution, thunkEnv]() -> value_t {
                                 return pathResolution->value(thunkEnv);
@@ -430,12 +437,12 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                     else
                     #endif
                     {
-                        auto* thunkEnv = currArg.env->rec_copy();
+                        auto thunkEnv = currArg.env->rec_copy();
                         parametersBinding[currParam.name] = Environment::PassByRef{
                             (thunk_t<value_t>)[currArg, thunkEnv]() -> value_t {
                                 return evaluateValue(currArg.expr, thunkEnv);
                             },
-                            (thunk_t<value_t*>)[currArg, thunkEnv]() -> value_t* {
+                            (thunk_t<lvalue_t>)[currArg, thunkEnv]() -> lvalue_t {
                                 return evaluateLvalue(currArg.expr, thunkEnv);
                             }
                         };
@@ -444,19 +451,19 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 else {
                     #ifdef TOGGLE_PASS_BY_VALUE
                     auto var = new value_t{evaluateValue(currArg.expr, currArg.env)};
-                    *var = deepcopy(*var);
+                    // *var = deepcopy(*var);
                     parametersBinding[currParam.name] = Environment::Variable{var};
                     #else // lazy passing a.k.a pass by delayed
-                    auto* thunkEnv = currArg.env->rec_copy();
+                    auto thunkEnv = currArg.env->rec_copy();
                     auto* delayed = new thunk_with_memoization_t<value_t>{
                         [currArg, thunkEnv]() -> value_t {
                             auto res = evaluateValue(currArg.expr, thunkEnv);
-                            res = deepcopy(res);
+                            // res = deepcopy(res);
                             return res;
 
                         }
                     };
-                    parametersBinding[currParam.name] = new Environment::PassByDelay_Variant{delayed};
+                    parametersBinding[currParam.name] = std::make_shared<Environment::PassByDelay_Variant>(delayed);
                     #endif
                 }
             }
@@ -468,10 +475,12 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                     flattenArgs.end()
                 };
                 parametersBinding[lambda.variadicParameters->name] = varargs;
-                parametersBinding["$#varargs"] = Environment::ConstValue{new prim_value_t{Int(varargs.size())}};
+                parametersBinding["$#varargs"] = Environment::ConstValue{
+                    own(new prim_value_t{Int(varargs.size())})
+                };
             }
 
-            auto lambdaEnv = Environment{.symbolTable = parametersBinding, .enclosingEnv = envAtCreation};
+            auto lambdaEnv = std::make_shared<Environment>(Environment{.symbolTable = parametersBinding, .enclosingEnv = envAtCreation});
 
             /*
 
@@ -493,7 +502,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
 
             i = 0;
             for (; i < lambda.body.statements.size() - 1; ++i) {
-                performStatement(lambda.body.statements.at(i), &lambdaEnv);
+                performStatement(lambda.body.statements.at(i), lambdaEnv);
             }
 
             auto backup_is_tailcallable = is_tailcallable;
@@ -503,20 +512,20 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
             if (std::holds_alternative<ExpressionStatement*>(lambda.body.statements.at(i))) {
                 auto exprStmt = *std::get<ExpressionStatement*>(lambda.body.statements.at(i));
                 if (exprStmt.expression) {
-                    auto res = evaluateValue(*exprStmt.expression, &lambdaEnv);
-                    res = deepcopy(res);
+                    auto res = evaluateValue(*exprStmt.expression, lambdaEnv);
+                    // res = deepcopy(res);
                     return res;
                 }
                 return nil_value_t();
             }
-            performStatement(lambda.body.statements.at(i), &lambdaEnv);
+            performStatement(lambda.body.statements.at(i), lambdaEnv);
             return nil_value_t();
         }
     };
-    return new prim_value_t{lambdaVal};
+    return new prim_value_t{std::move(lambdaVal)};
 }
 
-value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
+value_t evaluateValue(const BlockExpression& blockExpr, std::shared_ptr<Environment> env) {
     auto backup_top_level_stmt = top_level_stmt;
     top_level_stmt = false;
     defer {top_level_stmt = backup_top_level_stmt;};
@@ -524,7 +533,7 @@ value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
     if (blockExpr.statements.size() == 0) {
         return nil_value_t();
     }
-    auto newEnv = new Environment{{}, env};
+    auto newEnv = std::make_shared<Environment>(Environment{{}, env});
 
     size_t i = 0;
     for (; i < blockExpr.statements.size() - 1; ++i) {
@@ -539,7 +548,7 @@ value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
         auto exprStmt = *std::get<ExpressionStatement*>(blockExpr.statements.at(i));
         if (exprStmt.expression) {
             auto res = evaluateValue(*exprStmt.expression, newEnv);
-            res = deepcopy(res);
+            // res = deepcopy(res);
             return res;
         }
         return nil_value_t();
@@ -548,7 +557,7 @@ value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
     return nil_value_t();
 }
 
-value_t evaluateValue(const FieldAccess& fieldAccess, Environment* env) {
+value_t evaluateValue(const FieldAccess& fieldAccess, std::shared_ptr<Environment> env) {
     auto object = evaluateValue(fieldAccess.object, env);
     ASSERT (std::holds_alternative<prim_value_t*>(object)); // TODO: tmp
     auto* objPrimValPtr = std::get<prim_value_t*>(object);
@@ -559,20 +568,20 @@ value_t evaluateValue(const FieldAccess& fieldAccess, Environment* env) {
 
     if (std::holds_alternative<Map>(objPrimValPtr->variant)) {
         const auto& map = std::get<Map>(objPrimValPtr->variant);
-        auto key = new prim_value_t{(Str)fieldAccess.field.name};
+        auto key = own(new prim_value_t{(Str)fieldAccess.field.name});
         unless (map.contains(key)) {
             ::activeCallStack.push_back(const_cast<Symbol*>(&fieldAccess.field));
             throw InterpretError("Field not found `" + fieldAccess.field.name + "`");
         }
-        return map.at(key);
+        return copy_own_(map.at(key));
     }
 
     else throw InterpretError("Accessing field on a non-struct");
 }
 
-value_t evaluateValue(const Subscript& subscript, Environment* env) {
+value_t evaluateValue(const Subscript& subscript, std::shared_ptr<Environment> env) {
     auto arrVal = evaluateValue(subscript.array, env);
-    arrVal = deepcopy(arrVal);
+    // arrVal = deepcopy(arrVal);
     ASSERT (std::holds_alternative<prim_value_t*>(arrVal)); // TODO: tmp
     auto* arrPrimValPtr = std::get<prim_value_t*>(arrVal);
     if (arrPrimValPtr == nullptr) {
@@ -647,7 +656,7 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                 unless (intVal != 0) throw InterpretError("Subscript index is zero");
                 unless (abs(intVal) <= list.size()) throw InterpretError("Subscript index is out of bounds");
                 auto pos = intVal < 0? list.size() - abs(intVal) : size_t(intVal) - 1;
-                return list.at(pos);
+                return copy_own_(list.at(pos));
             }
 
             else if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
@@ -698,10 +707,10 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                 auto key = std::get<Subscript::Key>(subscript.argument);
                 auto keyVal = evaluateValue(key.expr, env);
                 if (subscript.suffix == '?') {
-                    return map.contains(keyVal)? BoolConst::TRUE : BoolConst::FALSE;
+                    return map.contains(own(keyVal))? BoolConst::TRUE() : BoolConst::FALSE();
                 }
-                unless (map.contains(keyVal)) throw InterpretError("Subscript key not found");
-                return map.at(keyVal);
+                unless (map.contains(own(keyVal))) throw InterpretError("Subscript key not found");
+                return copy_own_(map.at(own(keyVal)));
             }
 
             else SHOULD_NOT_HAPPEN();
@@ -716,22 +725,22 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
     }, arrPrimValPtr->variant);
 }
 
-value_t evaluateValue(const ListLiteral& listLiteral, Environment* env) {
+value_t evaluateValue(const ListLiteral& listLiteral, std::shared_ptr<Environment> env) {
     List res;
     res.reserve(listLiteral.arguments.size());
     for (auto arg: listLiteral.arguments) {
         auto currArgVal = evaluateValue(arg, env);
-        res.push_back(currArgVal);
+        res.push_back(own(currArgVal));
     }
     return new prim_value_t{res};
 }
 
-value_t evaluateValue(const MapLiteral& mapLiteral, Environment* env) {
+value_t evaluateValue(const MapLiteral& mapLiteral, std::shared_ptr<Environment> env) {
     Map res;
     for (auto [key, val]: mapLiteral.arguments) {
         auto currKeyVal = evaluateValue(key, env);
         auto currValVal = evaluateValue(val, env);
-        res[currKeyVal] = currValVal;
+        res[own(currKeyVal)] = own(currValVal);
     }
     return new prim_value_t{res};
 }
@@ -739,12 +748,12 @@ value_t evaluateValue(const MapLiteral& mapLiteral, Environment* env) {
 static value_t init_ARGS() {
     List strs;
     for (Str arg: SRC_ARGS) {
-        strs.push_back(new prim_value_t{arg});
+        strs.push_back(own(new prim_value_t{arg}));
     }
     return new prim_value_t{strs};
 }
 
-value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env) {
+value_t evaluateValue(const SpecialSymbol& specialSymbol, const std::shared_ptr<Environment> env) {
     static const value_t ARG0 = new prim_value_t{(Str)::ARG0};
     static const value_t SRCNAME = new prim_value_t{(Str)::SRCNAME};
     static const value_t ARGS = init_ARGS();
@@ -754,11 +763,11 @@ value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env
     }
 
     if (specialSymbol.name == "$true") {
-        return BoolConst::TRUE;
+        return BoolConst::TRUE();
     }
 
     if (specialSymbol.name == "$false") {
-        return BoolConst::FALSE;
+        return BoolConst::FALSE();
     }
 
     if (specialSymbol.name == "$arg0") {
@@ -774,9 +783,9 @@ value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env
     }
 
     if (env->contains(specialSymbol.name)) {
-        auto specialSymbolVal = env->at(specialSymbol.name);
+        const auto& specialSymbolVal = env->at(specialSymbol.name);
         return std::visit(overload{
-            [](const Environment::ConstValue& const_) -> value_t {return const_;},
+            [](const Environment::ConstValue& const_) -> value_t {return copy_own_(const_);},
             [](Environment::Variable) -> value_t {SHOULD_NOT_HAPPEN();},
             [](const Environment::LabelToLvalue& /*or PassByRef*/) -> value_t {SHOULD_NOT_HAPPEN();},
             [](const Environment::PassByDelay&) -> value_t {SHOULD_NOT_HAPPEN();},
@@ -800,7 +809,7 @@ static long long str2llong(const std::string& str, int base = 10) {
     }
 }
 
-value_t evaluateValue(const Numeral& numeral, const Environment*) {
+value_t evaluateValue(const Numeral& numeral, const std::shared_ptr<Environment>) {
     if (numeral.type == "int") {
         return new prim_value_t(Int(str2llong(numeral.int1)));
     }
@@ -868,20 +877,20 @@ value_t evaluateValue(const Numeral& numeral, const Environment*) {
     SHOULD_NOT_HAPPEN(); // BUG unknown numeral type
 }
 
-value_t evaluateValue(const StrLiteral& strLiteral, const Environment*) {
+value_t evaluateValue(const StrLiteral& strLiteral, const std::shared_ptr<Environment>) {
     return new prim_value_t((Str)strLiteral.str);
 }
 
-value_t evaluateValue(const Symbol& symbol, const Environment* env) {
+value_t evaluateValue(const Symbol& symbol, const std::shared_ptr<Environment> env) {
     if (symbol.name == "_") {
         return nil_value_t();
     }
 
     if (env->contains(symbol.name)) {
-        auto symbolVal = env->at(symbol.name);
+        auto& symbolVal = env->at(symbol.name);
         return std::visit(overload{
             [](const Environment::ConstValue&) -> value_t {SHOULD_NOT_HAPPEN();}, // special symbols exclusively
-            [](Environment::Variable var) -> value_t {return *var;},
+            [](Environment::Variable var) -> value_t {return copy_own_(*var);},
             [](Environment::LabelToLvalue& label_ref /*or PassByRef*/) -> value_t {return label_ref.value();},
             [](const Environment::PassByDelay& delayed) -> value_t {
                 if (std::holds_alternative<thunk_with_memoization_t<value_t>*>(*delayed)) {
@@ -889,9 +898,9 @@ value_t evaluateValue(const Symbol& symbol, const Environment* env) {
                     return (*thunk)(); // now memoized for all tracking references
                 }
 
-                else if (std::holds_alternative<value_t*>(*delayed)) {
-                    auto var = std::get<value_t*>(*delayed);
-                    return *var;
+                else if (std::holds_alternative<owned_value_t>(*delayed)) {
+                    const auto& var = std::get<owned_value_t>(*delayed);
+                    return copy_own_(var);
                 }
 
                 else SHOULD_NOT_HAPPEN();
@@ -920,12 +929,14 @@ value_t evaluateValue(const Symbol& symbol, const Environment* env) {
 // evaluateLvalue
 //==============================================================
 
-value_t* evaluateLvalue(const FieldAccess& fieldAccess, Environment* env) {
-    auto* lvalue = evaluateLvalue(fieldAccess.object, env, /*subscripted*/true);
-    ASSERT (lvalue != nullptr);
+lvalue_t evaluateLvalue(const FieldAccess& fieldAccess, std::shared_ptr<Environment> env) {
+    auto lvalue = evaluateLvalue(fieldAccess.object, env, /*subscripted*/true);
+    ASSERT (std::holds_alternative<owned_value_t*>(lvalue));
+    auto* owned = std::get<owned_value_t*>(lvalue);
+    ASSERT (owned != nullptr);
 
-    ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
-    auto* lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
+    ASSERT (std::holds_alternative<std::unique_ptr<prim_value_t>>(*owned)); // TODO: tmp
+    const auto& lvaluePrimValPtr = std::get<std::unique_ptr<prim_value_t>>(*owned);
 
     if (lvaluePrimValPtr == nullptr) {
         throw InterpretError("Accessing field on a $nil");
@@ -934,24 +945,28 @@ value_t* evaluateLvalue(const FieldAccess& fieldAccess, Environment* env) {
     if (std::holds_alternative<Map>(lvaluePrimValPtr->variant)) {
         auto& map = std::get<Map>(lvaluePrimValPtr->variant);
         auto key = new prim_value_t{(Str)fieldAccess.field.name};
-        unless (map.contains(key)) {
+        unless (map.contains(own(key))) {
             ::activeCallStack.push_back(const_cast<Symbol*>(&fieldAccess.field));
             throw InterpretError("Field not found `" + fieldAccess.field.name + "`");
         }
-        return &map[key];
+        return lvalue_t{&map[own(key)]};
     }
 
     else throw InterpretError("Accessing field on a non-struct");
 }
 
-value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
+lvalue_t evaluateLvalue(const Subscript& subscript, std::shared_ptr<Environment> env) {
     if (subscript.suffix == '?') {
         throw InterpretError("lvaluing a subscript[]?");
     }
-    auto* lvalue = evaluateLvalue(subscript.array, env, /*subscripted*/true);
-    ASSERT (lvalue != nullptr);
-    ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
-    auto* lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
+    auto lvalue = evaluateLvalue(subscript.array, env, /*subscripted*/true);
+    ASSERT (std::holds_alternative<owned_value_t*>(lvalue));
+    auto* owned = std::get<owned_value_t*>(lvalue);
+    ASSERT (owned != nullptr);
+
+    ASSERT (std::holds_alternative<std::unique_ptr<prim_value_t>>(*owned)); // TODO: tmp
+    const auto& lvaluePrimValPtr = std::get<std::unique_ptr<prim_value_t>>(*owned);
+
     if (lvaluePrimValPtr == nullptr) {
         throw InterpretError("lvaluing a $nil subscript array");
     }
@@ -961,7 +976,7 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
     }
 
     return std::visit(overload{
-        [&subscript, env](Str& str) -> value_t* {
+        [&subscript, env](Str& str) -> lvalue_t {
 
             if (std::holds_alternative<Subscript::Key>(subscript.argument)) {
                 throw InterpretError("Subscripting a Str with a key");
@@ -977,11 +992,11 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
                 unless (abs(intVal) <= str.size()) throw InterpretError("Subscript index is out of bounds");
                 auto pos = intVal < 0? str.size() - abs(intVal) : size_t(intVal) - 1;
 
-                return new value_t{&str[pos]};
+                return lvalue_t{&str[pos]};
             }
             else SHOULD_NOT_HAPPEN();
         },
-        [&subscript, env](List& list) -> value_t* {
+        [&subscript, env](List& list) -> lvalue_t {
             if (std::holds_alternative<Subscript::Key>(subscript.argument)) {
                 throw InterpretError("Subscripting a List with a key");
             }
@@ -1001,65 +1016,67 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
             else SHOULD_NOT_HAPPEN();
         },
 
-        [&subscript, env](Map& map) -> value_t* {
+        [&subscript, env](Map& map) -> lvalue_t {
             if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
                 throw InterpretError("Subscripting a Map with an index");
             }
             else if (std::holds_alternative<Subscript::Key>(subscript.argument)) {
                 auto key = std::get<Subscript::Key>(subscript.argument);
                 auto keyVal = evaluateValue(key.expr, env);
-                if (subscript.suffix == '!' && !map.contains(keyVal)) {
+                if (subscript.suffix == '!' && !map.contains(own(keyVal))) {
                     throw InterpretError("Subscript key not found");
                 }
-                return &map[keyVal];
+                return &map[own(keyVal)];
             }
             else SHOULD_NOT_HAPPEN();
         },
 
-        [](Bool&) -> value_t* {throw InterpretError("Cannot subscript a Bool");},
-        [](Byte&) -> value_t* {throw InterpretError("Cannot subscript a Byte");},
-        [](Int&) -> value_t* {throw InterpretError("Cannot subscript an Int");},
-        [](Float&) -> value_t* {throw InterpretError("Cannot subscript a Float");},
-        [](Char&) -> value_t* {throw InterpretError("Cannot subscript a Char");},
-        [](prim_value_t::Lambda&) -> value_t* {throw InterpretError("Cannot subscript a Lambda");},
+        [](Bool&) -> lvalue_t {throw InterpretError("Cannot subscript a Bool");},
+        [](Byte&) -> lvalue_t {throw InterpretError("Cannot subscript a Byte");},
+        [](Int&) -> lvalue_t {throw InterpretError("Cannot subscript an Int");},
+        [](Float&) -> lvalue_t {throw InterpretError("Cannot subscript a Float");},
+        [](Char&) -> lvalue_t {throw InterpretError("Cannot subscript a Char");},
+        [](prim_value_t::Lambda&) -> lvalue_t {throw InterpretError("Cannot subscript a Lambda");},
     }, lvaluePrimValPtr->variant);
 }
 
-value_t* evaluateLvalue(const Symbol& symbol, const Environment* env, bool subscripted) {
-    static value_t DISPOSABLE_LVALUE;
+lvalue_t evaluateLvalue(const Symbol& symbol, const std::shared_ptr<Environment> env, bool subscripted) {
+    static owned_value_t DISPOSABLE_LVALUE;
     if (symbol.name == "_") {
         return &DISPOSABLE_LVALUE;
     }
 
     if (env->contains(symbol.name)) {
-        auto symbolVal = env->at(symbol.name);
+        auto& symbolVal = env->at(symbol.name);
         return std::visit(overload{
-            [](Environment::Variable var) -> value_t* {return var;},
-            [](Environment::LabelToLvalue& label_ref) -> value_t* {return label_ref.lvalue();},
-            [subscripted](const Environment::PassByDelay& delayed) -> value_t* {
+            [](Environment::Variable var) -> lvalue_t {return var.get();},
+            [](Environment::LabelToLvalue& label_ref) -> lvalue_t {return label_ref.lvalue();},
+            [subscripted](Environment::PassByDelay& delayed) -> lvalue_t {
                 if (std::holds_alternative<thunk_with_memoization_t<value_t>*>(*delayed)) {
                     auto* thunk = std::get<thunk_with_memoization_t<value_t>*>(*delayed);
                     if (thunk->memoized || subscripted) {
                         /* init var with evaluated value */
                         auto initVal = (*thunk)();
-                        *delayed = new value_t(initVal);
+                        delayed = std::make_shared<Environment::PassByDelay_Variant>(own(initVal));
+                        delete thunk; // TODO: careful
                     }
                     else {
-                        *delayed = new value_t(); // discard unevaluated value
+                        delayed = std::make_shared<Environment::PassByDelay_Variant>(); // discard unevaluated value
                     }
                 }
 
-                else if (std::holds_alternative<value_t*>(*delayed)) {
+                else if (std::holds_alternative<owned_value_t>(*delayed)) {
                     ; // nothing to do
                 }
 
                 else SHOULD_NOT_HAPPEN();
 
-                return std::get<value_t*>(*delayed);
+                auto& owned = std::get<owned_value_t>(*delayed);
+                return &owned;
             },
 
-            [](Environment::ConstValue) -> value_t* {SHOULD_NOT_HAPPEN();},
-            [](const Environment::VariadicArguments&) -> value_t* {
+            [](const Environment::ConstValue&) -> lvalue_t {SHOULD_NOT_HAPPEN();},
+            [](const Environment::VariadicArguments&) -> lvalue_t {
                 throw InterpretError("Cannot refer to variadic arguments as symbol");
             },
         }, symbolVal);

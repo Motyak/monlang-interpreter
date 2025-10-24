@@ -51,6 +51,12 @@ using value_t = std::variant<
     struct_value_t*,
     enum_value_t*,
     /* for evaluating Str subscript as lvalue */
+    char* // TODO: no longer used, should be removed + clean everywhere else
+>;
+
+using lvalue_t = std::variant<
+    owned_value_t*,
+    /* for evaluating Str subscript as lvalue */
     char*
 >;
 
@@ -91,16 +97,6 @@ struct prim_value_t {
     Variant variant;
 };
 
-// inline prim_value_t::Bool asBool(const prim_value_t& val) {return std::get<prim_value_t::Bool>(val.variant);}
-// inline prim_value_t::Byte asByte(const prim_value_t& val) {return std::get<prim_value_t::Byte>(val.variant);}
-// inline prim_value_t::Int asInt(const prim_value_t& val) {return std::get<prim_value_t::Int>(val.variant);}
-// inline prim_value_t::Float asFloat(const prim_value_t& val) {return std::get<prim_value_t::Float>(val.variant);}
-// inline prim_value_t::Char asChar(const prim_value_t& val) {return std::get<prim_value_t::Char>(val.variant);}
-// inline prim_value_t::Str asStr(const prim_value_t& val) {return std::get<prim_value_t::Str>(val.variant);}
-// inline prim_value_t::List asList(const prim_value_t& val) {return std::get<prim_value_t::List>(val.variant);}
-// inline prim_value_t::Map asMap(const prim_value_t& val) {return std::get<prim_value_t::Map>(val.variant);}
-// inline prim_value_t::Lambda asLambda(const prim_value_t& val) {return std::get<prim_value_t::Lambda>(val.variant);}
-
 // TODO
 struct type_value_t {
     std::string_view type;
@@ -130,6 +126,7 @@ class thunk_t {
 
   public:
     thunk_t(const std::function<R()>& fn) : fn(fn){}
+    virtual ~thunk_t(){}
     virtual R operator()();
 };
 
@@ -216,6 +213,52 @@ inline owned_value_t copy_own(const owned_value_t& val) {
         [](const std::unique_ptr<type_value_t>& val) -> owned_value_t {return std::make_unique<type_value_t>(*val);},
         [](const std::unique_ptr<struct_value_t>& val) -> owned_value_t {return std::make_unique<struct_value_t>(*val);},
         [](const std::unique_ptr<enum_value_t>& val) -> owned_value_t {return std::make_unique<enum_value_t>(*val);},
+    }, val);
+}
+
+inline value_t copy_own_(const owned_value_t& val) {
+    return std::visit(overload{
+        [](const std::unique_ptr<prim_value_t>& val) -> value_t {
+            return std::visit(overload{
+                [](prim_value_t::Bool bool_){return new prim_value_t{bool_};},
+                [](prim_value_t::Byte byte){return new prim_value_t{byte};},
+                [](prim_value_t::Int int_){return new prim_value_t{int_};},
+                [](prim_value_t::Float float_){return new prim_value_t{float_};},
+                [](prim_value_t::Char char_){return new prim_value_t{char_};},
+                [](const prim_value_t::Str& str){return new prim_value_t{str};},
+                [](const prim_value_t::List& list){
+                    auto res = new prim_value_t{prim_value_t::List()};
+                    auto& res_list = std::get<prim_value_t::List>(res->variant);
+                    for (const auto& item: list) {
+                        res_list.push_back(copy_own(item));
+                    }
+                    return res;
+                },
+                [](const prim_value_t::Map& map){
+                    auto res = new prim_value_t{prim_value_t::Map()};
+                    auto& res_map = std::get<prim_value_t::Map>(res->variant);
+                    for (const auto& [key, val]: map) {
+                        res_map[copy_own(key)] = copy_own(val);
+                    }
+                    return res;
+                },
+                [](const prim_value_t::Lambda& lambda){
+                    return new prim_value_t{prim_value_t::Lambda{
+                        lambda.id,
+                        std::make_unique<prim_value_t>(
+                            std::get<prim_value_t::Int>(
+                                std::get<std::unique_ptr<prim_value_t>>(lambda.requiredArgs)->variant
+                            )
+                        ),
+                        lambda.stdfunc
+                    }};
+                },
+            }, val->variant);
+        },
+
+        [](const std::unique_ptr<type_value_t>& val) -> value_t {return new type_value_t{*val};},
+        [](const std::unique_ptr<struct_value_t>& val) -> value_t {return new struct_value_t{*val};},
+        [](const std::unique_ptr<enum_value_t>& val) -> value_t {return new enum_value_t{*val};},
     }, val);
 }
 

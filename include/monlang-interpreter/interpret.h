@@ -46,7 +46,7 @@ extern bool INTERACTIVE_MODE;
 void interpretProgram(const Program&);
 void performStatement(const Statement&, std::shared_ptr<Environment>);
 value_t evaluateValue(const Expression&, std::shared_ptr<Environment>);
-value_t* evaluateLvalue(const Lvalue&, std::shared_ptr<Environment>, bool subscripted = false);
+lvalue_t evaluateLvalue(const Lvalue&, std::shared_ptr<Environment>, bool subscripted = false);
 
 /* performStatement */
 void performStatement(const Assignment&, std::shared_ptr<Environment>);
@@ -78,8 +78,8 @@ value_t evaluateValue(const StrLiteral&, const std::shared_ptr<Environment>);
 value_t evaluateValue(const Symbol&, const std::shared_ptr<Environment>);
 
 /* evaluateLvalue */
-value_t* evaluateLvalue(const FieldAccess&, std::shared_ptr<Environment>);
-value_t* evaluateLvalue(const Subscript&, std::shared_ptr<Environment>);
-value_t* evaluateLvalue(const Symbol&, const std::shared_ptr<Environment>, bool subscripted = false);
+lvalue_t evaluateLvalue(const FieldAccess&, std::shared_ptr<Environment>);
+lvalue_t evaluateLvalue(const Subscript&, std::shared_ptr<Environment>);
+lvalue_t evaluateLvalue(const Symbol&, const std::shared_ptr<Environment>, bool subscripted = false);
 
 #endif // INTERPRET_H

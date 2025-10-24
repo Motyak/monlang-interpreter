@@ -1,5 +1,4 @@
 #include <monlang-interpreter/Environment.h>
-#include <monlang-interpreter/deepcopy.h>
 
 #include <utils/assert-utils.h>
 
@@ -11,7 +10,7 @@ bool Environment::contains(const SymbolName& symbolName) const {
         if (currEnv->symbolTable.contains(symbolName)) {
             return true;
         }
-        currEnv = currEnv->enclosingEnv;
+        currEnv = currEnv->enclosingEnv.get();
     }
     return false;
 }
@@ -23,7 +22,7 @@ Environment::at(const SymbolName& symbolName) const {
         if (currEnv->symbolTable.contains(symbolName)) {
             return currEnv->symbolTable.at(symbolName);
         }
-        currEnv = currEnv->enclosingEnv;
+        currEnv = currEnv->enclosingEnv.get();
     }
     SHOULD_NOT_HAPPEN(); // should call ::contains before calling ::at
 }
@@ -35,17 +34,19 @@ Environment::at(const SymbolName& symbolName) {
         if (currEnv->symbolTable.contains(symbolName)) {
             return currEnv->symbolTable.at(symbolName);
         }
-        currEnv = currEnv->enclosingEnv;
+        currEnv = currEnv->enclosingEnv.get();
     }
     SHOULD_NOT_HAPPEN(); // should call ::contains before calling ::at
 }
 
-Environment* Environment::rec_copy() {
-    auto* newEnv = new Environment{*this};
-    auto* currEnv = newEnv;
+std::shared_ptr<Environment> Environment::rec_copy() {
+    auto newEnv = std::make_shared<Environment>(std::move(*this));
+    auto* currEnv = newEnv.get();
     while (currEnv->enclosingEnv) {
-        currEnv->enclosingEnv = new Environment{*currEnv->enclosingEnv};
-        currEnv = currEnv->enclosingEnv;
+        currEnv->enclosingEnv = std::make_shared<Environment>(
+            std::move(*currEnv->enclosingEnv)
+        );
+        currEnv = currEnv->enclosingEnv.get();
     }
     return newEnv;
 }
@@ -55,17 +56,19 @@ static void fork_variables(Environment* env) {
     for (auto& [symName, symVal]: env->symbolTable) {
         unless (std::holds_alternative<Variable>(symVal)) continue;
         auto& var = std::get<Variable>(symVal);
-        var = new value_t(deepcopy(*var));
+        var = std::make_shared<owned_value_t>(copy_own(*var));
     }
 }
 
-Environment* Environment::rec_deepcopy() {
-    auto* newEnv = new Environment{*this};
-    auto* currEnv = newEnv;
+std::shared_ptr<Environment> Environment::rec_deepcopy() {
+    auto newEnv = std::make_shared<Environment>(std::move(*this));
+    auto* currEnv = newEnv.get();
     fork_variables(currEnv);
     while (currEnv->enclosingEnv) {
-        currEnv->enclosingEnv = new Environment{*currEnv->enclosingEnv};
-        currEnv = currEnv->enclosingEnv;
+        currEnv->enclosingEnv = std::make_shared<Environment>(
+            std::move(*currEnv->enclosingEnv)
+        );
+        currEnv = currEnv->enclosingEnv.get();
         fork_variables(currEnv);
     }
     return newEnv;
