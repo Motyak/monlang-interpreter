@@ -25,7 +25,7 @@ extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
 const value_t builtin::print __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     builtin_lambda_id++,
-    IntConst::ZERO,
+    own(IntConst::ZERO()),
     [](const std::vector<FlattenArg>& varargs) -> value_t {
         LOOP for (auto arg: varargs) {
             if (!__first_it) {
@@ -90,7 +90,7 @@ static void print(const prim_value_t& primVal, std::ostream& out, bool shouldQuo
                 if (!__first_it) {
                     out << ", ";
                 }
-                print(val, out, /*shouldQuot*/true);
+                print(copy_own_(val), out, /*shouldQuot*/true);
                 ENDLOOP
             }
             out << "]";
@@ -105,9 +105,9 @@ static void print(const prim_value_t& primVal, std::ostream& out, bool shouldQuo
                 if (!__first_it) {
                     out << ", ";
                 }
-                print(key, out, /*shouldQuot*/true);
+                print(copy_own_(key), out, /*shouldQuot*/true);
                 out << ":";
-                print(val, out, /*shouldQuot*/true);
+                print(copy_own_(val), out, /*shouldQuot*/true);
                 ENDLOOP
             }
             out << "]";

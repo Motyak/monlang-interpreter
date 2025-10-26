@@ -36,7 +36,7 @@ extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
 const value_t builtin::op::plus __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     builtin_lambda_id++,
-    IntConst::TWO,
+    own(IntConst::TWO()),
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() >= 2) throw InterpretError("+() takes 2+ args");
 
@@ -164,15 +164,20 @@ static value_t concatStr(const Str& firstArgValue, const Str& secondArgValue, co
 }
 
 static value_t concatList(const List& firstArgValue, const std::vector<FlattenArg>& args) {
-    List res = firstArgValue;
+    List res;
+    for (const auto& item: firstArgValue) {
+        res.push_back(copy_own(item));
+    }
 
-    for (auto arg: args) {
+    for (const auto& arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
         ::activeCallStack.push_back(arg.expr);
         auto currList = builtin::prim_ctor::List_(argValue);
         safe_pop_back(::activeCallStack); // arg.expr
-        res.insert(res.end(), currList.begin(), currList.end());
+        for (const auto& item: currList) {
+            res.push_back(copy_own(item));
+        }
     }
 
-    return new prim_value_t{res};
+    return new prim_value_t{std::move(res)};
 }

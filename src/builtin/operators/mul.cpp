@@ -35,7 +35,7 @@ extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
 const value_t builtin::op::mul __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     builtin_lambda_id++,
-    IntConst::TWO,
+    own(IntConst::TWO()),
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() >= 2) throw InterpretError("*() takes 2+ args");
 
@@ -191,7 +191,9 @@ static value_t buildList(Int firstArgValue, const List& secondArgValue) {
     auto res = List();
     res.reserve(secondArgValue.size() * firstArgValue > 0 * firstArgValue);
     for (Int i = 1; i <= firstArgValue; ++i) {
-        res.insert(res.end(), secondArgValue.begin(), secondArgValue.end());
+        for (const auto& item: secondArgValue) {
+            res.push_back(copy_own(item));
+        }
     }
-    return new prim_value_t{res};
+    return new prim_value_t{std::move(res)};
 }

@@ -17,7 +17,7 @@ extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
 const value_t builtin::op::logical_or __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     builtin_lambda_id++,
-    IntConst::TWO,
+    own(IntConst::TWO()),
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() >= 2) throw InterpretError("||() takes 2+ argument");
         for (auto arg: args) {
@@ -29,9 +29,9 @@ const value_t builtin::op::logical_or __attribute__((init_priority(3000))) = new
             auto argBool = builtin::prim_ctor::Bool_(argPrimValPtr);
             safe_pop_back(::activeCallStack); // arg.expr
             if (argBool) {
-                return BoolConst::TRUE;
+                return BoolConst::TRUE();
             }
         }
-        return BoolConst::FALSE;
+        return BoolConst::FALSE();
     }
 }};

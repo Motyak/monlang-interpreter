@@ -27,7 +27,7 @@ class Environment {
 
     using VariadicArguments = std::vector<FlattenArg>;
 
-    using SymbolName = std::string_view;
+    using SymbolName = std::string;
     using SymbolValue = std::variant<
         ConstValue,
         Variable,

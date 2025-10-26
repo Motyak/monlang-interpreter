@@ -1,11 +1,11 @@
 include utils.mk # askmake, not, shell_onrun, shouldrebuild
 
-# export CXX := ccache g++
-export CXX := ccache g++ -fmax-errors=1
+export CXX := ccache g++
+# export CXX := ccache g++ -fmax-errors=1
 
 SHELL := /bin/bash
 RM := rm -rf
-CXXFLAGS := --std=c++23 -Wall -Wextra -Og -ggdb3 -I include
+CXXFLAGS := --std=c++23 -Wall -Wextra -O0 -ggdb3 -I include
 DEPFLAGS = -MMD -MP -MF .deps/$*.d
 ARFLAGS = D -M < <(tools/aggregate-libs.mri.sh $@ $^); :
 
@@ -16,10 +16,25 @@ obj/interpret.o \
 obj/monlang_parser.o \
 obj/Environment.o \
 obj/MapKeyCmp.o \
+$(BUILTIN_OBJS) \
+
+#OBJS = \
+obj/interpret.o \
+obj/monlang_parser.o \
+obj/Environment.o \
+obj/MapKeyCmp.o \
 obj/PathResolution.o \
 $(BUILTIN_OBJS) \
 
 BUILTIN_OBJS = \
+obj/builtin/print.o \
+obj/builtin/getline.o \
+obj/builtin/sleep.o \
+obj/builtin/exit.o \
+$(OPERATORS_OBJS) \
+$(PRIM_CTORS_OBJS) \
+
+#BUILTIN_OBJS = \
 obj/builtin/print.o \
 obj/builtin/getline.o \
 obj/builtin/putstr.o \
@@ -34,6 +49,12 @@ $(OPERATORS_OBJS) \
 $(PRIM_CTORS_OBJS) \
 
 OPERATORS_OBJS := \
+obj/builtin/operators/plus.o \
+obj/builtin/operators/mul.o \
+obj/builtin/operators/logical_and.o \
+obj/builtin/operators/logical_or.o \
+
+#OPERATORS_OBJS := \
 obj/builtin/operators/logical_and.o \
 obj/builtin/operators/logical_or.o \
 obj/builtin/operators/eq.o \

@@ -39,13 +39,27 @@ Environment::at(const SymbolName& symbolName) {
     SHOULD_NOT_HAPPEN(); // should call ::contains before calling ::at
 }
 
+static std::shared_ptr<Environment> copy_env(const Environment* env) {
+    auto newEnv = std::make_shared<Environment>();
+    newEnv->enclosingEnv = env->enclosingEnv;
+    for (const auto& [key, val]: env->symbolTable) {
+        std::visit(overload{
+            [&newEnv, &key](const Environment::ConstValue& val){
+                newEnv->symbolTable[key] = copy_own(val);
+            },
+            [&newEnv, &key](const auto& val){
+                newEnv->symbolTable[key] = val;
+            },
+        }, val);
+    }
+    return newEnv;
+}
+
 std::shared_ptr<Environment> Environment::rec_copy() {
-    auto newEnv = std::make_shared<Environment>(std::move(*this));
+    auto newEnv = copy_env(this);
     auto* currEnv = newEnv.get();
     while (currEnv->enclosingEnv) {
-        currEnv->enclosingEnv = std::make_shared<Environment>(
-            std::move(*currEnv->enclosingEnv)
-        );
+        currEnv->enclosingEnv = copy_env(currEnv->enclosingEnv.get());
         currEnv = currEnv->enclosingEnv.get();
     }
     return newEnv;
@@ -61,13 +75,11 @@ static void fork_variables(Environment* env) {
 }
 
 std::shared_ptr<Environment> Environment::rec_deepcopy() {
-    auto newEnv = std::make_shared<Environment>(std::move(*this));
+    auto newEnv = copy_env(this);
     auto* currEnv = newEnv.get();
     fork_variables(currEnv);
     while (currEnv->enclosingEnv) {
-        currEnv->enclosingEnv = std::make_shared<Environment>(
-            std::move(*currEnv->enclosingEnv)
-        );
+        currEnv->enclosingEnv = copy_env(currEnv->enclosingEnv.get());
         currEnv = currEnv->enclosingEnv.get();
         fork_variables(currEnv);
     }

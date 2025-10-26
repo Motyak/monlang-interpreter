@@ -66,7 +66,7 @@ static void reportCallStack(
 int repl_main(int argc, char* argv[]) {
     (void)argc;
     (void)argv;
-    Environment env; // persists between top-level statements
+    auto env = std::make_shared<Environment>(); // persists between top-level statements
 
     bool INTEGRATION_MODE = INTERACTIVE_MODE; // removes extraneous output
     INTERACTIVE_MODE = true;
@@ -89,7 +89,7 @@ int repl_main(int argc, char* argv[]) {
     try {
         unless (INTEGRATION_MODE) std::cerr << "---" << std::endl; // end of input
         for (auto stmt: prog.statements) {
-            performStatement(stmt, &env);
+            performStatement(stmt, env);
         }
     }
     catch (const InterpretError& e) {
