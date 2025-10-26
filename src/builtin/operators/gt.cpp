@@ -28,7 +28,7 @@ extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
 const value_t builtin::op::gt __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     builtin_lambda_id++,
-    IntConst::TWO,
+    own(IntConst::TWO()),
     [](const std::vector<FlattenArg>& args) -> value_t {
         unless (args.size() >= 2) throw InterpretError(">() takes 2+ argument");
         value_t lhsVal;
@@ -49,14 +49,14 @@ const value_t builtin::op::gt __attribute__((init_priority(3000))) = new prim_va
             }
 
             if (res == false) {
-                return BoolConst::FALSE;
+                return BoolConst::FALSE();
             }
 
             // setup for next iteration
             lhsVal = argVal;
             first_it = false;
         }
-        return BoolConst::TRUE;
+        return BoolConst::TRUE();
     }
 }};
 

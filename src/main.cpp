@@ -4,6 +4,7 @@
 #include <monlang-interpreter/ParseError.h>
 #include <monlang-interpreter/InterpretError.h>
 #include <monlang-interpreter/ProgramAssertion.h>
+#include <monlang-interpreter/EarlyExit.h>
 
 #include <utils/iostream-utils.h>
 #include <utils/file-utils.h>
@@ -18,7 +19,7 @@
 
 static auto ENV_SRCNAME = env_get("SRCNAME"); // to override src name in traceback report
 
-[[noreturn]] int repl_main(int argc, char* argv[]);
+int repl_main(int argc, char* argv[]);
 int stdinput_main(int argc, char* argv[]);
 int fileinput_main(int argc, char* argv[]);
 int embed_main(int argc, char* argv[]);
@@ -107,6 +108,9 @@ int repl_main(int argc, char* argv[]) {
             std::cerr << "die(): " << assert.what() << "\n";
         }
     }
+    catch (const EarlyExit& earlyExit) {
+        return earlyExit.exitCode;
+    }
 
     Loop: goto Read
     ;
@@ -145,6 +149,9 @@ int stdinput_main(int argc, char* argv[]) {
         }
         reportCallStack(assert.callStack, tokens, SRCNAME);
         return 1;
+    }
+    catch (const EarlyExit& earlyExit) {
+        return earlyExit.exitCode;
     }
 
     return 0;
@@ -190,6 +197,9 @@ int fileinput_main(int argc, char* argv[]) {
         }
         reportCallStack(assert.callStack, tokens, SRCNAME);
         return 1;
+    }
+    catch (const EarlyExit& earlyExit) {
+        return earlyExit.exitCode;
     }
 
     return 0;
@@ -244,6 +254,9 @@ int embed_main(int argc, char* argv[]) {
         }
         reportCallStack(assert.callStack, tokens, SRCNAME);
         return 1;
+    }
+    catch (const EarlyExit& earlyExit) {
+        return earlyExit.exitCode;
     }
 
     return 0;

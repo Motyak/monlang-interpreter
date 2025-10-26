@@ -4,7 +4,7 @@
 
 #include <monlang-interpreter/InterpretError.h>
 #include <monlang-interpreter/builtin.h>
-// #include <monlang-interpreter/deepcopy.h>
+#include <monlang-interpreter/deepcopy.h>
 #include <monlang-interpreter/PathResolution.h>
 
 #include <utils/assert-utils.h>
@@ -249,6 +249,10 @@ void performStatement(const ExpressionStatement& exprStmt, std::shared_ptr<Envir
             builtin::print_({value});
         }
     }
+    std::visit(overload{
+        [](auto* ptr){delete ptr;},
+        [](char*){SHOULD_NOT_HAPPEN();},
+    }, value);
 }
 
 
@@ -329,6 +333,10 @@ value_t evaluateValue(const FunctionCall& fnCall, std::shared_ptr<Environment> e
     if (savedCalledFns.contains(function.id)) {
         if (is_tailcallable && fnCall.arguments.size() == 0) {
             ::activeCallStack = savedCalledFns.at(function.id).activeCallStack;
+            // std::visit(overload{
+            //     [](auto* ptr){delete ptr;},
+            //     [](char*){SHOULD_NOT_HAPPEN();},
+            // }, fnVal);
             longjmp(savedCalledFns.at(function.id).jmpBuf, 1);
         }
     }
@@ -356,6 +364,12 @@ value_t evaluateValue(const FunctionCall& fnCall, std::shared_ptr<Environment> e
         safe_pop_back(::activeCallStack);
     }
     savedCalledFns.erase(function.id);
+
+    std::visit(overload{
+        [](auto* ptr){delete ptr;},
+        [](char*){SHOULD_NOT_HAPPEN();},
+    }, fnVal);
+
     return res;
 }
 
@@ -797,7 +811,7 @@ value_t evaluateValue(const SpecialSymbol& specialSymbol, const std::shared_ptr<
     }
 
     else if (BUILTIN_TABLE.contains(specialSymbol.name)) {
-        return BUILTIN_TABLE.at(specialSymbol.name);
+        return deepcopy(BUILTIN_TABLE.at(specialSymbol.name));
     }
 
     throw InterpretError("Unbound symbol `" + specialSymbol.name + "`");
@@ -914,7 +928,8 @@ value_t evaluateValue(const Symbol& symbol, const std::shared_ptr<Environment> e
         }, symbolVal);
     }
     else if (BUILTIN_TABLE.contains(symbol.name)) {
-        return BUILTIN_TABLE.at(symbol.name);
+        // return BUILTIN_TABLE.at(symbol.name);
+        return deepcopy(BUILTIN_TABLE.at(symbol.name));
     }
     #ifdef TOGGLE_UNBOUND_SYM_AS_STR
     /*

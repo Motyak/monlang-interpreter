@@ -4,6 +4,7 @@
 
 #include <monlang-interpreter/interpret.h>
 #include <monlang-interpreter/InterpretError.h>
+#include <monlang-interpreter/EarlyExit.h>
 #include <monlang-interpreter/builtin/prim_ctors.h>
 
 #include <cstdlib>
@@ -21,6 +22,6 @@ const value_t builtin::exit __attribute__((init_priority(3000))) = new prim_valu
         auto argVal = evaluateValue(arg.expr, arg.env);
         ::activeCallStack.push_back(arg.expr); // no need to pop
         auto exitCode = builtin::prim_ctor::Byte_(argVal);
-        ::exit(exitCode);
+        throw EarlyExit(exitCode);
     }
 }};

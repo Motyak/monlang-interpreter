@@ -45,7 +45,7 @@ BUILTIN_TABLE __attribute__((init_priority(6000))) = {
     {"&&", builtin::op::logical_and},
     {"||", builtin::op::logical_or},
     // {"==", builtin::op::eq},
-    // {">", builtin::op::gt},
+    {">", builtin::op::gt},
     {"+", builtin::op::plus},
     {"*", builtin::op::mul},
     // {"/", builtin::op::div},

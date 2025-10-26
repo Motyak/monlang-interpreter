@@ -33,24 +33,34 @@ static value_t deepcopy(prim_value_t* primValPtr) {
         },
         [](const prim_value_t::List& list) -> value_t {
             prim_value_t::List newlist;
-            for (auto val: list) {
-                newlist.push_back(deepcopy(val));
+            for (const auto& val: list) {
+                newlist.push_back(copy_own(val));
             }
-            return new prim_value_t{newlist};
+            return new prim_value_t{std::move(newlist)};
         },
         [](const prim_value_t::Map& map) -> value_t {
             prim_value_t::Map newmap;
-            for (auto [key, val]: map) {
-                newmap[key] = deepcopy(val);
+            for (const auto& [key, val]: map) {
+                newmap[copy_own(key)] = copy_own(val);
             }
-            return new prim_value_t{newmap};
+            return new prim_value_t{std::move(newmap)};
+        },
+        [](const prim_value_t::Lambda& lambda) -> value_t {
+            return new prim_value_t{prim_value_t::Lambda{
+                lambda.id,
+                std::make_unique<prim_value_t>(
+                    std::get<prim_value_t::Int>(
+                        std::get<std::unique_ptr<prim_value_t>>(lambda.requiredArgs)->variant
+                    )
+                ),
+                lambda.stdfunc
+            }};
         },
         [primValPtr](prim_value_t::Byte) -> value_t {return primValPtr;},
         [primValPtr](prim_value_t::Bool) -> value_t {return primValPtr;},
         [primValPtr](prim_value_t::Int) -> value_t {return primValPtr;},
         [primValPtr](prim_value_t::Float) -> value_t {return primValPtr;},
         [primValPtr](prim_value_t::Char) -> value_t {return primValPtr;},
-        [primValPtr](prim_value_t::Lambda) -> value_t {return primValPtr;},
     }, primValPtr->variant);
 }
 
