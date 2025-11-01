@@ -46,6 +46,8 @@ PathResolution::PathResolution(const Lvalue& path, Environment* pathValuesEnv)
 //==============================================================
 
 value_t PathResolution::evaluateValue(const Lvalue& lvalue, Environment* envAtResolution) {
+    ::activeCallStack.push_back(lvalue);
+    defer {safe_pop_back(::activeCallStack);};
     return std::visit(
         [this, envAtResolution](auto* lvaluePtr){
             return this->evaluateValue(*lvaluePtr, envAtResolution);
@@ -72,18 +74,18 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
             }
 
             else if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
+                auto index = std::get<Subscript::Index>(subscript.argument);
                 size_t pos;
+                ::activeCallStack.push_back(variant_cast(index.nth));
+                defer {safe_pop_back(::activeCallStack);};
                 if (this->pathValues.size() >= size_t(this->nthSubscript + 1)) {
                     pos = std::any_cast<size_t>(pathValues.at(this->nthSubscript));
+                    unless (pos < str.size()) throw InterpretError("Subscript index is out of bounds");
                 }
                 else {
-                    auto index = std::get<Subscript::Index>(subscript.argument);
                     auto nthVal = ::evaluateValue(variant_cast(index.nth), this->pathValuesEnv);
                     //                                                     ^~~~~~~~~~~~~~~~~~~
-                    ::activeCallStack.push_back(variant_cast(index.nth));
-                    defer {safe_pop_back(::activeCallStack);};
                     auto intVal = builtin::prim_ctor::Int_(nthVal);
-
                     unless (intVal != 0) throw InterpretError("Subscript index is zero");
                     unless (abs(intVal) <= str.size()) throw InterpretError("Subscript index is out of bounds");
                     pos = intVal < 0? str.size() - abs(intVal) : size_t(intVal) - 1;
@@ -94,16 +96,23 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
             }
 
             else if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
+                auto range = std::get<Subscript::Range>(subscript.argument);
                 Int fromPos;
                 Int toPos;
                 if (this->pathValues.size() >= size_t(this->nthSubscript + 1)) {
                     auto pair = std::any_cast<std::pair<Int, Int>>(pathValues.at(this->nthSubscript));
+
                     fromPos = pair.first;
+                    ::activeCallStack.push_back(variant_cast(range.from));
+                    unless (fromPos < Int(str.size())) throw InterpretError("Subscript range 'from' is out of bounds");
+                    safe_pop_back(::activeCallStack);
+
                     toPos = pair.second;
+                    ::activeCallStack.push_back(variant_cast(range.to));
+                    unless (toPos < Int(str.size())) throw InterpretError("Subscript range 'to' is out of bounds");
+                    safe_pop_back(::activeCallStack);
                 }
                 else {
-                    auto range = std::get<Subscript::Range>(subscript.argument);
-
                     /* from */
                     ::activeCallStack.push_back(variant_cast(range.from));
                     auto fromVal = ::evaluateValue(variant_cast(range.from), this->pathValuesEnv);
@@ -145,18 +154,18 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
             }
 
             else if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
+                auto index = std::get<Subscript::Index>(subscript.argument);
+                ::activeCallStack.push_back(variant_cast(index.nth));
+                defer {safe_pop_back(::activeCallStack);};
                 size_t pos;
                 if (this->pathValues.size() >= size_t(this->nthSubscript + 1)) {
                     pos = std::any_cast<size_t>(pathValues.at(this->nthSubscript));
+                    unless (pos < list.size()) throw InterpretError("Subscript index is out of bounds");
                 }
                 else {
-                    auto index = std::get<Subscript::Index>(subscript.argument);
                     auto nthVal = ::evaluateValue(variant_cast(index.nth), this->pathValuesEnv);
                     //                                                     ^~~~~~~~~~~~~~~~~~~
-                    ::activeCallStack.push_back(variant_cast(index.nth));
-                    defer {safe_pop_back(::activeCallStack);};
                     auto intVal = builtin::prim_ctor::Int_(nthVal);
-
                     unless (intVal != 0) throw InterpretError("Subscript index is zero");
                     unless (abs(intVal) <= list.size()) throw InterpretError("Subscript index is out of bounds");
                     pos = intVal < 0? list.size() - abs(intVal) : size_t(intVal) - 1;
@@ -167,16 +176,23 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
             }
 
             else if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
+                auto range = std::get<Subscript::Range>(subscript.argument);
                 Int fromPos;
                 Int toPos;
                 if (this->pathValues.size() >= size_t(this->nthSubscript + 1)) {
                     auto pair = std::any_cast<std::pair<Int, Int>>(pathValues.at(this->nthSubscript));
+
                     fromPos = pair.first;
+                    ::activeCallStack.push_back(variant_cast(range.from));
+                    unless (fromPos < Int(list.size())) throw InterpretError("Subscript range 'from' is out of bounds");
+                    safe_pop_back(::activeCallStack);
+
                     toPos = pair.second;
+                    ::activeCallStack.push_back(variant_cast(range.to));
+                    unless (toPos < Int(list.size())) throw InterpretError("Subscript range 'to' is out of bounds");
+                    safe_pop_back(::activeCallStack);
                 }
                 else {
-                    auto range = std::get<Subscript::Range>(subscript.argument);
-
                     /* from */
                     ::activeCallStack.push_back(variant_cast(range.from));
                     auto fromVal = ::evaluateValue(variant_cast(range.from), this->pathValuesEnv);
@@ -224,20 +240,23 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
             }
 
             else if (std::holds_alternative<Subscript::Key>(subscript.argument)) {
+                auto key = std::get<Subscript::Key>(subscript.argument);
                 value_t keyVal;
                 if (this->pathValues.size() >= size_t(this->nthSubscript + 1)) {
                     keyVal = std::any_cast<value_t>(pathValues.at(this->nthSubscript));
                 }
                 else {
-                    auto key = std::get<Subscript::Key>(subscript.argument);
                     keyVal = ::evaluateValue(key.expr, this->pathValuesEnv);
                     //                                 ^~~~~~~~~~~~~~~~~~~
+
                     this->pathValues.push_back(keyVal);
                 }
                 if (subscript.suffix == '?') {
                     return map.contains(keyVal)? BoolConst::TRUE : BoolConst::FALSE;
                 }
+                ::activeCallStack.push_back(key.expr);
                 unless (map.contains(keyVal)) throw InterpretError("Subscript key not found");
+                safe_pop_back(::activeCallStack);
                 return map.at(keyVal);
             }
 
@@ -325,18 +344,19 @@ value_t* PathResolution::evaluateLvalue(const Subscript& subscript, Environment*
                 throw InterpretError("Subscripting a Str with a key");
             }
             else if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
+                auto index = std::get<Subscript::Index>(subscript.argument);
+                ::activeCallStack.push_back(variant_cast(index.nth));
+                defer {safe_pop_back(::activeCallStack);};
                 size_t pos;
                 if (this->pathValues.size() >= size_t(this->nthSubscript + 1)) {
                     pos = std::any_cast<size_t>(pathValues.at(this->nthSubscript));
+                    unless (pos < str.size()) throw InterpretError("Subscript index is out of bounds");
                 }
                 else {
                     auto index = std::get<Subscript::Index>(subscript.argument);
                     auto nthVal = ::evaluateValue(variant_cast(index.nth), this->pathValuesEnv);
                     //                                                     ^~~~~~~~~~~~~~~~~~~
-                    ::activeCallStack.push_back(variant_cast(index.nth));
-                    defer {safe_pop_back(::activeCallStack);};
                     auto intVal = builtin::prim_ctor::Int_(nthVal);
-
                     unless (intVal != 0) throw InterpretError("Subscript index is zero");
                     unless (abs(intVal) <= str.size()) throw InterpretError("Subscript index is out of bounds");
                     pos = intVal < 0? str.size() - abs(intVal) : size_t(intVal) - 1;
@@ -352,18 +372,19 @@ value_t* PathResolution::evaluateLvalue(const Subscript& subscript, Environment*
                 throw InterpretError("Subscripting a List with a key");
             }
             else if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
+                auto index = std::get<Subscript::Index>(subscript.argument);
+                ::activeCallStack.push_back(variant_cast(index.nth));
+                defer {safe_pop_back(::activeCallStack);};
                 size_t pos;
                 if (this->pathValues.size() >= size_t(this->nthSubscript + 1)) {
                     pos = std::any_cast<size_t>(pathValues.at(this->nthSubscript));
+                    unless (pos < list.size()) throw InterpretError("Subscript index is out of bounds");
                 }
                 else {
                     auto index = std::get<Subscript::Index>(subscript.argument);
                     auto nthVal = ::evaluateValue(variant_cast(index.nth), this->pathValuesEnv);
                     //                                                     ^~~~~~~~~~~~~~~~~~~
-                    ::activeCallStack.push_back(variant_cast(index.nth));
-                    defer {safe_pop_back(::activeCallStack);};
                     auto intVal = builtin::prim_ctor::Int_(nthVal);
-
                     unless (intVal != 0) throw InterpretError("Subscript index is zero");
                     unless (abs(intVal) <= list.size()) throw InterpretError("Subscript index is out of bounds");
                     pos = intVal < 0? list.size() - abs(intVal) : size_t(intVal) - 1;
@@ -380,17 +401,19 @@ value_t* PathResolution::evaluateLvalue(const Subscript& subscript, Environment*
                 throw InterpretError("Subscripting a Map with an index");
             }
             else if (std::holds_alternative<Subscript::Key>(subscript.argument)) {
+                auto key = std::get<Subscript::Key>(subscript.argument);
                 value_t keyVal;
                 if (this->pathValues.size() >= size_t(this->nthSubscript + 1)) {
                     keyVal = std::any_cast<value_t>(pathValues.at(this->nthSubscript));
                 }
                 else {
-                    auto key = std::get<Subscript::Key>(subscript.argument);
                     keyVal = ::evaluateValue(key.expr, this->pathValuesEnv);
                     //                                 ^~~~~~~~~~~~~~~~~~~
+
                     this->pathValues.push_back(keyVal);
                 }
                 if (subscript.suffix == '!' && !map.contains(keyVal)) {
+                    ::activeCallStack.push_back(key.expr);
                     throw InterpretError("Subscript key not found");
                 }
                 return &map[keyVal];

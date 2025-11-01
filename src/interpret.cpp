@@ -700,7 +700,9 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                 if (subscript.suffix == '?') {
                     return map.contains(keyVal)? BoolConst::TRUE : BoolConst::FALSE;
                 }
+                ::activeCallStack.push_back(key.expr);
                 unless (map.contains(keyVal)) throw InterpretError("Subscript key not found");
+                safe_pop_back(::activeCallStack);
                 return map.at(keyVal);
             }
 
@@ -1009,6 +1011,7 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
                 auto key = std::get<Subscript::Key>(subscript.argument);
                 auto keyVal = evaluateValue(key.expr, env);
                 if (subscript.suffix == '!' && !map.contains(keyVal)) {
+                    ::activeCallStack.push_back(key.expr);
                     throw InterpretError("Subscript key not found");
                 }
                 return &map[keyVal];
