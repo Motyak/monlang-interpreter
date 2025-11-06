@@ -390,18 +390,18 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 and then bind each value to its argument-associated lambda parameter..
             */
             auto parametersBinding = std::map<Environment::SymbolName, Environment::SymbolValue>{};
-            if (!lambda.variadicParameters && flattenArgs.size() != lambda.parameters.size()) {
+            if (!lambda.variadicParameter && flattenArgs.size() != lambda.parameters.size()) {
                 ::activeCallStack.push_back(const_cast<LV2::Lambda*>(&lambda));
                 throw WrongNbOfArgsError(lambda.parameters, flattenArgs);
             }
-            if (lambda.variadicParameters && flattenArgs.size() < lambda.parameters.size()) {
+            if (lambda.variadicParameter && flattenArgs.size() < lambda.parameters.size()) {
                 ::activeCallStack.push_back(const_cast<LV2::Lambda*>(&lambda));
                 throw WrongNbOfArgsError(lambda.parameters, flattenArgs);
             }
             
             size_t i = 0;
 
-            /* binding required parameters (<> variadic parameters) */
+            /* binding required parameters (<> variadic parameter) */
             for (; i < lambda.parameters.size(); ++i) {
                 auto currParam = lambda.parameters.at(i);
                 auto currArg = flattenArgs.at(i);
@@ -461,13 +461,13 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 }
             }
 
-            /* binding variadic parameters */
-            if (lambda.variadicParameters) {
+            /* binding variadic parameter */
+            if (lambda.variadicParameter) {
                 auto varargs = Environment::VariadicArguments{
                     flattenArgs.begin() + i,
                     flattenArgs.end()
                 };
-                parametersBinding[lambda.variadicParameters->name] = varargs;
+                parametersBinding[lambda.variadicParameter->name] = varargs;
                 parametersBinding["$#varargs"] = Environment::ConstValue{new prim_value_t{Int(varargs.size())}};
             }
 
