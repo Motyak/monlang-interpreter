@@ -270,9 +270,11 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
     ASSERT (std::holds_alternative<prim_value_t*>(fnVal)); // TODO: tmp
     auto* fnPrimValPtr = std::get<prim_value_t*>(fnVal);
     if (fnPrimValPtr == nullptr) {
+        ::activeCallStack.push_back(fnCall.function);
         throw InterpretError("Calling a $nil");
     }
     if (!std::holds_alternative<prim_value_t::Lambda>(fnPrimValPtr->variant)) {
+        ::activeCallStack.push_back(fnCall.function);
         throw InterpretError("Calling a non-Lambda");
     }
 
