@@ -25,6 +25,7 @@
 #include <map>
 #include <functional>
 #include <optional>
+#include <any>
 
 #define nil_value_t() ((prim_value_t*)nullptr)
 
@@ -33,6 +34,8 @@ struct Environment;
 // flatten / normalized argument
 struct FlattenArg : public FunctionCall::Argument {
     Environment* env = nullptr;
+    std::optional<std::any> varargsPassByDelay = std::nullopt;
+    //            ^~~~~~~~ Environment::PassByDelay_Variant**
 };
 
 struct prim_value_t;

@@ -447,26 +447,44 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                     *var = deepcopy(*var);
                     parametersBinding[currParam.name] = Environment::Variable{var};
                     #else // lazy passing a.k.a pass by delayed
-                    auto* thunkEnv = currArg.env->rec_copy();
-                    auto* delayed = new thunk_with_memoization_t<value_t>{
-                        [currArg, thunkEnv]() -> value_t {
-                            auto res = evaluateValue(currArg.expr, thunkEnv);
-                            res = deepcopy(res);
-                            return res;
-
+                    Environment::PassByDelay_Variant* passByDelayVariantAlloc;
+                    if (!currArg.varargsPassByDelay || *std::any_cast<Environment::PassByDelay_Variant**>(*currArg.varargsPassByDelay) == nullptr) {
+                        auto* thunkEnv = currArg.env->rec_copy();
+                        auto* delayed = new thunk_with_memoization_t<value_t>{
+                            [currArg, thunkEnv]() -> value_t {
+                                auto res = evaluateValue(currArg.expr, thunkEnv);
+                                res = deepcopy(res);
+                                return res;
+                            }
+                        };
+                        passByDelayVariantAlloc = new Environment::PassByDelay_Variant{delayed};
+                    }
+                    if (currArg.varargsPassByDelay) {
+                        auto** _any = std::any_cast<Environment::PassByDelay_Variant**>(*currArg.varargsPassByDelay);
+                        ASSERT (_any != nullptr);
+                        auto& passByDelayVariantPtr = *_any;
+                        if (passByDelayVariantPtr == nullptr) {
+                            passByDelayVariantPtr = passByDelayVariantAlloc;
                         }
-                    };
-                    parametersBinding[currParam.name] = new Environment::PassByDelay_Variant{delayed};
+                        parametersBinding[currParam.name] = passByDelayVariantPtr;
+                    }
+                    else {
+                        parametersBinding[currParam.name] = passByDelayVariantAlloc;
+                    }
                     #endif
                 }
             }
 
             /* binding variadic parameter */
             if (lambda.variadicParameter) {
-                auto varargs = Environment::VariadicArguments{
-                    flattenArgs.begin() + i,
-                    flattenArgs.end()
-                };
+                auto varargs = Environment::VariadicArguments{};
+                for (size_t z = i; z < flattenArgs.size(); ++z) {
+                    auto currArg = flattenArgs.at(z);
+                    if (!currArg.passByRef && !currArg.varargsPassByDelay) {
+                        currArg.varargsPassByDelay = {std::make_any<Environment::PassByDelay_Variant**>(new Environment::PassByDelay_Variant*{nullptr})};
+                    }
+                    varargs.push_back(currArg);
+                }
                 parametersBinding[lambda.variadicParameter->name] = varargs;
                 parametersBinding["$#varargs"] = Environment::ConstValue{new prim_value_t{Int(varargs.size())}};
             }
