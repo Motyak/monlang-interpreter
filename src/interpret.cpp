@@ -258,7 +258,7 @@ value_t evaluateValue(const Operation& operation, Environment* env) {
     fnCallPtr->_tokenId = operation.operator_._tokenId;
 
     auto res = evaluateValue((Expression)fnCallPtr, env);
-    res = deepcopy(res);
+    // res = deepcopy(res); // TODO: no need ?
 
     // we should not delete opPtr or fnCallPtr
 
@@ -528,7 +528,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 auto exprStmt = *std::get<ExpressionStatement*>(lambda.body.statements.at(i));
                 if (exprStmt.expression) {
                     auto res = evaluateValue(*exprStmt.expression, &lambdaEnv);
-                    res = deepcopy(res);
+                    // res = deepcopy(res); // TODO: no need ?
                     return res;
                 }
                 return nil_value_t();
@@ -563,7 +563,7 @@ value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
         auto exprStmt = *std::get<ExpressionStatement*>(blockExpr.statements.at(i));
         if (exprStmt.expression) {
             auto res = evaluateValue(*exprStmt.expression, newEnv);
-            res = deepcopy(res);
+            // res = deepcopy(res); // TODO: no need ?
             return res;
         }
         return nil_value_t();
@@ -596,7 +596,7 @@ value_t evaluateValue(const FieldAccess& fieldAccess, Environment* env) {
 
 value_t evaluateValue(const Subscript& subscript, Environment* env) {
     auto arrVal = evaluateValue(subscript.array, env);
-    arrVal = deepcopy(arrVal);
+    // arrVal = deepcopy(arrVal); // TODO: no need ?
     ASSERT (std::holds_alternative<prim_value_t*>(arrVal)); // TODO: tmp
     auto* arrPrimValPtr = std::get<prim_value_t*>(arrVal);
     if (arrPrimValPtr == nullptr) {

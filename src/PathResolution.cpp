@@ -60,7 +60,7 @@ value_t PathResolution::evaluateValue(const Lvalue& lvalue, Environment* envAtRe
 value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* envAtResolution) {
     defer {this->nthSubscript += 1;};
     auto arrVal = this->evaluateValue(subscript.array, envAtResolution);
-    arrVal = deepcopy(arrVal);
+    // arrVal = deepcopy(arrVal); // TODO: no need ?
     ASSERT (std::holds_alternative<prim_value_t*>(arrVal)); // TODO: tmp
     auto* arrPrimValPtr = std::get<prim_value_t*>(arrVal);
     if (arrPrimValPtr == nullptr) {

@@ -41,7 +41,7 @@ static value_t deepcopy(prim_value_t* primValPtr) {
         [](const prim_value_t::Map& map) -> value_t {
             prim_value_t::Map newmap;
             for (auto [key, val]: map) {
-                newmap[key] = deepcopy(val);
+                newmap[deepcopy(key)] = deepcopy(val);
             }
             return new prim_value_t{newmap};
         },
