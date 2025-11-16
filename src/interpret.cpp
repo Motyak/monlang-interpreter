@@ -27,7 +27,7 @@ bool INTERACTIVE_MODE = false;
 
 thread_local std::vector<Expression> activeCallStack;
 static bool top_level_stmt = true;
-static bool is_tailcallable = false;
+static std::optional<FunctionCall> is_tailcallable;
 uint64_t builtin_lambda_id = 0;
 
 using Bool = prim_value_t::Bool;
@@ -323,7 +323,7 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
     /* recursive tail call elimination */
     static auto savedCalledFns = std::map<uint64_t, BackupStack>{};
     if (savedCalledFns.contains(function.id)) {
-        if (is_tailcallable && fnCall.arguments.size() == 0) {
+        if (is_tailcallable && fnCall.arguments.size() == 0 && is_tailcallable->function == fnCall.function) {
             ::activeCallStack = savedCalledFns.at(function.id).activeCallStack;
             longjmp(savedCalledFns.at(function.id).jmpBuf, 1);
         }
@@ -355,17 +355,19 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
     return res;
 }
 
-static bool check_if_tailcallable(const Statement& stmt) {
+static std::optional<FunctionCall> check_if_tailcallable(const Statement& stmt) {
     #ifdef TOGGLE_TAILCALL
-    unless (std::holds_alternative<Assignment*>(stmt)) return false;
-    auto assignment = std::get<Assignment*>(stmt);
-    unless (std::holds_alternative<Symbol*>(assignment->variable.variant)) return false;
-    auto varSymbol = std::get<Symbol*>(assignment->variable.variant);
-    return varSymbol->name == "_";
-    #else
-    (void)stmt;
-    return false;
+    unless (std::holds_alternative<Assignment*>(stmt)) return {};
+    auto* assignment = std::get<Assignment*>(stmt);
+    unless (std::holds_alternative<Symbol*>(assignment->variable.variant)) return {};
+    auto* varSymbol = std::get<Symbol*>(assignment->variable.variant);
+    if (varSymbol->name == "_") {
+        unless (std::holds_alternative<FunctionCall*>(assignment->value)) return {};
+        return *std::get<FunctionCall*>(assignment->value);
+    }
     #endif
+    (void)stmt;
+    return {};
 }
 
 value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
