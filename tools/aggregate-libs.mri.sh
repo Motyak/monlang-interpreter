@@ -2,7 +2,7 @@
 set -o nounset
 
 ## duplicate stdout to stderr ##
-exec 6>&1 > >(tee /dev/stderr)
+exec 6>&1 > >(tee -a /dev/stderr)
 trap 'exec 1>&6 6>&-' EXIT
 
 echo "create $1"
