@@ -337,20 +337,10 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
     }
 
     // we only want to push the FunctionCall on the activeCallStack..
-    // ..once we reach the function's body execution..
-    // ..(and if the function has a bound name)
-    bool should_pop = false;
-    if (std::holds_alternative<Symbol*>(fnCall.function)) {
-        auto symbolName = std::get<Symbol*>(fnCall.function)->name;
-        if (env->contains(symbolName) || BUILTIN_TABLE.contains(symbolName)) {
-            ::activeCallStack.push_back(const_cast<FunctionCall*>(&fnCall));
-            should_pop = true;
-        }
-    }
+    // ..once we reach the function's body execution
+    ::activeCallStack.push_back(const_cast<FunctionCall*>(&fnCall));
     auto res = function.stdfunc(flattenArgs);
-    if (should_pop) {
-        safe_pop_back(::activeCallStack);
-    }
+    safe_pop_back(::activeCallStack);
     savedCalledFns.erase(function.id);
     return res;
 }
