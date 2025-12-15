@@ -855,7 +855,7 @@ value_t evaluateValue(const Numeral& numeral, const Environment*) {
         auto denominator = std::pow(10, numeral.fixed.size());
         auto division = (double)numerator / denominator;
         auto sum = int_part + (int_part < 0? -division : division);
-        if (numeral.int1.starts_with("-") && int_part == 0.0) sum = 0 - sum;
+        if (numeral.int1.starts_with("-") && int_part == 0) sum = -sum;
         return new prim_value_t(Float(sum));
     }
 
@@ -865,7 +865,7 @@ value_t evaluateValue(const Numeral& numeral, const Environment*) {
         auto denominator = std::pow(10, numeral.periodic.size()) - 1;
         auto division = (double)numerator / denominator;
         auto sum = int_part + (int_part < 0? -division : division);
-        if (numeral.int1.starts_with("-") && int_part == 0.0) sum = 0 - sum;
+        if (numeral.int1.starts_with("-") && int_part == 0) sum = -sum;
         return new prim_value_t(Float(sum));
     }
 
@@ -879,7 +879,7 @@ value_t evaluateValue(const Numeral& numeral, const Environment*) {
         auto periodic_part_division = (double)periodic_part_numerator / periodic_part_denominator;
         auto sum = int_part < 0? int_part - fixed_part_division - periodic_part_division
                 : int_part + fixed_part_division + periodic_part_division;
-        if (numeral.int1.starts_with("-") && int_part == 0.0) sum = 0 - sum;
+        if (numeral.int1.starts_with("-") && int_part == 0) sum = -sum;
         return new prim_value_t(Float(sum));
     }
 

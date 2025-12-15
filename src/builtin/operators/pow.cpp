@@ -96,9 +96,9 @@ static value_t powFloat(Float firstArgValue, const std::vector<FlattenArg>& args
     for (auto arg: args) {
         auto argValue = evaluateValue(arg.expr, arg.env);
         ::activeCallStack.push_back(arg.expr);
-        auto intVal = builtin::prim_ctor::Int_(argValue);
+        auto floatVal = builtin::prim_ctor::Float_(argValue);
         safe_pop_back(::activeCallStack); // arg.expr
-        res = std::pow(res, intVal);
+        res = std::pow(res, floatVal);
     }
 
     return new prim_value_t{res};
