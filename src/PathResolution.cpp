@@ -306,32 +306,46 @@ value_t PathResolution::evaluateValue(const Symbol& symbol, Environment* envAtRe
 // evaluateLvalue
 //==============================================================
 
-value_t* PathResolution::evaluateLvalue(const Lvalue& lvalue, Environment* envAtResolution, bool subscripted) {
+value_t* PathResolution::evaluateLvalue(const Lvalue& lvalue, Environment* envAtResolution, bool subscripted, bool* autovivification) {
     ::activeCallStack.push_back(lvalue);
     defer {safe_pop_back(::activeCallStack);};
     return std::visit(overload{
         [this, envAtResolution, subscripted](Symbol* symbol){
             return this->evaluateLvalue(*symbol, envAtResolution, subscripted);
         },
-        [this, envAtResolution](auto* lvalue){
-            return this->evaluateLvalue(*lvalue, envAtResolution);
+        [this, envAtResolution](FieldAccess* fieldAccess){
+            return this->evaluateLvalue(*fieldAccess, envAtResolution);
+        },
+        [this, envAtResolution, autovivification](Subscript* subscript){
+            return this->evaluateLvalue(*subscript, envAtResolution, autovivification);
         },
     }, lvalue.variant);
 }
 
 // see ::evaluateLvalue(Subscript) in src/interpret.cpp
-value_t* PathResolution::evaluateLvalue(const Subscript& subscript, Environment* envAtResolution) {
+value_t* PathResolution::evaluateLvalue(const Subscript& subscript, Environment* envAtResolution, bool* autovivification) {
     defer {this->nthSubscript += 1;};
     if (subscript.suffix == '?') {
         throw InterpretError("lvaluing a subscript[]?");
     }
-    auto* lvalue = this->evaluateLvalue(subscript.array, envAtResolution, /*subscripted*/true);
+    bool _av = false;
+    if (autovivification == nullptr) {
+        // create the variable for the all chain of Subscripts..
+        // .., initialize it to false
+        autovivification = &_av;
+    }
+    auto* lvalue = this->evaluateLvalue(subscript.array, envAtResolution, /*subscripted*/true, autovivification);
     //             ^~~~~~                                ^~~~~~~~~~~~~~~
     ASSERT (lvalue != nullptr);
     ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
-    auto* lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
+    auto& lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
     if (lvaluePrimValPtr == nullptr) {
-        throw InterpretError("lvaluing a $nil subscript array");
+        ASSERT (autovivification != nullptr);
+        if (!*autovivification) {
+            throw InterpretError("lvaluing a $nil subscript array");
+        }
+        // chained autovivification
+        lvaluePrimValPtr = new prim_value_t{prim_value_t::Map()};
     }
 
     if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
@@ -396,7 +410,7 @@ value_t* PathResolution::evaluateLvalue(const Subscript& subscript, Environment*
             else SHOULD_NOT_HAPPEN();
         },
 
-        [&subscript, this](Map& map) -> value_t* {
+        [&subscript, this, autovivification](Map& map) -> value_t* {
             if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
                 throw InterpretError("Subscripting a Map with an index");
             }
@@ -412,11 +426,16 @@ value_t* PathResolution::evaluateLvalue(const Subscript& subscript, Environment*
 
                     this->pathValues.push_back(keyVal);
                 }
-                if (subscript.suffix == '!' && !map.contains(keyVal)) {
-                    ::activeCallStack.push_back(key.expr);
-                    throw InterpretError("Subscript key not found");
+                if (!map.contains(keyVal)) {
+                    if (subscript.suffix == '!') {
+                        ::activeCallStack.push_back(key.expr);
+                        throw InterpretError("Subscript key not found");
+                    }
+                    ASSERT (autovivification != nullptr);
+                    *autovivification = true;
                 }
-                return &map[keyVal];
+                return &map[keyVal]; // c++ autovivification => calls value_t default ctor..
+                                     // .., so it contains a nullptr prim_value_t* <=> $nil in our language
             }
             else SHOULD_NOT_HAPPEN();
         },

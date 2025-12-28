@@ -22,8 +22,8 @@ class PathResolution {
     value_t evaluateValue(const FieldAccess&, Environment* envAtResolution);
     value_t evaluateValue(const Symbol&, Environment* envAtResolution);
 
-    value_t* evaluateLvalue(const Lvalue&, Environment* envAtResolution, bool subscripted = false);
-    value_t* evaluateLvalue(const Subscript&, Environment* envAtResolution);
+    value_t* evaluateLvalue(const Lvalue&, Environment* envAtResolution, bool subscripted = false, bool* autovivification = nullptr);
+    value_t* evaluateLvalue(const Subscript&, Environment* envAtResolution, bool* autovivification = nullptr);
     value_t* evaluateLvalue(const FieldAccess&, Environment* envAtResolution);
     value_t* evaluateLvalue(const Symbol&, Environment* envAtResolution, bool subscripted = false);
 
