@@ -81,15 +81,18 @@ value_t evaluateValue(const Expression& expr, Environment* env) {
     }, expr);
 }
 
-value_t* evaluateLvalue(const Lvalue& lvalue, Environment* env, bool subscripted) {
+value_t* evaluateLvalue(const Lvalue& lvalue, Environment* env, bool subscripted, bool* autovivification) {
     ::activeCallStack.push_back(lvalue);
     defer {safe_pop_back(::activeCallStack);};
     return std::visit(overload{
         [env, subscripted](Symbol* symbol){
             return evaluateLvalue(*symbol, env, subscripted);
         },
-        [env](auto* lvalue){
-            return evaluateLvalue(*lvalue, env);
+        [env](FieldAccess* fieldAccess){
+            return evaluateLvalue(*fieldAccess, env);
+        },
+        [env, autovivification](Subscript* subscript){
+            return evaluateLvalue(*subscript, env, autovivification);
         },
     }, lvalue.variant);
 }
@@ -962,16 +965,27 @@ value_t* evaluateLvalue(const FieldAccess& fieldAccess, Environment* env) {
     else throw InterpretError("Accessing field on a non-struct");
 }
 
-value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
+value_t* evaluateLvalue(const Subscript& subscript, Environment* env, bool* autovivification) {
     if (subscript.suffix == '?') {
         throw InterpretError("lvaluing a subscript[]?");
     }
-    auto* lvalue = evaluateLvalue(subscript.array, env, /*subscripted*/true);
+    bool _av = false;
+    if (autovivification == nullptr) {
+        // create the variable for the all chain of Subscripts..
+        // .., initialize it to false
+        autovivification = &_av;
+    }
+    auto* lvalue = evaluateLvalue(subscript.array, env, /*subscripted*/true, autovivification);
     ASSERT (lvalue != nullptr);
     ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
-    auto* lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
+    auto& lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
     if (lvaluePrimValPtr == nullptr) {
-        throw InterpretError("lvaluing a $nil subscript array");
+        ASSERT (autovivification != nullptr);
+        if (!*autovivification) {
+            throw InterpretError("lvaluing a $nil subscript array");
+        }
+        // chained autovivification
+        lvaluePrimValPtr = new prim_value_t{prim_value_t::Map()};
     }
 
     if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
@@ -1019,18 +1033,23 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
             else SHOULD_NOT_HAPPEN();
         },
 
-        [&subscript, env](Map& map) -> value_t* {
+        [&subscript, env, autovivification](Map& map) -> value_t* {
             if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
                 throw InterpretError("Subscripting a Map with an index");
             }
             else if (std::holds_alternative<Subscript::Key>(subscript.argument)) {
                 auto key = std::get<Subscript::Key>(subscript.argument);
                 auto keyVal = evaluateValue(key.expr, env);
-                if (subscript.suffix == '!' && !map.contains(keyVal)) {
-                    ::activeCallStack.push_back(key.expr);
-                    throw InterpretError("Subscript key not found");
+                if (!map.contains(keyVal)) {
+                    if (subscript.suffix == '!') {
+                        ::activeCallStack.push_back(key.expr);
+                        throw InterpretError("Subscript key not found");
+                    }
+                    ASSERT (autovivification != nullptr);
+                    *autovivification = true;
                 }
-                return &map[keyVal];
+                return &map[keyVal]; // c++ autovivification => calls value_t default ctor..
+                                     // .., so it contains a nullptr prim_value_t* <=> $nil in our language
             }
             else SHOULD_NOT_HAPPEN();
         },

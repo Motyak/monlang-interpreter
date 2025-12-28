@@ -46,7 +46,7 @@ extern bool INTERACTIVE_MODE;
 void interpretProgram(const Program&);
 void performStatement(const Statement&, Environment*);
 value_t evaluateValue(const Expression&, Environment*);
-value_t* evaluateLvalue(const Lvalue&, Environment*, bool subscripted = false);
+value_t* evaluateLvalue(const Lvalue&, Environment*, bool subscripted = false, bool* autovivification = nullptr);
 
 /* performStatement */
 void performStatement(const Assignment&, Environment*);
@@ -79,7 +79,7 @@ value_t evaluateValue(const Symbol&, const Environment*);
 
 /* evaluateLvalue */
 value_t* evaluateLvalue(const FieldAccess&, Environment*);
-value_t* evaluateLvalue(const Subscript&, Environment*);
+value_t* evaluateLvalue(const Subscript&, Environment*, bool* autovivification = nullptr);
 value_t* evaluateLvalue(const Symbol&, const Environment*, bool subscripted = false);
 
 #endif // INTERPRET_H
