@@ -75,7 +75,9 @@ static std::string quote_str(const std::string& str) {
 static void print(const prim_value_t& primVal, std::ostream& out, bool shouldQuot) {
     std::visit(overload{
         [&out](prim_value_t::Bool bool_){out << (bool_ == true? "$true" : "$false");},
-        [&out](prim_value_t::Byte byte){out << (int)byte;},
+        [&out, shouldQuot](prim_value_t::Byte byte){
+            shouldQuot? out << (int)byte : out << byte;
+        },
         [&out](prim_value_t::Int int_){out << int_;},
         [&out](prim_value_t::Float float_){out << std::setprecision(std::numeric_limits<double>::digits10) << float_;},
         [&out, shouldQuot](const prim_value_t::Char& char_){
