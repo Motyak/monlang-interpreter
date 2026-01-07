@@ -53,7 +53,6 @@ static prim_value_t::Lambda to_lambda(const prim_value_t& primVal) {
         [](prim_value_t::Byte) -> prim_value_t::Lambda {throw InterpretError("Lambda() arg cannot be a Byte");},
         [](prim_value_t::Int) -> prim_value_t::Lambda {throw InterpretError("Lambda() arg cannot be a Int");},
         [](prim_value_t::Float) -> prim_value_t::Lambda {throw InterpretError("Lambda() arg cannot be a Float");},
-        [](prim_value_t::Char) -> prim_value_t::Lambda {throw InterpretError("Lambda() arg cannot be a Char");},
         [](const prim_value_t::Str&) -> prim_value_t::Lambda {throw InterpretError("Lambda() arg cannot be a Str");},
         [](const prim_value_t::List&) -> prim_value_t::Lambda {throw InterpretError("Lambda() arg cannot be a List");},
         [](const prim_value_t::Map&) -> prim_value_t::Lambda {throw InterpretError("Lambda() arg cannot be a Map");},

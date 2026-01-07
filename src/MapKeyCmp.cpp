@@ -8,7 +8,6 @@ using Bool = prim_value_t::Bool;
 using Byte = prim_value_t::Byte;
 using Int = prim_value_t::Int;
 using Float = prim_value_t::Float;
-using Char = prim_value_t::Char;
 using Str = prim_value_t::Str;
 using List = prim_value_t::List;
 using Map = prim_value_t::Map;
@@ -80,11 +79,6 @@ static int cmp(prim_value_t* lhs, prim_value_t* rhs) {
         [rhs](Float lhs) -> int {
             auto rhsAsFloat = std::get<Float>(rhs->variant);
             return lhs < rhsAsFloat? -1 : lhs > rhsAsFloat? 1 : 0;
-        },
-
-        [rhs](Char lhs) -> int {
-            auto rhsAsChar = std::get<Char>(rhs->variant);
-            return lhs < rhsAsChar? -1 : lhs > rhsAsChar? 1 : 0;
         },
 
         [rhs](const Str& lhs) -> int {

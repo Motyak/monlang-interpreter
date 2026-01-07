@@ -43,7 +43,6 @@ static value_t get_type(const prim_value_t& primVal) {
     static auto byte_type = new prim_value_t{prim_value_t::Str("Byte")};
     static auto int_type = new prim_value_t{prim_value_t::Str("Int")};
     static auto float_type = new prim_value_t{prim_value_t::Str("Float")};
-    static auto char_type = new prim_value_t{prim_value_t::Str("Char")};
     static auto str_type = new prim_value_t{prim_value_t::Str("Str")};
     static auto list_type = new prim_value_t{prim_value_t::Str("List")};
     static auto map_type = new prim_value_t{prim_value_t::Str("Map")};
@@ -53,7 +52,6 @@ static value_t get_type(const prim_value_t& primVal) {
         [](prim_value_t::Byte){return byte_type;},
         [](prim_value_t::Int){return int_type;},
         [](prim_value_t::Float){return float_type;},
-        [](prim_value_t::Char){return char_type;},
         [](const prim_value_t::Str&){return str_type;},
         [](const prim_value_t::List&){return list_type;},
         [](const prim_value_t::Map&){return map_type;},

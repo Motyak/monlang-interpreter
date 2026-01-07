@@ -15,7 +15,6 @@ using Bool = prim_value_t::Bool;
 using Byte = prim_value_t::Byte;
 using Int = prim_value_t::Int;
 using Float = prim_value_t::Float;
-using Char = prim_value_t::Char;
 using Str = prim_value_t::Str;
 using List = prim_value_t::List;
 using Map = prim_value_t::Map;
@@ -92,7 +91,7 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
 
                     this->pathValues.push_back(pos);
                 }
-                return new prim_value_t{Char(str.at(pos))};
+                return new prim_value_t{Byte(str.at(pos))};
             }
 
             else if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
@@ -267,7 +266,6 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
         [](Byte) -> value_t {throw InterpretError("Cannot subscript a Byte");},
         [](Int) -> value_t {throw InterpretError("Cannot subscript an Int");},
         [](Float) -> value_t {throw InterpretError("Cannot subscript a Float");},
-        [](Char) -> value_t {throw InterpretError("Cannot subscript a Char");},
         [](const prim_value_t::Lambda&) -> value_t {throw InterpretError("Cannot subscript a Lambda");},
     }, arrPrimValPtr->variant);
 }
@@ -425,7 +423,6 @@ value_t* PathResolution::evaluateLvalue(const Subscript& subscript, Environment*
         [](Byte&) -> value_t* {throw InterpretError("Cannot subscript a Byte");},
         [](Int&) -> value_t* {throw InterpretError("Cannot subscript an Int");},
         [](Float&) -> value_t* {throw InterpretError("Cannot subscript a Float");},
-        [](Char&) -> value_t* {throw InterpretError("Cannot subscript a Char");},
         [](prim_value_t::Lambda&) -> value_t* {throw InterpretError("Cannot subscript a Lambda");},
     }, lvaluePrimValPtr->variant);
 }

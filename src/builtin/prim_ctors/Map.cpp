@@ -82,7 +82,6 @@ static prim_value_t::Map to_map(const prim_value_t& primVal) {
         [](prim_value_t::Byte) -> prim_value_t::Map {throw InterpretError("Byte is not a Map");},
         [](prim_value_t::Int) -> prim_value_t::Map {throw InterpretError("Int is not a Map");},
         [](prim_value_t::Float) -> prim_value_t::Map {throw InterpretError("Float is not a Map");},
-        [](prim_value_t::Char) -> prim_value_t::Map {throw InterpretError("Char is not a Map");},
         [](const prim_value_t::Str&) -> prim_value_t::Map {throw InterpretError("Str is not a Map");},
         [](const prim_value_t::Lambda&) -> prim_value_t::Map {throw InterpretError("Lambda is not a Map");},
     }, primVal.variant);
