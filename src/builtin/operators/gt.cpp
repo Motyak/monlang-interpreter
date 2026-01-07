@@ -16,7 +16,6 @@ using Int = prim_value_t::Int;
 using Byte = prim_value_t::Byte;
 using Bool = prim_value_t::Bool;
 using Float = prim_value_t::Float;
-using Char = prim_value_t::Char;
 using Str = prim_value_t::Str;
 using List = prim_value_t::List;
 using Map = prim_value_t::Map;
@@ -103,11 +102,6 @@ static int comparePrimValPtr(prim_value_t* primValPtr_lhs, prim_value_t* primVal
             auto rhsAsFloat = builtin::prim_ctor::Float_(primValPtr_rhs);
             safe_pop_back(::activeCallStack); // from before compareValue() call
             return float_ < rhsAsFloat? -1 : float_ > rhsAsFloat? 1 : 0;
-        },
-        [primValPtr_rhs](Char char_) -> int {
-            auto rhsAsChar = builtin::prim_ctor::Char_(primValPtr_rhs);
-            safe_pop_back(::activeCallStack); // from before compareValue() call
-            return char_ < rhsAsChar? -1 : char_ > rhsAsChar? 1 : 0;
         },
         [primValPtr_rhs](const Str& str) -> int {
             auto rhsAsStr = builtin::prim_ctor::Str_(primValPtr_rhs);

@@ -58,7 +58,6 @@ static prim_value_t::Bool to_bool(const prim_value_t& primVal) {
         [](prim_value_t::Int int_) -> prim_value_t::Bool {return int_;},
 
         [](prim_value_t::Float) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Float");},
-        [](prim_value_t::Char) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Char");},
         [](prim_value_t::Str) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Str");},
         [](prim_value_t::List) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a List");},
         [](prim_value_t::Map) -> prim_value_t::Bool {throw InterpretError("Bool() arg cannot be a Map");},

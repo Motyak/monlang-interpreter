@@ -80,9 +80,6 @@ static void print(const prim_value_t& primVal, std::ostream& out, bool shouldQuo
         },
         [&out](prim_value_t::Int int_){out << int_;},
         [&out](prim_value_t::Float float_){out << std::setprecision(std::numeric_limits<double>::digits10) << float_;},
-        [&out, shouldQuot](const prim_value_t::Char& char_){
-            shouldQuot? out << (int)(unsigned char)char_ : out << char_;
-        },
         [&out, shouldQuot](const prim_value_t::Str& str){
             shouldQuot? out << quote_str(str) : out << str;
         },

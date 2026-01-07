@@ -50,7 +50,7 @@ static prim_value_t::List to_list(const prim_value_t& primVal) {
             prim_value_t::List res;
             res.reserve(str.size());
             for (auto c: str) {
-                res.push_back(new prim_value_t{prim_value_t::Char(c)});
+                res.push_back(new prim_value_t{prim_value_t::Byte(c)});
             }
             return res;
         },
@@ -69,7 +69,6 @@ static prim_value_t::List to_list(const prim_value_t& primVal) {
         [](prim_value_t::Byte) -> prim_value_t::List {throw InterpretError("Byte is not a container");},
         [](prim_value_t::Int) -> prim_value_t::List {throw InterpretError("Int is not a container");},
         [](prim_value_t::Float) -> prim_value_t::List {throw InterpretError("Float is not a container");},
-        [](prim_value_t::Char) -> prim_value_t::List {throw InterpretError("Char is not a container");},
         [](const prim_value_t::Lambda&) -> prim_value_t::List {throw InterpretError("Lambda is not a container");},
     }, primVal.variant);
 }

@@ -41,7 +41,6 @@ const value_t builtin::len __attribute__((init_priority(3000))) = new prim_value
             [](prim_value_t::Byte) -> value_t {throw InterpretError("len() arg cannot be Byte");},
             [](prim_value_t::Int) -> value_t {throw InterpretError("len() arg cannot be Int");},
             [](prim_value_t::Float) -> value_t {throw InterpretError("len() arg cannot be Float");},
-            [](prim_value_t::Char) -> value_t {throw InterpretError("len() arg cannot be Char");},
             [](prim_value_t::Bool) -> value_t {throw InterpretError("len() arg cannot be Bool");},
 
         }, argPrimValPtr->variant);

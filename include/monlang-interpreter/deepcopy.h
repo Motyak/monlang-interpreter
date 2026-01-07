@@ -49,7 +49,6 @@ static value_t deepcopy(prim_value_t* primValPtr) {
         [primValPtr](prim_value_t::Bool) -> value_t {return primValPtr;},
         [primValPtr](prim_value_t::Int) -> value_t {return primValPtr;},
         [primValPtr](prim_value_t::Float) -> value_t {return primValPtr;},
-        [primValPtr](prim_value_t::Char) -> value_t {return primValPtr;},
         [primValPtr](prim_value_t::Lambda) -> value_t {return primValPtr;},
     }, primValPtr->variant);
 }

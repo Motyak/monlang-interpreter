@@ -18,7 +18,6 @@ using Bool = prim_value_t::Bool;
 using Byte = prim_value_t::Byte;
 using Int = prim_value_t::Int;
 using Float = prim_value_t::Float;
-using Char = prim_value_t::Char;
 using Str = prim_value_t::Str;
 using List = prim_value_t::List;
 using Map = prim_value_t::Map;
@@ -48,7 +47,6 @@ const value_t builtin::bitwise_not __attribute__((init_priority(3000))) = new pr
 
             [](Bool) -> value_t {throw InterpretError("~() arg cannot be Bool");},
             [](Float) -> value_t {throw InterpretError("~() arg cannot be Float");},
-            [](Char) -> value_t {throw InterpretError("~() arg cannot be Char");},
             [](const Str&) -> value_t {throw InterpretError("~() arg cannot be Str");},
             [](const List&) -> value_t {throw InterpretError("~() arg cannot be List");},
             [](const Map&) -> value_t {throw InterpretError("~() arg cannot be Map");},

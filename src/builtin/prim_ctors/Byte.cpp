@@ -49,11 +49,18 @@ static prim_value_t::Byte to_byte(const prim_value_t& primVal) {
     return std::visit(overload{
         [](prim_value_t::Byte byte) -> prim_value_t::Byte {return byte;},
         [](prim_value_t::Int int_) -> prim_value_t::Byte {return int_;},
-        [](prim_value_t::Char char_) -> prim_value_t::Byte {return char_;},
+        [](const prim_value_t::Str& str) -> prim_value_t::Byte {
+            if (str.empty()) {
+                throw InterpretError("Byte() arg cannot be an empty Str");
+            }
+            if (str.size() > 1) {
+                throw InterpretError("Byte() arg cannot be a 2+ bytes Str");
+            }
+            return str[0];
+        },
 
         [](prim_value_t::Bool) -> prim_value_t::Byte {throw InterpretError("Byte() arg cannot be a Bool");},
         [](prim_value_t::Float) -> prim_value_t::Byte {throw InterpretError("Byte() arg cannot be a Float");},
-        [](const prim_value_t::Str&) -> prim_value_t::Byte {throw InterpretError("Byte() arg cannot be a Str");},
         [](const prim_value_t::List&) -> prim_value_t::Byte {throw InterpretError("Byte() arg cannot be a List");},
         [](const prim_value_t::Map&) -> prim_value_t::Byte {throw InterpretError("Byte() arg cannot be a Map");},
         [](const prim_value_t::Lambda&) -> prim_value_t::Byte {throw InterpretError("Byte() arg cannot be a Lambda");},

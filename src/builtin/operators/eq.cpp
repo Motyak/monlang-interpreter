@@ -30,7 +30,6 @@ using Int = prim_value_t::Int;
 using Byte = prim_value_t::Byte;
 using Bool = prim_value_t::Bool;
 using Float = prim_value_t::Float;
-using Char = prim_value_t::Char;
 using Str = prim_value_t::Str;
 using List = prim_value_t::List;
 using Map = prim_value_t::Map;
@@ -119,10 +118,6 @@ static bool comparePrimValPtr(prim_value_t* primValPtr_lhs, prim_value_t* primVa
         [primValPtr_rhs](Float float_) -> bool {
             defer {if (!recursiveCall) POP(activeCallStack);}; // from before compareValue() call in builtin::op::eq()
             return float_ == builtin::prim_ctor::Float_(primValPtr_rhs);
-        },
-        [primValPtr_rhs](Char char_) -> bool {
-            defer {if (!recursiveCall) POP(activeCallStack);}; // from before compareValue() call in builtin::op::eq()
-            return char_ == builtin::prim_ctor::Char_(primValPtr_rhs);
         },
         [primValPtr_rhs](const Str& str) -> bool {
             defer {if (!recursiveCall) POP(activeCallStack);}; // from before compareValue() call in builtin::op::eq()
