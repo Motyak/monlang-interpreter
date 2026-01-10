@@ -11,6 +11,9 @@
 #include <utils/vec-utils.h>
 #include <utils/env-utils.h>
 #include <utils/args-utils.h>
+#ifdef TOGGLE_IOPERF
+#include <utils/ioperf.h> // fix blocking I/O with socat
+#endif
 
 #include <cstring>
 
