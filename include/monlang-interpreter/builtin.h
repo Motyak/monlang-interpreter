@@ -15,6 +15,7 @@
 #include <monlang-interpreter/builtin/print.h>
 #include <monlang-interpreter/builtin/getline.h>
 #include <monlang-interpreter/builtin/putstr.h>
+#include <monlang-interpreter/builtin/scan.h>
 #include <monlang-interpreter/builtin/slurpfile.h>
 #include <monlang-interpreter/builtin/die.h>
 #include <monlang-interpreter/builtin/exit.h>
@@ -33,6 +34,7 @@ BUILTIN_TABLE __attribute__((init_priority(6000))) = {
     {"print", builtin::print},
     {"getline", builtin::getline},
     {"putstr", builtin::putstr},
+    {"scan", builtin::scan},
     {"slurpfile", builtin::slurpfile},
     {"die", builtin::die},
     {"exit", builtin::exit},
