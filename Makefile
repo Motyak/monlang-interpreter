@@ -82,6 +82,7 @@ mrproper:
 
 obj/main.o obj/monlang_parser.o: CXXFLAGS += -I monlang-parser/include
 obj/main.o: CXXFLAGS += -Wno-unused-label
+obj/main.o: CXXFLAGS += -D TOGGLE_IOPERF
 obj/builtin/prim_ctors/Bool.o: CXXFLAGS += -D TOGGLE_NIL_CAST_TO_BOOL
 obj/interpret.o: CXXFLAGS += -D TOGGLE_TAILCALL
 # obj/interpret.o: CXXFLAGS += -D TOGGLE_PASS_BY_VALUE
