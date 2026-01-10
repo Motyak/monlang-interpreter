@@ -22,6 +22,7 @@ BUILTIN_OBJS = \
 obj/builtin/print.o \
 obj/builtin/getline.o \
 obj/builtin/putstr.o \
+obj/builtin/scan.o \
 obj/builtin/slurpfile.o \
 obj/builtin/sleep.o \
 obj/builtin/exit.o \
