@@ -319,7 +319,9 @@ value_t* PathResolution::evaluateLvalue(const Lvalue& lvalue, Environment* envAt
 
 // see ::evaluateLvalue(Subscript) in src/interpret.cpp
 value_t* PathResolution::evaluateLvalue(const Subscript& subscript, Environment* envAtResolution) {
+    extern value_t SENTINEL_NEW_MAP; // defined in src/interpret.cpp
     defer {this->nthSubscript += 1;};
+
     if (subscript.suffix == '?') {
         throw InterpretError("lvaluing a subscript[]?");
     }
@@ -327,7 +329,12 @@ value_t* PathResolution::evaluateLvalue(const Subscript& subscript, Environment*
     //             ^~~~~~                                ^~~~~~~~~~~~~~~
     ASSERT (lvalue != nullptr);
     ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
-    auto* lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
+    auto& lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
+
+    if (*lvalue == SENTINEL_NEW_MAP) {
+        lvaluePrimValPtr = new prim_value_t{prim_value_t::Map()};
+    }
+
     if (lvaluePrimValPtr == nullptr) {
         throw InterpretError("lvaluing a $nil subscript array");
     }
@@ -410,9 +417,12 @@ value_t* PathResolution::evaluateLvalue(const Subscript& subscript, Environment*
 
                     this->pathValues.push_back(keyVal);
                 }
-                if (subscript.suffix == '!' && !map.contains(keyVal)) {
-                    ::activeCallStack.push_back(key.expr);
-                    throw InterpretError("Subscript key not found");
+                if (!map.contains(keyVal)) {
+                    if (subscript.suffix == '!') {
+                        ::activeCallStack.push_back(key.expr);
+                        throw InterpretError("Subscript key not found");
+                    }
+                    map[keyVal] = SENTINEL_NEW_MAP;
                 }
                 return &map[keyVal];
             }

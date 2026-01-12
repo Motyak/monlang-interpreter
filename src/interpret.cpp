@@ -30,6 +30,10 @@ static bool top_level_stmt = true;
 static std::optional<FunctionCall> is_tailcallable;
 uint64_t builtin_lambda_id = 0;
 
+/* sentinel value to allow chained autovivification
+   , through PassByRef notably */
+value_t SENTINEL_NEW_MAP = new prim_value_t();
+
 using Bool = prim_value_t::Bool;
 using Byte = prim_value_t::Byte;
 using Int = prim_value_t::Int;
@@ -967,7 +971,12 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
     auto* lvalue = evaluateLvalue(subscript.array, env, /*subscripted*/true);
     ASSERT (lvalue != nullptr);
     ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
-    auto* lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
+    auto& lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
+
+    if (*lvalue == SENTINEL_NEW_MAP) {
+        lvaluePrimValPtr = new prim_value_t{prim_value_t::Map()};
+    }
+
     if (lvaluePrimValPtr == nullptr) {
         throw InterpretError("lvaluing a $nil subscript array");
     }
@@ -1024,9 +1033,12 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
             else if (std::holds_alternative<Subscript::Key>(subscript.argument)) {
                 auto key = std::get<Subscript::Key>(subscript.argument);
                 auto keyVal = evaluateValue(key.expr, env);
-                if (subscript.suffix == '!' && !map.contains(keyVal)) {
-                    ::activeCallStack.push_back(key.expr);
-                    throw InterpretError("Subscript key not found");
+                if (!map.contains(keyVal)) {
+                    if (subscript.suffix == '!') {
+                        ::activeCallStack.push_back(key.expr);
+                        throw InterpretError("Subscript key not found");
+                    }
+                    map[keyVal] = SENTINEL_NEW_MAP;
                 }
                 return &map[keyVal];
             }
