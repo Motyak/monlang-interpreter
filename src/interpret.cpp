@@ -257,6 +257,19 @@ value_t evaluateValue(const Operation& operation, Environment* env) {
     auto opPtr = new Symbol{operation.operator_};
     auto lhs = operation.leftOperand;
     auto rhs = operation.rightOperand;
+    for (auto operand: {lhs, rhs}) {
+        if (std::holds_alternative<Symbol*>(operand)) {
+            auto symbol = std::get<Symbol*>(operand);
+            if (env->contains(symbol->name)) {
+                auto symbolVal = env->at(symbol->name);
+                if (std::holds_alternative<Environment::VariadicArguments>(symbolVal)) {
+                    ::activeCallStack.push_back(operand);
+                    throw InterpretError("Cannot refer to variadic arguments as symbol");
+                }
+            }
+        }
+    }
+    
     auto fnCallPtr = new FunctionCall{(Expression)opPtr, {lhs, rhs}};
     fnCallPtr->_tokenId = operation.operator_._tokenId;
 
