@@ -15,12 +15,10 @@ const value_t builtin::putstr __attribute__((init_priority(3000))) = new prim_va
     builtin_lambda_id++,
     IntConst::ONE,
     [](const std::vector<FlattenArg>& args) -> value_t {
-        unless (args.size() <= 1) throw InterpretError("putstr() takes at most 1 arg");
-        if (args.size() == 1) {
-            auto arg = args.at(0);
-            auto argVal = evaluateValue(arg.expr, arg.env);
-            builtin::putstr_({argVal});
-        }
+        unless (args.size() == 1) throw InterpretError("putstr() takes 1 arg");
+        auto arg = args.at(0);
+        auto argVal = evaluateValue(arg.expr, arg.env);
+        builtin::putstr_({argVal});
         return nil_value_t();
     }
 }};
