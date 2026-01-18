@@ -16,6 +16,7 @@
 #endif
 
 #include <cstring>
+using namespace std::string_literals;
 
 #define unless(x) if(!(x))
 
@@ -38,8 +39,12 @@ int main(int argc, char* argv[])
     }
 
     ARG0 = argv[0];
-    auto ARGS = split_args_in_two(argc, argv, "--").first;
-    SRC_ARGS = split_args_in_two(argc, argv, "--").second;
+    std::vector<std::string> ARGS;
+    if ((argc >= 2 && argv[1] == "--"s) || (argc >= 3 && argv[2] == "--"s)) {
+        ARGS = split_args_in_two(argc, argv, "--").first;
+        SRC_ARGS = split_args_in_two(argc, argv, "--").second;
+    }
+    else for (int i = 1; i < argc; ++i) (i == 1? ARGS : SRC_ARGS).push_back(argv[i]);
 
     /* delegate main based on execution mode */
 
