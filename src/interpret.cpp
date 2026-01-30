@@ -523,26 +523,32 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
             top_level_stmt = false;
             defer {top_level_stmt = backup_top_level_stmt;};
 
-            i = 0;
-            for (; i < lambda.body.statements.size() - 1; ++i) {
-                performStatement(lambda.body.statements.at(i), &lambdaEnv);
+            std::optional<Statement> trailing_stmt;
+            for (i = 0; i < lambda.body.statements.size(); ++i) {
+                if (!is_empty_expr_stmt(lambda.body.statements.at(i))) {
+                    if (trailing_stmt) {
+                        performStatement(*trailing_stmt, &lambdaEnv);
+                    }
+                    trailing_stmt = lambda.body.statements.at(i);
+                }
             }
+
+            unless (trailing_stmt) return nil_value_t();
 
             auto backup_is_tailcallable = is_tailcallable;
-            is_tailcallable = check_if_tailcallable(lambda.body.statements.at(i));
+            is_tailcallable = check_if_tailcallable(*trailing_stmt);
             defer {is_tailcallable = backup_is_tailcallable;};
 
-            if (std::holds_alternative<ExpressionStatement*>(lambda.body.statements.at(i))) {
-                auto exprStmt = *std::get<ExpressionStatement*>(lambda.body.statements.at(i));
-                if (exprStmt.expression) {
-                    auto res = evaluateValue(*exprStmt.expression, &lambdaEnv);
-                    // res = deepcopy(res); // TODO: no need ?
-                    return res;
-                }
+            if (!std::holds_alternative<ExpressionStatement*>(*trailing_stmt)) {
+                performStatement(*trailing_stmt, &lambdaEnv);
                 return nil_value_t();
             }
-            performStatement(lambda.body.statements.at(i), &lambdaEnv);
-            return nil_value_t();
+
+            auto exprStmt = *std::get<ExpressionStatement*>(*trailing_stmt);
+            ASSERT (exprStmt.expression);
+            auto res = evaluateValue(*exprStmt.expression, &lambdaEnv);
+            // res = deepcopy(res); // TODO: no need ?
+            return res;
         }
     };
     return new prim_value_t{lambdaVal};
@@ -558,26 +564,32 @@ value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
     }
     auto newEnv = new Environment{{}, env};
 
-    size_t i = 0;
-    for (; i < blockExpr.statements.size() - 1; ++i) {
-        performStatement(blockExpr.statements.at(i), newEnv);
+    std::optional<Statement> trailing_stmt;
+    for (size_t i = 0; i < blockExpr.statements.size(); ++i) {
+        if (!is_empty_expr_stmt(blockExpr.statements.at(i))) {
+            if (trailing_stmt) {
+                performStatement(*trailing_stmt, newEnv);
+            }
+            trailing_stmt = blockExpr.statements.at(i);
+        }
     }
+
+    unless (trailing_stmt) return nil_value_t();
 
     auto backup_is_tailcallable = is_tailcallable;
-    is_tailcallable = check_if_tailcallable(blockExpr.statements.at(i));
+    is_tailcallable = check_if_tailcallable(*trailing_stmt);
     defer {is_tailcallable = backup_is_tailcallable;};
 
-    if (std::holds_alternative<ExpressionStatement*>(blockExpr.statements.at(i))) {
-        auto exprStmt = *std::get<ExpressionStatement*>(blockExpr.statements.at(i));
-        if (exprStmt.expression) {
-            auto res = evaluateValue(*exprStmt.expression, newEnv);
-            // res = deepcopy(res); // TODO: no need ?
-            return res;
-        }
+    if (!std::holds_alternative<ExpressionStatement*>(*trailing_stmt)) {
+        performStatement(*trailing_stmt, newEnv);
         return nil_value_t();
     }
-    performStatement(blockExpr.statements.at(i), newEnv);
-    return nil_value_t();
+
+    auto exprStmt = *std::get<ExpressionStatement*>(*trailing_stmt);
+    ASSERT (exprStmt.expression);
+    auto res = evaluateValue(*exprStmt.expression, newEnv);
+    // res = deepcopy(res); // TODO: no need ?
+    return res;
 }
 
 value_t evaluateValue(const FieldAccess& fieldAccess, Environment* env) {
