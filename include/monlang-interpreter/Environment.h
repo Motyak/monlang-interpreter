@@ -14,7 +14,7 @@ class Environment {
     using Variable = value_t*;
     struct LabelToLvalue {
         thunk_t<value_t> value;
-        thunk_t<value_t*> lvalue;
+        std::function<value_t*(/*subscripted*/bool)> lvalue;
     };
 
     // argument passed by delayed value (lazy pass by value)

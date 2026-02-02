@@ -164,7 +164,13 @@ void performStatement(const LetStatement& letStmt, Environment* env) {
             (thunk_t<value_t>)[pathResolution, thunkEnv]() -> value_t {
                 return pathResolution->value(thunkEnv);
             },
-            (thunk_t<value_t*>)[pathResolution, thunkEnv]() -> value_t* {
+            [pathResolution, thunkEnv](bool subscripted) -> value_t* {
+                if (subscripted) {
+                    // evaluate before otherwise we could get "Accessing field on a $nil"
+                    // in perfectly legitimate cases where one passes a delayed by ref
+                    // , not evaluated yet, and assigns to its subscript
+                    pathResolution->value(thunkEnv);
+                }
                 return pathResolution->lvalue(thunkEnv);
             }
         };
@@ -177,7 +183,10 @@ void performStatement(const LetStatement& letStmt, Environment* env) {
             (thunk_t<value_t>)[&letStmt, thunkEnv]() -> value_t {
                 return evaluateValue(letStmt.variable, thunkEnv);
             },
-            (thunk_t<value_t*>)[&letStmt, thunkEnv]() -> value_t* {
+            [&letStmt, thunkEnv](bool subscripted) -> value_t* {
+                if (subscripted) {
+                    evaluateValue(letStmt.variable, thunkEnv);
+                }
                 return evaluateLvalue(letStmt.variable, thunkEnv);
             }
         };
@@ -432,7 +441,10 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                             (thunk_t<value_t>)[pathResolution, thunkEnv]() -> value_t {
                                 return pathResolution->value(thunkEnv);
                             },
-                            (thunk_t<value_t*>)[pathResolution, thunkEnv]() -> value_t* {
+                            [pathResolution, thunkEnv](bool subscripted) -> value_t* {
+                                if (subscripted) {
+                                    pathResolution->value(thunkEnv);
+                                }
                                 return pathResolution->lvalue(thunkEnv);
                             }
                         };
@@ -445,7 +457,10 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                             (thunk_t<value_t>)[currArg, thunkEnv]() -> value_t {
                                 return evaluateValue(currArg.expr, thunkEnv);
                             },
-                            (thunk_t<value_t*>)[currArg, thunkEnv]() -> value_t* {
+                            [currArg, thunkEnv](bool subscripted) -> value_t* {
+                                if (subscripted) {
+                                    evaluateValue(currArg.expr, thunkEnv);
+                                }
                                 return evaluateLvalue(currArg.expr, thunkEnv);
                             }
                         };
@@ -1088,7 +1103,7 @@ value_t* evaluateLvalue(const Symbol& symbol, const Environment* env, bool subsc
         auto symbolVal = env->at(symbol.name);
         return std::visit(overload{
             [](Environment::Variable var) -> value_t* {return var;},
-            [](Environment::LabelToLvalue& label_ref) -> value_t* {return label_ref.lvalue();},
+            [subscripted](Environment::LabelToLvalue& label_ref) -> value_t* {return label_ref.lvalue(subscripted);},
             [subscripted](const Environment::PassByDelay& delayed) -> value_t* {
                 if (std::holds_alternative<thunk_with_memoization_t<value_t>*>(*delayed)) {
                     auto* thunk = std::get<thunk_with_memoization_t<value_t>*>(*delayed);
