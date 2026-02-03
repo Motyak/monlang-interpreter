@@ -1,0 +1,18 @@
+
+REPERCURSSIONS
+
+::evaluateLvalue(Subscript)
+  => PathResolution::evaluateLvalue(Subscript)
+
+::evaluateLvalue(FieldAccess)
+  => PathResolution::evaluateLvalue(FieldAccess)
+
+::evaluateValue(Subscript)
+  => ::createPaths(Subscript)
+  => PathResolution::evaluateValue(Subscript)
+    => PathResolution::createPaths(Subscript)
+
+::evaluateValue(FieldAccess)
+  => ::createPaths(FieldAccess)
+  => PathResolution::evaluateValue(FieldAccess)
+    => PathResolution::createPaths(FieldAccess)

@@ -166,10 +166,7 @@ void performStatement(const LetStatement& letStmt, Environment* env) {
             },
             [pathResolution, thunkEnv](bool subscripted) -> value_t* {
                 if (subscripted) {
-                    // evaluate before otherwise we could get "Accessing field on a $nil"
-                    // in perfectly legitimate cases where one passes a delayed by ref
-                    // , not evaluated yet, and assigns to its subscript
-                    pathResolution->value(thunkEnv);
+                    pathResolution->createPaths(thunkEnv);
                 }
                 return pathResolution->lvalue(thunkEnv);
             }
@@ -185,7 +182,7 @@ void performStatement(const LetStatement& letStmt, Environment* env) {
             },
             [&letStmt, thunkEnv](bool subscripted) -> value_t* {
                 if (subscripted) {
-                    evaluateValue(letStmt.variable, thunkEnv);
+                    createPaths(letStmt.variable, thunkEnv);
                 }
                 return evaluateLvalue(letStmt.variable, thunkEnv);
             }
@@ -443,7 +440,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                             },
                             [pathResolution, thunkEnv](bool subscripted) -> value_t* {
                                 if (subscripted) {
-                                    pathResolution->value(thunkEnv);
+                                    pathResolution->createPaths(thunkEnv);
                                 }
                                 return pathResolution->lvalue(thunkEnv);
                             }
@@ -459,7 +456,11 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                             },
                             [currArg, thunkEnv](bool subscripted) -> value_t* {
                                 if (subscripted) {
+                                    #ifdef TOGGLE_LEGACY_REF
+                                    createPaths(currArg.expr, thunkEnv);
+                                    #else
                                     evaluateValue(currArg.expr, thunkEnv);
+                                    #endif
                                 }
                                 return evaluateLvalue(currArg.expr, thunkEnv);
                             }

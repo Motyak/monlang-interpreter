@@ -1,0 +1,211 @@
+#include <monlang-interpreter/interpret.h>
+#include <monlang-interpreter/InterpretError.h>
+#include <monlang-interpreter/builtin.h>
+
+#include <utils/variant-utils.h>
+#include <utils/assert-utils.h>
+#include <utils/defer-util.h>
+#include <utils/vec-utils.h>
+
+#define unless(x) if(!(x))
+
+using Bool = prim_value_t::Bool;
+using Byte = prim_value_t::Byte;
+using Int = prim_value_t::Int;
+using Float = prim_value_t::Float;
+using Str = prim_value_t::Str;
+using List = prim_value_t::List;
+using Map = prim_value_t::Map;
+namespace LV2 {using Lambda = Lambda;}
+
+value_t createPaths(const Lvalue& lvalue, Environment* env) {
+    return std::visit(overload{
+        [env](Symbol* symbol){return evaluateValue(*symbol, env);},
+        [env](auto* lvalue){return createPaths(*lvalue, env);},
+    }, lvalue.variant);
+}
+
+// see ::evaluateValue(FieldAccess) in src/interpret.cpp
+value_t createPaths(const FieldAccess& fieldAccess, Environment* env) {
+    auto object = createPaths(fieldAccess.object, env);
+    //            ^~~~~~~~~~~
+    ASSERT (std::holds_alternative<prim_value_t*>(object)); // TODO: tmp
+    auto* objPrimValPtr = std::get<prim_value_t*>(object);
+
+    if (objPrimValPtr == nullptr) {
+        throw InterpretError("Accessing field on a $nil");
+    }
+
+    if (std::holds_alternative<Map>(objPrimValPtr->variant)) {
+        const auto& map = std::get<Map>(objPrimValPtr->variant);
+        auto key = new prim_value_t{(Str)fieldAccess.field.name};
+        unless (map.contains(key)) {
+            ::activeCallStack.push_back(const_cast<Symbol*>(&fieldAccess.field));
+            throw InterpretError("Field not found `" + fieldAccess.field.name + "`");
+        }
+        return map.at(key);
+    }
+
+    else throw InterpretError("Accessing field on a non-struct");
+}
+
+// see ::evaluateValue(Subscript) in src/interpret.cpp
+value_t createPaths(const Subscript& subscript, Environment* env) {
+    extern value_t SENTINEL_NEW_MAP; // defined in src/interpret.cpp //
+    auto arrVal = createPaths(subscript.array, env);
+    //            ^~~~~~~~~~~
+    // arrVal = deepcopy(arrVal); // TODO: no need ?
+
+    if (arrVal == SENTINEL_NEW_MAP) { //
+        arrVal = new prim_value_t{prim_value_t::Map()}; //
+    } //
+
+    ASSERT (std::holds_alternative<prim_value_t*>(arrVal)); // TODO: tmp
+    auto* arrPrimValPtr = std::get<prim_value_t*>(arrVal);
+
+    if (arrPrimValPtr == nullptr) {
+        throw InterpretError("Subscripting a $nil");
+    }
+
+    return std::visit(overload{
+        [&subscript, env](const Str& str) -> value_t {
+            if (std::holds_alternative<Subscript::Key>(subscript.argument)) {
+                throw InterpretError("Subscripting a Str with a key");
+            }
+
+            else if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
+                auto index = std::get<Subscript::Index>(subscript.argument);
+                auto nthVal = evaluateValue(variant_cast(index.nth), env);
+                ::activeCallStack.push_back(variant_cast(index.nth));
+                defer {safe_pop_back(::activeCallStack);};
+                auto intVal = builtin::prim_ctor::Int_(nthVal);
+
+                unless (intVal != 0) throw InterpretError("Subscript index is zero");
+                unless (abs(intVal) <= str.size()) throw InterpretError("Subscript index is out of bounds");
+                auto pos = intVal < 0? str.size() - abs(intVal) : size_t(intVal) - 1;
+                return new prim_value_t{Byte(str.at(pos))};
+            }
+
+            else if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
+                auto range = std::get<Subscript::Range>(subscript.argument);
+
+                /* from */
+                ::activeCallStack.push_back(variant_cast(range.from));
+                auto fromVal = evaluateValue(variant_cast(range.from), env);
+                auto intFromVal = builtin::prim_ctor::Int_(fromVal);
+                unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
+                Int fromPos = intFromVal < 0? Int(str.size()) - abs(intFromVal) : intFromVal - 1;
+                unless (0 <= fromPos && fromPos < Int(str.size())) throw InterpretError("Subscript range 'from' is out of bounds");
+                safe_pop_back(::activeCallStack); // variant_cast(range.from)
+
+                /* to */
+                ::activeCallStack.push_back(variant_cast(range.to));
+                auto toVal = evaluateValue(variant_cast(range.to), env);
+                auto intToVal = builtin::prim_ctor::Int_(toVal);
+                unless (intToVal != 0) throw InterpretError("Subscript range 'to' is zero");
+                Int toPos = intToVal < 0? Int(str.size()) - abs(intToVal) : intToVal - 1;
+                unless (toPos >= 0) throw InterpretError("Subscript range 'to' is out of bounds");
+                if (range.exclusive) {
+                    toPos -= fromPos <= toPos? 1 : -1;
+                }
+                else if (toPos < fromPos) {
+                    toPos = fromPos;
+                }
+                unless (toPos < Int(str.size())) throw InterpretError("Subscript range 'to' is out of bounds");
+                safe_pop_back(::activeCallStack); // variant_cast(range.to)
+
+                return new prim_value_t{str.substr(fromPos, toPos - fromPos + 1)};
+            }
+
+            else SHOULD_NOT_HAPPEN();
+        },
+
+        [&subscript, env](const List& list) -> value_t {
+            if (std::holds_alternative<Subscript::Key>(subscript.argument)) {
+                throw InterpretError("Subscripting a List with a key");
+            }
+
+            else if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
+                auto index = std::get<Subscript::Index>(subscript.argument);
+                auto nthVal = evaluateValue(variant_cast(index.nth), env);
+                ::activeCallStack.push_back(variant_cast(index.nth));
+                defer {safe_pop_back(::activeCallStack);};
+                auto intVal = builtin::prim_ctor::Int_(nthVal);
+
+                unless (intVal != 0) throw InterpretError("Subscript index is zero");
+                unless (abs(intVal) <= list.size()) throw InterpretError("Subscript index is out of bounds");
+                auto pos = intVal < 0? list.size() - abs(intVal) : size_t(intVal) - 1;
+                return list.at(pos);
+            }
+
+            else if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
+                auto range = std::get<Subscript::Range>(subscript.argument);
+
+                /* from */
+                ::activeCallStack.push_back(variant_cast(range.from));
+                auto fromVal = evaluateValue(variant_cast(range.from), env);
+                auto intFromVal = builtin::prim_ctor::Int_(fromVal);
+                unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
+                Int fromPos = intFromVal < 0? Int(list.size()) - abs(intFromVal) : intFromVal - 1;
+                unless (0 <= fromPos && fromPos < Int(list.size())) throw InterpretError("Subscript range 'from' is out of bounds");
+                safe_pop_back(::activeCallStack); // variant_cast(range.from)
+
+                /* to */
+                ::activeCallStack.push_back(variant_cast(range.to));
+                auto toVal = evaluateValue(variant_cast(range.to), env);
+                auto intToVal = builtin::prim_ctor::Int_(toVal);
+                unless (intToVal != 0) throw InterpretError("Subscript range 'to' is zero");
+                Int toPos = intToVal < 0? Int(list.size()) - abs(intToVal) : intToVal - 1;
+                unless (toPos >= 0) throw InterpretError("Subscript range 'to' is out of bounds");
+                if (range.exclusive) {
+                    toPos -= fromPos <= toPos? 1 : -1;
+                }
+                else if (toPos < fromPos) {
+                    toPos = fromPos;
+                }
+                unless (toPos < Int(list.size())) throw InterpretError("Subscript range 'to' is out of bounds");
+                safe_pop_back(::activeCallStack); // variant_cast(range.to)
+
+                auto res = List(list.begin() + fromPos, list.begin() + + toPos + 1);
+                return new prim_value_t{res};
+            }
+
+            else SHOULD_NOT_HAPPEN();
+        },
+
+        [&subscript, env](Map& map) -> value_t {
+        //                ^~~~ no const
+            extern value_t SENTINEL_NEW_MAP; // defined in src/interpret.cpp //
+            if (std::holds_alternative<Subscript::Index>(subscript.argument)) {
+                throw InterpretError("Subscripting a Map with an index");
+            }
+
+            else if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
+                throw InterpretError("Subscripting a Map with an range");
+            }
+
+            else if (std::holds_alternative<Subscript::Key>(subscript.argument)) {
+                auto key = std::get<Subscript::Key>(subscript.argument);
+                auto keyVal = evaluateValue(key.expr, env);
+                if (subscript.suffix == '?') {
+                    return map.contains(keyVal)? BoolConst::TRUE : BoolConst::FALSE;
+                }
+                // ::activeCallStack.push_back(key.expr);
+                // unless (map.contains(keyVal)) throw InterpretError("Subscript key not found");
+                // safe_pop_back(::activeCallStack);
+                if (!map.contains(keyVal)) { //
+                    map[keyVal] = SENTINEL_NEW_MAP; //
+                } //
+                return map.at(keyVal);
+            }
+
+            else SHOULD_NOT_HAPPEN();
+        },
+
+        [](Bool) -> value_t {throw InterpretError("Cannot subscript a Bool");},
+        [](Byte) -> value_t {throw InterpretError("Cannot subscript a Byte");},
+        [](Int) -> value_t {throw InterpretError("Cannot subscript an Int");},
+        [](Float) -> value_t {throw InterpretError("Cannot subscript a Float");},
+        [](const prim_value_t::Lambda&) -> value_t {throw InterpretError("Cannot subscript a Lambda");},
+    }, arrPrimValPtr->variant);
+}

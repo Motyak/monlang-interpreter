@@ -82,4 +82,14 @@ value_t* evaluateLvalue(const FieldAccess&, Environment*);
 value_t* evaluateLvalue(const Subscript&, Environment*);
 value_t* evaluateLvalue(const Symbol&, const Environment*, bool subscripted = false);
 
+/* createPaths (impl in createPaths.cpp)
+   is the same as evaluateValue except it autovivifies as it traverses the subscripts.
+   This is called before lvaluating a subscripted symbol, in case it wasn't yet evaluated.
+   Otherwise we could get "Accessing field on a $nil" in perfectly legitimate cases
+   where one passes a delayed by ref and then assigns to its subscript.
+*/
+value_t createPaths(const Lvalue&, Environment*);
+value_t createPaths(const Subscript&, Environment*);
+value_t createPaths(const FieldAccess&, Environment*);
+
 #endif // INTERPRET_H

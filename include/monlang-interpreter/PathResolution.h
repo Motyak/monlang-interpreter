@@ -27,12 +27,17 @@ class PathResolution {
     value_t* evaluateLvalue(const FieldAccess&, Environment* envAtResolution);
     value_t* evaluateLvalue(const Symbol&, Environment* envAtResolution, bool subscripted = false);
 
+    value_t createPaths(const Lvalue&, Environment* envAtResolution);
+    value_t createPaths(const Subscript&, Environment* envAtResolution);
+    value_t createPaths(const FieldAccess&, Environment* envAtResolution);
+
   public:
     PathResolution() = default;
     PathResolution(const Lvalue& path, Environment* pathValuesEnv);
 
     value_t value(Environment* envAtResolution);
     value_t* lvalue(Environment* envAtResolution);
+    value_t createPaths(Environment* envAtResolution);
 };
 
 #endif // PATH_RESOLUTION_H
