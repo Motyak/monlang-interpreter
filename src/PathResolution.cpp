@@ -8,6 +8,8 @@
 #include <utils/assert-utils.h>
 #include <utils/defer-util.h>
 #include <utils/vec-utils.h>
+#include <utils/abs63.h>
+#include <utils/min0.h>
 
 #define unless(x) if(!(x))
 
@@ -90,8 +92,8 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
                     //                                                     ^~~~~~~~~~~~~~~~~~~
                     auto intVal = builtin::prim_ctor::Int_(nthVal);
                     unless (intVal != 0) throw InterpretError("Subscript index is zero");
-                    unless (abs(intVal) <= str.size()) throw InterpretError("Subscript index is out of bounds");
-                    pos = intVal < 0? str.size() - abs(intVal) : size_t(intVal) - 1;
+                    unless (abs63(intVal) <= abs63(str.size())) throw InterpretError("Subscript index is out of bounds");
+                    pos = intVal < 0? str.size() - abs63(intVal) : size_t(intVal) - 1;
 
                     this->pathValues.push_back(pos);
                 }
@@ -100,20 +102,23 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
 
             else if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
                 auto range = std::get<Subscript::Range>(subscript.argument);
+                abs63(str.size()); // make sure it's storable in a Int
                 Int fromPos;
                 Int toPos;
                 if (this->pathValues.size() >= size_t(this->nthSubscript + 1)) {
                     auto pair = std::any_cast<std::pair<Int, Int>>(pathValues.at(this->nthSubscript));
 
                     fromPos = pair.first;
-                    ::activeCallStack.push_back(variant_cast(range.from));
-                    unless (fromPos < Int(str.size())) throw InterpretError("Subscript range 'from' is out of bounds");
-                    safe_pop_back(::activeCallStack);
+                    unless (0 <= fromPos && size_t(fromPos) < str.size()) {
+                        ::activeCallStack.push_back(variant_cast(range.from));
+                        throw InterpretError("Subscript range 'from' is out of bounds");
+                    }
 
                     toPos = pair.second;
-                    ::activeCallStack.push_back(variant_cast(range.to));
-                    unless (toPos < Int(str.size())) throw InterpretError("Subscript range 'to' is out of bounds");
-                    safe_pop_back(::activeCallStack);
+                    unless (0 <= toPos && size_t(toPos) < str.size()) {
+                        ::activeCallStack.push_back(variant_cast(range.from));
+                        throw InterpretError("Subscript range 'to' is out of bounds");
+                    }
                 }
                 else {
                     /* from */
@@ -122,30 +127,47 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
                     //                                                       ^~~~~~~~~~~~~~~~~~~
                     auto intFromVal = builtin::prim_ctor::Int_(fromVal);
                     unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
-                    fromPos = intFromVal < 0? Int(str.size()) - abs(intFromVal) : intFromVal - 1;
-                    unless (0 <= fromPos && fromPos < Int(str.size())) throw InterpretError("Subscript range 'from' is out of bounds");
-                    safe_pop_back(::activeCallStack); // variant_cast(range.from)
+                    safe_pop_back(::activeCallStack);
 
                     /* to */
                     ::activeCallStack.push_back(variant_cast(range.to));
                     auto toVal = ::evaluateValue(variant_cast(range.to), this->pathValuesEnv);
                     //                                                   ^~~~~~~~~~~~~~~~~~~
                     auto intToVal = builtin::prim_ctor::Int_(toVal);
-                    unless (intToVal != 0) throw InterpretError("Subscript range 'to' is zero");
-                    toPos = intToVal < 0? Int(str.size()) - abs(intToVal) : intToVal - 1;
-                    unless (toPos >= 0) throw InterpretError("Subscript range 'to' is out of bounds");
-                    if (range.exclusive) {
-                        toPos -= fromPos <= toPos? 1 : -1;
-                    }
-                    else if (toPos < fromPos) {
-                        toPos = fromPos;
-                    }
-                    unless (toPos < Int(str.size())) throw InterpretError("Subscript range 'to' is out of bounds");
-                    safe_pop_back(::activeCallStack); // variant_cast(range.to)
+                    unless (intToVal != 0 || range.exclusive) throw InterpretError("Subscript range 'to' is zero");
+                    safe_pop_back(::activeCallStack);
 
-                    this->pathValues.push_back(std::make_pair(fromPos, toPos));
+                    /* 1) handle exlusive range, if present */
+                    if (range.exclusive) {
+                        Int fromPos = intFromVal < 0? str.size() - abs63(intFromVal) : intFromVal - 1;
+                        Int toPos = intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
+                        if (intFromVal == intToVal) {
+                            return new prim_value_t{Str()}; // empty range
+                        }
+                        else if (fromPos < toPos) {
+                            intToVal -= 1;
+                        }
+                        else if (fromPos > toPos) {
+                            intToVal += 1;
+                        }
+                    }
+
+                    /* 2) transform to pos, with index starting at zero */
+                    fromPos = intFromVal < 0? str.size() - abs63(intFromVal) : intFromVal - 1;
+                    toPos = intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
+
+                    /* 3) check out of bounds */
+                    unless (0 <= fromPos && size_t(fromPos) < str.size()) {
+                        ::activeCallStack.push_back(variant_cast(range.from));
+                        throw InterpretError("Subscript range 'from' is out of bounds");
+                    }
+                    unless (0 <= toPos && size_t(toPos) < str.size()) {
+                        ::activeCallStack.push_back(variant_cast(range.from));
+                        throw InterpretError("Subscript range 'to' is out of bounds");
+                    }
                 }
-                return new prim_value_t{str.substr(fromPos, toPos - fromPos + 1)};
+
+                return new prim_value_t{str.substr(fromPos, min0(toPos - fromPos) + 1)};
             }
 
             else SHOULD_NOT_HAPPEN();
@@ -170,8 +192,8 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
                     //                                                     ^~~~~~~~~~~~~~~~~~~
                     auto intVal = builtin::prim_ctor::Int_(nthVal);
                     unless (intVal != 0) throw InterpretError("Subscript index is zero");
-                    unless (abs(intVal) <= list.size()) throw InterpretError("Subscript index is out of bounds");
-                    pos = intVal < 0? list.size() - abs(intVal) : size_t(intVal) - 1;
+                    unless (abs63(intVal) <= abs63(list.size())) throw InterpretError("Subscript index is out of bounds");
+                    pos = intVal < 0? list.size() - abs63(intVal) : size_t(intVal) - 1;
 
                     this->pathValues.push_back(pos);
                 }
@@ -180,20 +202,23 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
 
             else if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
                 auto range = std::get<Subscript::Range>(subscript.argument);
+                abs63(list.size()); // make sure it's storable in a Int
                 Int fromPos;
                 Int toPos;
                 if (this->pathValues.size() >= size_t(this->nthSubscript + 1)) {
                     auto pair = std::any_cast<std::pair<Int, Int>>(pathValues.at(this->nthSubscript));
 
                     fromPos = pair.first;
-                    ::activeCallStack.push_back(variant_cast(range.from));
-                    unless (fromPos < Int(list.size())) throw InterpretError("Subscript range 'from' is out of bounds");
-                    safe_pop_back(::activeCallStack);
+                    unless (0 <= fromPos && size_t(fromPos) < list.size()) {
+                        ::activeCallStack.push_back(variant_cast(range.from));
+                        throw InterpretError("Subscript range 'from' is out of bounds");
+                    }
 
                     toPos = pair.second;
-                    ::activeCallStack.push_back(variant_cast(range.to));
-                    unless (toPos < Int(list.size())) throw InterpretError("Subscript range 'to' is out of bounds");
-                    safe_pop_back(::activeCallStack);
+                    unless (0 <= toPos && size_t(toPos) < list.size()) {
+                        ::activeCallStack.push_back(variant_cast(range.from));
+                        throw InterpretError("Subscript range 'to' is out of bounds");
+                    }
                 }
                 else {
                     /* from */
@@ -202,31 +227,47 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
                     //                                                       ^~~~~~~~~~~~~~~~~~~
                     auto intFromVal = builtin::prim_ctor::Int_(fromVal);
                     unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
-                    fromPos = intFromVal < 0? Int(list.size()) - abs(intFromVal) : intFromVal - 1;
-                    unless (0 <= fromPos && fromPos < Int(list.size())) throw InterpretError("Subscript range 'from' is out of bounds");
-                    safe_pop_back(::activeCallStack); // variant_cast(range.from)
+                    safe_pop_back(::activeCallStack);
 
                     /* to */
                     ::activeCallStack.push_back(variant_cast(range.to));
                     auto toVal = ::evaluateValue(variant_cast(range.to), this->pathValuesEnv);
                     //                                                   ^~~~~~~~~~~~~~~~~~~
                     auto intToVal = builtin::prim_ctor::Int_(toVal);
-                    unless (intToVal != 0) throw InterpretError("Subscript range 'to' is zero");
-                    toPos = intToVal < 0? Int(list.size()) - abs(intToVal) : intToVal - 1;
-                    unless (toPos >= 0) throw InterpretError("Subscript range 'to' is out of bounds");
-                    if (range.exclusive) {
-                        toPos -= fromPos <= toPos? 1 : -1;
-                    }
-                    else if (toPos < fromPos) {
-                        toPos = fromPos;
-                    }
-                    unless (toPos < Int(list.size())) throw InterpretError("Subscript range 'to' is out of bounds");
-                    safe_pop_back(::activeCallStack); // variant_cast(range.to)
+                    unless (intToVal != 0 || range.exclusive) throw InterpretError("Subscript range 'to' is zero");
+                    safe_pop_back(::activeCallStack);
 
-                    this->pathValues.push_back(std::make_pair(fromPos, toPos));
+                    /* 1) handle exlusive range, if present */
+                    if (range.exclusive) {
+                        Int fromPos = intFromVal < 0? list.size() - abs63(intFromVal) : intFromVal - 1;
+                        Int toPos = intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
+                        if (intFromVal == intToVal) {
+                            return new prim_value_t{List()}; // empty range
+                        }
+                        else if (fromPos < toPos) {
+                            intToVal -= 1;
+                        }
+                        else if (fromPos > toPos) {
+                            intToVal += 1;
+                        }
+                    }
+
+                    /* 2) transform to pos, with index starting at zero */
+                    fromPos = intFromVal < 0? list.size() - abs63(intFromVal) : intFromVal - 1;
+                    toPos = intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
+
+                    /* 3) check out of bounds */
+                    unless (0 <= fromPos && size_t(fromPos) < list.size()) {
+                        ::activeCallStack.push_back(variant_cast(range.from));
+                        throw InterpretError("Subscript range 'from' is out of bounds");
+                    }
+                    unless (0 <= toPos && size_t(toPos) < list.size()) {
+                        ::activeCallStack.push_back(variant_cast(range.from));
+                        throw InterpretError("Subscript range 'to' is out of bounds");
+                    }
                 }
 
-                auto res = List(list.begin() + fromPos, list.begin() + + toPos + 1);
+                auto res = List(list.begin() + fromPos, list.begin() + std::max(fromPos, toPos) + 1);
                 return new prim_value_t{res};
             }
 
@@ -367,8 +408,8 @@ value_t* PathResolution::evaluateLvalue(const Subscript& subscript, Environment*
                     //                                                     ^~~~~~~~~~~~~~~~~~~
                     auto intVal = builtin::prim_ctor::Int_(nthVal);
                     unless (intVal != 0) throw InterpretError("Subscript index is zero");
-                    unless (abs(intVal) <= str.size()) throw InterpretError("Subscript index is out of bounds");
-                    pos = intVal < 0? str.size() - abs(intVal) : size_t(intVal) - 1;
+                    unless (abs63(intVal) <= abs63(str.size())) throw InterpretError("Subscript index is out of bounds");
+                    pos = intVal < 0? str.size() - abs63(intVal) : size_t(intVal) - 1;
 
                     this->pathValues.push_back(pos);
                 }
@@ -395,8 +436,8 @@ value_t* PathResolution::evaluateLvalue(const Subscript& subscript, Environment*
                     //                                                     ^~~~~~~~~~~~~~~~~~~
                     auto intVal = builtin::prim_ctor::Int_(nthVal);
                     unless (intVal != 0) throw InterpretError("Subscript index is zero");
-                    unless (abs(intVal) <= list.size()) throw InterpretError("Subscript index is out of bounds");
-                    pos = intVal < 0? list.size() - abs(intVal) : size_t(intVal) - 1;
+                    unless (abs63(intVal) <= abs63(list.size())) throw InterpretError("Subscript index is out of bounds");
+                    pos = intVal < 0? list.size() - abs63(intVal) : size_t(intVal) - 1;
 
                     this->pathValues.push_back(pos);
                 }
@@ -550,11 +591,10 @@ value_t PathResolution::createPaths(const Subscript& subscript, Environment* env
                 }
                 else {
                     auto nthVal = ::evaluateValue(variant_cast(index.nth), this->pathValuesEnv);
-                    //                                                     ^~~~~~~~~~~~~~~~~~~
                     auto intVal = builtin::prim_ctor::Int_(nthVal);
                     unless (intVal != 0) throw InterpretError("Subscript index is zero");
-                    unless (abs(intVal) <= str.size()) throw InterpretError("Subscript index is out of bounds");
-                    pos = intVal < 0? str.size() - abs(intVal) : size_t(intVal) - 1;
+                    unless (abs63(intVal) <= abs63(str.size())) throw InterpretError("Subscript index is out of bounds");
+                    pos = intVal < 0? str.size() - abs63(intVal) : size_t(intVal) - 1;
 
                     this->pathValues.push_back(pos);
                 }
@@ -563,20 +603,23 @@ value_t PathResolution::createPaths(const Subscript& subscript, Environment* env
 
             else if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
                 auto range = std::get<Subscript::Range>(subscript.argument);
+                abs63(str.size()); // make sure it's storable in a Int
                 Int fromPos;
                 Int toPos;
                 if (this->pathValues.size() >= size_t(this->nthSubscript + 1)) {
                     auto pair = std::any_cast<std::pair<Int, Int>>(pathValues.at(this->nthSubscript));
 
                     fromPos = pair.first;
-                    ::activeCallStack.push_back(variant_cast(range.from));
-                    unless (fromPos < Int(str.size())) throw InterpretError("Subscript range 'from' is out of bounds");
-                    safe_pop_back(::activeCallStack);
+                    unless (0 <= fromPos && size_t(fromPos) < str.size()) {
+                        ::activeCallStack.push_back(variant_cast(range.from));
+                        throw InterpretError("Subscript range 'from' is out of bounds");
+                    }
 
                     toPos = pair.second;
-                    ::activeCallStack.push_back(variant_cast(range.to));
-                    unless (toPos < Int(str.size())) throw InterpretError("Subscript range 'to' is out of bounds");
-                    safe_pop_back(::activeCallStack);
+                    unless (0 <= toPos && size_t(toPos) < str.size()) {
+                        ::activeCallStack.push_back(variant_cast(range.from));
+                        throw InterpretError("Subscript range 'to' is out of bounds");
+                    }
                 }
                 else {
                     /* from */
@@ -585,30 +628,47 @@ value_t PathResolution::createPaths(const Subscript& subscript, Environment* env
                     //                                                       ^~~~~~~~~~~~~~~~~~~
                     auto intFromVal = builtin::prim_ctor::Int_(fromVal);
                     unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
-                    fromPos = intFromVal < 0? Int(str.size()) - abs(intFromVal) : intFromVal - 1;
-                    unless (0 <= fromPos && fromPos < Int(str.size())) throw InterpretError("Subscript range 'from' is out of bounds");
-                    safe_pop_back(::activeCallStack); // variant_cast(range.from)
+                    safe_pop_back(::activeCallStack);
 
                     /* to */
                     ::activeCallStack.push_back(variant_cast(range.to));
                     auto toVal = ::evaluateValue(variant_cast(range.to), this->pathValuesEnv);
                     //                                                   ^~~~~~~~~~~~~~~~~~~
                     auto intToVal = builtin::prim_ctor::Int_(toVal);
-                    unless (intToVal != 0) throw InterpretError("Subscript range 'to' is zero");
-                    toPos = intToVal < 0? Int(str.size()) - abs(intToVal) : intToVal - 1;
-                    unless (toPos >= 0) throw InterpretError("Subscript range 'to' is out of bounds");
-                    if (range.exclusive) {
-                        toPos -= fromPos <= toPos? 1 : -1;
-                    }
-                    else if (toPos < fromPos) {
-                        toPos = fromPos;
-                    }
-                    unless (toPos < Int(str.size())) throw InterpretError("Subscript range 'to' is out of bounds");
-                    safe_pop_back(::activeCallStack); // variant_cast(range.to)
+                    unless (intToVal != 0 || range.exclusive) throw InterpretError("Subscript range 'to' is zero");
+                    safe_pop_back(::activeCallStack);
 
-                    this->pathValues.push_back(std::make_pair(fromPos, toPos));
+                    /* 1) handle exlusive range, if present */
+                    if (range.exclusive) {
+                        Int fromPos = intFromVal < 0? str.size() - abs63(intFromVal) : intFromVal - 1;
+                        Int toPos = intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
+                        if (intFromVal == intToVal) {
+                            return new prim_value_t{Str()}; // empty range
+                        }
+                        else if (fromPos < toPos) {
+                            intToVal -= 1;
+                        }
+                        else if (fromPos > toPos) {
+                            intToVal += 1;
+                        }
+                    }
+
+                    /* 2) transform to pos, with index starting at zero */
+                    fromPos = intFromVal < 0? str.size() - abs63(intFromVal) : intFromVal - 1;
+                    toPos = intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
+
+                    /* 3) check out of bounds */
+                    unless (0 <= fromPos && size_t(fromPos) < str.size()) {
+                        ::activeCallStack.push_back(variant_cast(range.from));
+                        throw InterpretError("Subscript range 'from' is out of bounds");
+                    }
+                    unless (0 <= toPos && size_t(toPos) < str.size()) {
+                        ::activeCallStack.push_back(variant_cast(range.from));
+                        throw InterpretError("Subscript range 'to' is out of bounds");
+                    }
                 }
-                return new prim_value_t{str.substr(fromPos, toPos - fromPos + 1)};
+
+                return new prim_value_t{str.substr(fromPos, min0(toPos - fromPos) + 1)};
             }
 
             else SHOULD_NOT_HAPPEN();
@@ -630,11 +690,10 @@ value_t PathResolution::createPaths(const Subscript& subscript, Environment* env
                 }
                 else {
                     auto nthVal = ::evaluateValue(variant_cast(index.nth), this->pathValuesEnv);
-                    //                                                     ^~~~~~~~~~~~~~~~~~~
                     auto intVal = builtin::prim_ctor::Int_(nthVal);
                     unless (intVal != 0) throw InterpretError("Subscript index is zero");
-                    unless (abs(intVal) <= list.size()) throw InterpretError("Subscript index is out of bounds");
-                    pos = intVal < 0? list.size() - abs(intVal) : size_t(intVal) - 1;
+                    unless (abs63(intVal) <= abs63(list.size())) throw InterpretError("Subscript index is out of bounds");
+                    pos = intVal < 0? list.size() - abs63(intVal) : size_t(intVal) - 1;
 
                     this->pathValues.push_back(pos);
                 }
@@ -643,20 +702,23 @@ value_t PathResolution::createPaths(const Subscript& subscript, Environment* env
 
             else if (std::holds_alternative<Subscript::Range>(subscript.argument)) {
                 auto range = std::get<Subscript::Range>(subscript.argument);
+                abs63(list.size()); // make sure it's storable in a Int
                 Int fromPos;
                 Int toPos;
                 if (this->pathValues.size() >= size_t(this->nthSubscript + 1)) {
                     auto pair = std::any_cast<std::pair<Int, Int>>(pathValues.at(this->nthSubscript));
 
                     fromPos = pair.first;
-                    ::activeCallStack.push_back(variant_cast(range.from));
-                    unless (fromPos < Int(list.size())) throw InterpretError("Subscript range 'from' is out of bounds");
-                    safe_pop_back(::activeCallStack);
+                    unless (0 <= fromPos && size_t(fromPos) < list.size()) {
+                        ::activeCallStack.push_back(variant_cast(range.from));
+                        throw InterpretError("Subscript range 'from' is out of bounds");
+                    }
 
                     toPos = pair.second;
-                    ::activeCallStack.push_back(variant_cast(range.to));
-                    unless (toPos < Int(list.size())) throw InterpretError("Subscript range 'to' is out of bounds");
-                    safe_pop_back(::activeCallStack);
+                    unless (0 <= toPos && size_t(toPos) < list.size()) {
+                        ::activeCallStack.push_back(variant_cast(range.from));
+                        throw InterpretError("Subscript range 'to' is out of bounds");
+                    }
                 }
                 else {
                     /* from */
@@ -665,31 +727,47 @@ value_t PathResolution::createPaths(const Subscript& subscript, Environment* env
                     //                                                       ^~~~~~~~~~~~~~~~~~~
                     auto intFromVal = builtin::prim_ctor::Int_(fromVal);
                     unless (intFromVal != 0) throw InterpretError("Subscript range 'from' is zero");
-                    fromPos = intFromVal < 0? Int(list.size()) - abs(intFromVal) : intFromVal - 1;
-                    unless (0 <= fromPos && fromPos < Int(list.size())) throw InterpretError("Subscript range 'from' is out of bounds");
-                    safe_pop_back(::activeCallStack); // variant_cast(range.from)
+                    safe_pop_back(::activeCallStack);
 
                     /* to */
                     ::activeCallStack.push_back(variant_cast(range.to));
                     auto toVal = ::evaluateValue(variant_cast(range.to), this->pathValuesEnv);
                     //                                                   ^~~~~~~~~~~~~~~~~~~
                     auto intToVal = builtin::prim_ctor::Int_(toVal);
-                    unless (intToVal != 0) throw InterpretError("Subscript range 'to' is zero");
-                    toPos = intToVal < 0? Int(list.size()) - abs(intToVal) : intToVal - 1;
-                    unless (toPos >= 0) throw InterpretError("Subscript range 'to' is out of bounds");
-                    if (range.exclusive) {
-                        toPos -= fromPos <= toPos? 1 : -1;
-                    }
-                    else if (toPos < fromPos) {
-                        toPos = fromPos;
-                    }
-                    unless (toPos < Int(list.size())) throw InterpretError("Subscript range 'to' is out of bounds");
-                    safe_pop_back(::activeCallStack); // variant_cast(range.to)
+                    unless (intToVal != 0 || range.exclusive) throw InterpretError("Subscript range 'to' is zero");
+                    safe_pop_back(::activeCallStack);
 
-                    this->pathValues.push_back(std::make_pair(fromPos, toPos));
+                    /* 1) handle exlusive range, if present */
+                    if (range.exclusive) {
+                        Int fromPos = intFromVal < 0? list.size() - abs63(intFromVal) : intFromVal - 1;
+                        Int toPos = intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
+                        if (intFromVal == intToVal) {
+                            return new prim_value_t{List()}; // empty range
+                        }
+                        else if (fromPos < toPos) {
+                            intToVal -= 1;
+                        }
+                        else if (fromPos > toPos) {
+                            intToVal += 1;
+                        }
+                    }
+
+                    /* 2) transform to pos, with index starting at zero */
+                    fromPos = intFromVal < 0? list.size() - abs63(intFromVal) : intFromVal - 1;
+                    toPos = intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
+
+                    /* 3) check out of bounds */
+                    unless (0 <= fromPos && size_t(fromPos) < list.size()) {
+                        ::activeCallStack.push_back(variant_cast(range.from));
+                        throw InterpretError("Subscript range 'from' is out of bounds");
+                    }
+                    unless (0 <= toPos && size_t(toPos) < list.size()) {
+                        ::activeCallStack.push_back(variant_cast(range.from));
+                        throw InterpretError("Subscript range 'to' is out of bounds");
+                    }
                 }
 
-                auto res = List(list.begin() + fromPos, list.begin() + + toPos + 1);
+                auto res = List(list.begin() + fromPos, list.begin() + std::max(fromPos, toPos) + 1);
                 return new prim_value_t{res};
             }
 
