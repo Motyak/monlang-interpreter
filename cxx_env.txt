@@ -1,0 +1,21 @@
+- should keep BOTH -Og AND not disable "omit-frame-pointer" otherwise we get a huge
+  increase of stack usage (leading to stack overflow, with 8MB stack size)
+
+- should keep "tree-coalesce-vars" otherwise we get this warning:
+src/interpret.cpp:346:17: warning: variable ‘function’ might be clobbered by ‘longjmp’ or ‘vfork’ [-Wclobbered]
+  346 |     const auto& function = std::get<prim_value_t::Lambda>(fnPrimValPtr->variant);
+      |                 ^~~~~~~~
+
+- we are disabling any other optimization coming from -Og,
+  in order to achieve best debuggability (similar to -O0)
+  BUT with a reasonable stack usage.
+
+- it is NOT the same as doing `-O0 -fomit-frame-pointer -ftree-coalesce-vars`
+  because -O0 completely bypasses the SSA (Static Single Assignment) Optimizer Pipeline.
+  -> so we need -Og and a very long list of -fno-xxx, unfortunately
+    -> so i created a CXX function, wrapper of g++ or ccache g++, in
+       env.sh, and in the Makefile we say $(CXX) should resolve into
+       CXX (as a program name, to look for in the shell env).
+       So that we don't clutter Makefile command logging with all
+       our optimization options. (But we can still check it with
+       `what CXX`, or even toggle ccache in env.sh + source it again)

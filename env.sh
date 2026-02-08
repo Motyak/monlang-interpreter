@@ -1,7 +1,7 @@
 [ "${BASH_SOURCE[0]}" == "$0" ] && { >&2 echo "this script is meant to be sourced, not executed"; exit 1; }
 
 function CXX {
-    # ccache \
+    ccache \
     g++ \
     -Og -fno-inline -fno-reorder-blocks -fno-thread-jumps -fno-ipa-pure-const -fno-tree-ter -fno-tree-ccp -fno-tree-dce -fno-tree-fre -fno-tree-copy-prop -fno-tree-sink -fno-tree-slsr -fno-cprop-registers -fno-split-wide-types -fno-tree-ch -fno-tree-dominator-opts -fno-ipa-reference-addressable -fno-compare-elim -fno-ipa-profile -fno-ipa-reference -fno-toplevel-reorder -fno-guess-branch-probability -fno-forward-propagate -fno-defer-pop -fno-tree-builtin-call-dce -fno-combine-stack-adjustments -fno-shrink-wrap \
     "$@"
