@@ -1,10 +1,11 @@
 include utils.mk # askmake, not, shell_onrun, shouldrebuild
 
-export CXX := ccache g++
+# will look for a function named "CXX" in the shell env
+CXX := CXX
 
 SHELL := /bin/bash
 RM := rm -rf
-CXXFLAGS := --std=c++23 -Wall -Wextra -O0 -ggdb3 -I include
+CXXFLAGS := --std=c++23 -Wall -Wextra -ggdb3 -I include
 DEPFLAGS = -MMD -MP -MF .deps/$*.d
 ARFLAGS = D -M < <(tools/aggregate-libs.mri.sh $@ $^); :
 
