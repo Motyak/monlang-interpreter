@@ -103,26 +103,29 @@ value_t createPaths(const Subscript& subscript, Environment* env) {
                 ::activeCallStack.push_back(variant_cast(range.to));
                 auto toVal = evaluateValue(variant_cast(range.to), env);
                 auto intToVal = builtin::prim_ctor::Int_(toVal);
-                unless (intToVal != 0 || range.exclusive) throw InterpretError("Subscript range 'from' is zero");
+                unless (intToVal != 0 || range.exclusive) throw InterpretError("Subscript range 'to' is zero");
                 safe_pop_back(::activeCallStack);
 
-                /* 1) handle exlusive range, if present */
+                /* 1) handle exclusive range, if present */
                 if (range.exclusive) {
-                    Int fromPos = intFromVal < 0? str.size() - abs63(intFromVal) : intFromVal - 1;
-                    Int toPos = intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
                     if (intFromVal == intToVal) {
                         return new prim_value_t{Str()}; // empty range
                     }
-                    else if (fromPos < toPos) {
-                        intToVal -= 1;
-                    }
-                    else if (fromPos > toPos) {
-                        intToVal += 1;
+                    else {
+                        Int fromPos = intFromVal < 0? str.size() - abs63(intFromVal) : intFromVal - 1;
+                        Int toPos = intToVal == 0? (intFromVal > 0? -1 : LLONG_MAX) : intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
+                        // if "from" preceeds "to" (<= is because of LLONG_MAX above)
+                        if (fromPos <= toPos) {
+                            intToVal -= 1;
+                        }
+                        else if (fromPos > toPos) {
+                            intToVal += 1;
+                        }
                     }
                 }
 
                 /* 2) transform to pos, with index starting at zero */
-                Int fromPos = intFromVal < 0? str.size() - abs63(intFromVal) : intFromVal - 1;
+                Int fromPos = intFromVal <= 0? str.size() - abs63(intFromVal) : intFromVal - 1;
                 Int toPos = intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
 
                 /* 3) check out of bounds */
@@ -174,26 +177,29 @@ value_t createPaths(const Subscript& subscript, Environment* env) {
                 ::activeCallStack.push_back(variant_cast(range.to));
                 auto toVal = evaluateValue(variant_cast(range.to), env);
                 auto intToVal = builtin::prim_ctor::Int_(toVal);
-                unless (intToVal != 0 || range.exclusive) throw InterpretError("Subscript range 'from' is zero");
+                unless (intToVal != 0 || range.exclusive) throw InterpretError("Subscript range 'to' is zero");
                 safe_pop_back(::activeCallStack);
 
-                /* 1) handle exlusive range, if present */
+                /* 1) handle exclusive range, if present */
                 if (range.exclusive) {
-                    Int fromPos = intFromVal < 0? list.size() - abs63(intFromVal) : intFromVal - 1;
-                    Int toPos = intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
                     if (intFromVal == intToVal) {
                         return new prim_value_t{List()}; // empty range
                     }
-                    else if (fromPos < toPos) {
-                        intToVal -= 1;
-                    }
-                    else if (fromPos > toPos) {
-                        intToVal += 1;
+                    else {
+                        Int fromPos = intFromVal < 0? list.size() - abs63(intFromVal) : intFromVal - 1;
+                        Int toPos = intToVal == 0? (intFromVal > 0? -1 : LLONG_MAX) : intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
+                        // if "from" preceeds "to" (<= is because of LLONG_MAX above)
+                        if (fromPos <= toPos) {
+                            intToVal -= 1;
+                        }
+                        else if (fromPos > toPos) {
+                            intToVal += 1;
+                        }
                     }
                 }
 
                 /* 2) transform to pos, with index starting at zero */
-                Int fromPos = intFromVal < 0? list.size() - abs63(intFromVal) : intFromVal - 1;
+                Int fromPos = intFromVal <= 0? list.size() - abs63(intFromVal) : intFromVal - 1;
                 Int toPos = intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
 
                 /* 3) check out of bounds */
