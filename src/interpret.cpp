@@ -336,7 +336,7 @@ value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
 
             goto CONTINUE;
         }
-        
+
         /* handle "single" argument */
         flattenArgs.push_back({arg, env});
 
@@ -417,7 +417,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 ::activeCallStack.push_back(const_cast<LV2::Lambda*>(&lambda));
                 throw WrongNbOfArgsError(lambda.parameters, flattenArgs);
             }
-            
+
             size_t i = 0;
 
             /* binding required parameters (<> variadic parameter) */
@@ -681,18 +681,19 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
 
                 /* 1) handle exclusive range, if present */
                 if (range.exclusive) {
-                    if (intFromVal == intToVal) {
+                    Int fromPos = intFromVal <= 0? str.size() - abs63(intFromVal) : intFromVal - 1;
+                    Int toPos = intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
+                    if (intToVal == 0) {
+                        intToVal = intFromVal < 0? -1 : 1;
+                    }
+                    else if (fromPos == toPos) {
                         return new prim_value_t{Str()}; // empty range
                     }
-                    else {
-                        Int fromPos = intFromVal < 0? str.size() - abs63(intFromVal) : intFromVal - 1;
-                        Int toPos = intToVal == 0? (intFromVal > 0? -1 : LLONG_MAX) : intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
-                        if (fromPos < toPos || toPos == LLONG_MAX) {
-                            intToVal -= 1;
-                        }
-                        else if (fromPos > toPos) {
-                            intToVal += 1;
-                        }
+                    else if (fromPos < toPos) {
+                        intToVal -= 1;
+                    }
+                    else if (fromPos > toPos) {
+                        intToVal += 1;
                     }
                 }
 
@@ -706,7 +707,7 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                     throw InterpretError("Subscript range 'from' is out of bounds");
                 }
                 unless (0 <= toPos && toPos < Int(str.size())) {
-                    ::activeCallStack.push_back(variant_cast(range.from));
+                    ::activeCallStack.push_back(variant_cast(range.to));
                     throw InterpretError("Subscript range 'to' is out of bounds");
                 }
 
@@ -754,18 +755,19 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
 
                 /* 1) handle exclusive range, if present */
                 if (range.exclusive) {
-                    if (intFromVal == intToVal) {
+                    Int fromPos = intFromVal <= 0? list.size() - abs63(intFromVal) : intFromVal - 1;
+                    Int toPos = intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
+                    if (intToVal == 0) {
+                        intToVal = intFromVal < 0? -1 : 1;
+                    }
+                    else if (fromPos == toPos) {
                         return new prim_value_t{List()}; // empty range
                     }
-                    else {
-                        Int fromPos = intFromVal < 0? list.size() - abs63(intFromVal) : intFromVal - 1;
-                        Int toPos = intToVal == 0? (intFromVal > 0? -1 : LLONG_MAX) : intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
-                        if (fromPos < toPos || toPos == LLONG_MAX) {
-                            intToVal -= 1;
-                        }
-                        else if (fromPos > toPos) {
-                            intToVal += 1;
-                        }
+                    else if (fromPos < toPos) {
+                        intToVal -= 1;
+                    }
+                    else if (fromPos > toPos) {
+                        intToVal += 1;
                     }
                 }
 
@@ -779,7 +781,7 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                     throw InterpretError("Subscript range 'from' is out of bounds");
                 }
                 unless (0 <= toPos && size_t(toPos) < list.size()) {
-                    ::activeCallStack.push_back(variant_cast(range.from));
+                    ::activeCallStack.push_back(variant_cast(range.to));
                     throw InterpretError("Subscript range 'to' is out of bounds");
                 }
 
@@ -914,7 +916,7 @@ value_t evaluateValue(const Numeral& numeral, const Environment*) {
     if (numeral.type == "hex") {
         return new prim_value_t(Int(str2llong(numeral.int1, 16)));
     }
-    
+
     if (numeral.type == "bin") {
         return new prim_value_t(Int(str2llong(numeral.int1, 2)));
     }

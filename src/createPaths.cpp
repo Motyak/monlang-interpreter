@@ -108,18 +108,19 @@ value_t createPaths(const Subscript& subscript, Environment* env) {
 
                 /* 1) handle exclusive range, if present */
                 if (range.exclusive) {
-                    if (intFromVal == intToVal) {
+                    Int fromPos = intFromVal <= 0? str.size() - abs63(intFromVal) : intFromVal - 1;
+                    Int toPos = intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
+                    if (intToVal == 0) {
+                        intToVal = intFromVal < 0? -1 : 1;
+                    }
+                    else if (fromPos == toPos) {
                         return new prim_value_t{Str()}; // empty range
                     }
-                    else {
-                        Int fromPos = intFromVal < 0? str.size() - abs63(intFromVal) : intFromVal - 1;
-                        Int toPos = intToVal == 0? (intFromVal > 0? -1 : LLONG_MAX) : intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
-                        if (fromPos < toPos || toPos == LLONG_MAX) {
-                            intToVal -= 1;
-                        }
-                        else if (fromPos > toPos) {
-                            intToVal += 1;
-                        }
+                    else if (fromPos < toPos) {
+                        intToVal -= 1;
+                    }
+                    else if (fromPos > toPos) {
+                        intToVal += 1;
                     }
                 }
 
@@ -133,7 +134,7 @@ value_t createPaths(const Subscript& subscript, Environment* env) {
                     throw InterpretError("Subscript range 'from' is out of bounds");
                 }
                 unless (0 <= toPos && size_t(toPos) < str.size()) {
-                    ::activeCallStack.push_back(variant_cast(range.from));
+                    ::activeCallStack.push_back(variant_cast(range.to));
                     throw InterpretError("Subscript range 'to' is out of bounds");
                 }
 
@@ -181,18 +182,19 @@ value_t createPaths(const Subscript& subscript, Environment* env) {
 
                 /* 1) handle exclusive range, if present */
                 if (range.exclusive) {
-                    if (intFromVal == intToVal) {
+                    Int fromPos = intFromVal <= 0? list.size() - abs63(intFromVal) : intFromVal - 1;
+                    Int toPos = intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
+                    if (intToVal == 0) {
+                        intToVal = intFromVal < 0? -1 : 1;
+                    }
+                    else if (fromPos == toPos) {
                         return new prim_value_t{List()}; // empty range
                     }
-                    else {
-                        Int fromPos = intFromVal < 0? list.size() - abs63(intFromVal) : intFromVal - 1;
-                        Int toPos = intToVal == 0? (intFromVal > 0? -1 : LLONG_MAX) : intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
-                        if (fromPos < toPos || toPos == LLONG_MAX) {
-                            intToVal -= 1;
-                        }
-                        else if (fromPos > toPos) {
-                            intToVal += 1;
-                        }
+                    else if (fromPos < toPos) {
+                        intToVal -= 1;
+                    }
+                    else if (fromPos > toPos) {
+                        intToVal += 1;
                     }
                 }
 
@@ -206,7 +208,7 @@ value_t createPaths(const Subscript& subscript, Environment* env) {
                     throw InterpretError("Subscript range 'from' is out of bounds");
                 }
                 unless (0 <= toPos && size_t(toPos) < list.size()) {
-                    ::activeCallStack.push_back(variant_cast(range.from));
+                    ::activeCallStack.push_back(variant_cast(range.to));
                     throw InterpretError("Subscript range 'to' is out of bounds");
                 }
 
