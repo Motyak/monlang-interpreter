@@ -145,8 +145,7 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
                         else {
                             Int fromPos = intFromVal < 0? str.size() - abs63(intFromVal) : intFromVal - 1;
                             Int toPos = intToVal == 0? (intFromVal > 0? -1 : LLONG_MAX) : intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
-                            // if "from" preceeds "to" (<= is because of LLONG_MAX above)
-                            if (fromPos <= toPos) {
+                            if (fromPos < toPos || toPos == LLONG_MAX) {
                                 intToVal -= 1;
                             }
                             else if (fromPos > toPos) {
@@ -248,8 +247,7 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
                         else {
                             Int fromPos = intFromVal < 0? list.size() - abs63(intFromVal) : intFromVal - 1;
                             Int toPos = intToVal == 0? (intFromVal > 0? -1 : LLONG_MAX) : intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
-                            // if "from" preceeds "to" (<= is because of LLONG_MAX above)
-                            if (fromPos <= toPos) {
+                            if (fromPos < toPos || toPos == LLONG_MAX) {
                                 intToVal -= 1;
                             }
                             else if (fromPos > toPos) {
@@ -652,8 +650,7 @@ value_t PathResolution::createPaths(const Subscript& subscript, Environment* env
                         else {
                             Int fromPos = intFromVal < 0? str.size() - abs63(intFromVal) : intFromVal - 1;
                             Int toPos = intToVal == 0? (intFromVal > 0? -1 : LLONG_MAX) : intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
-                            // if "from" preceeds "to" (<= is because of LLONG_MAX above)
-                            if (fromPos <= toPos) {
+                            if (fromPos < toPos || toPos == LLONG_MAX) {
                                 intToVal -= 1;
                             }
                             else if (fromPos > toPos) {
@@ -754,8 +751,7 @@ value_t PathResolution::createPaths(const Subscript& subscript, Environment* env
                         else {
                             Int fromPos = intFromVal < 0? list.size() - abs63(intFromVal) : intFromVal - 1;
                             Int toPos = intToVal == 0? (intFromVal > 0? -1 : LLONG_MAX) : intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
-                            // if "from" preceeds "to" (<= is because of LLONG_MAX above)
-                            if (fromPos <= toPos) {
+                            if (fromPos < toPos || toPos == LLONG_MAX) {
                                 intToVal -= 1;
                             }
                             else if (fromPos > toPos) {

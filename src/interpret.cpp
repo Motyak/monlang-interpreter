@@ -687,8 +687,7 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                     else {
                         Int fromPos = intFromVal < 0? str.size() - abs63(intFromVal) : intFromVal - 1;
                         Int toPos = intToVal == 0? (intFromVal > 0? -1 : LLONG_MAX) : intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
-                        // if "from" preceeds "to" (<= is because of LLONG_MAX above)
-                        if (fromPos <= toPos) {
+                        if (fromPos < toPos || toPos == LLONG_MAX) {
                             intToVal -= 1;
                         }
                         else if (fromPos > toPos) {
@@ -702,11 +701,11 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                 Int toPos = intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
 
                 /* 3) check out of bounds */
-                unless (0 <= fromPos && size_t(fromPos) < str.size()) {
+                unless (0 <= fromPos && fromPos < Int(str.size())) {
                     ::activeCallStack.push_back(variant_cast(range.from));
                     throw InterpretError("Subscript range 'from' is out of bounds");
                 }
-                unless (0 <= toPos && size_t(toPos) < str.size()) {
+                unless (0 <= toPos && toPos < Int(str.size())) {
                     ::activeCallStack.push_back(variant_cast(range.from));
                     throw InterpretError("Subscript range 'to' is out of bounds");
                 }
@@ -761,8 +760,7 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
                     else {
                         Int fromPos = intFromVal < 0? list.size() - abs63(intFromVal) : intFromVal - 1;
                         Int toPos = intToVal == 0? (intFromVal > 0? -1 : LLONG_MAX) : intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
-                        // if "from" preceeds "to" (<= is because of LLONG_MAX above)
-                        if (fromPos <= toPos) {
+                        if (fromPos < toPos || toPos == LLONG_MAX) {
                             intToVal -= 1;
                         }
                         else if (fromPos > toPos) {
