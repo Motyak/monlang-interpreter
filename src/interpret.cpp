@@ -148,6 +148,14 @@ void performStatement(const LetStatement& letStmt, Environment* env) {
         throw InterpretError("Redefinition of a special name");
     }
 
+    if (std::holds_alternative<Symbol*>(letStmt.variable.variant)) {
+        auto* symbol = std::get<Symbol*>(letStmt.variable.variant);
+        if (symbol->name == "_") {
+            ::activeCallStack.push_back(letStmt.variable);
+            throw InterpretError("Can't bind special name in a let");
+        }
+    }
+
     if (env->symbolTable.contains(letStmt.alias.name)) {
         ::activeCallStack.push_back(const_cast<Symbol*>(&letStmt.alias));
         throw SymbolRedefinitionError(letStmt.alias.name);
