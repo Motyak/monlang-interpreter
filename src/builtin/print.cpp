@@ -35,7 +35,7 @@ const value_t builtin::print __attribute__((init_priority(3000))) = new prim_val
             ::print(argValue);
             ENDLOOP
         }
-        std::cout << "\n";
+        std::cout << std::endl;
         return nil_value_t();
     }
 }};
@@ -147,7 +147,7 @@ void builtin::print_(const std::vector<value_t>& varargs, std::ostream& out) {
         ::print(arg, out);
         ENDLOOP
     }
-    out << "\n";
+    out << std::endl;
 };
 
 void builtin::putstr_(const std::vector<value_t>& varargs, std::ostream& out) {
@@ -158,5 +158,5 @@ void builtin::putstr_(const std::vector<value_t>& varargs, std::ostream& out) {
         ::print(arg, out);
         ENDLOOP
     }
-    // out << "\n";
+    // out << std::endl;
 };
