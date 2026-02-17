@@ -1,13 +1,23 @@
 include utils.mk # askmake, not, shell_onrun, shouldrebuild
 
-# will look for a function named "CXX" in the shell env
-CXX := CXX
+export CXX := ccache g++
 
 SHELL := /bin/bash
 RM := rm -rf
 CXXFLAGS := --std=c++23 -Wall -Wextra -ggdb3 -I include
+CXX_OFLAGS := -Og -fno-inline -fno-reorder-blocks -fno-thread-jumps -fno-ipa-pure-const -fno-tree-ter -fno-tree-ccp -fno-tree-dce -fno-tree-fre -fno-tree-copy-prop -fno-tree-sink -fno-tree-slsr -fno-cprop-registers -fno-split-wide-types -fno-tree-ch -fno-tree-dominator-opts -fno-ipa-reference-addressable -fno-compare-elim -fno-ipa-profile -fno-ipa-reference -fno-toplevel-reorder -fno-guess-branch-probability -fno-forward-propagate -fno-defer-pop -fno-tree-builtin-call-dce -fno-combine-stack-adjustments -fno-shrink-wrap
 DEPFLAGS = -MMD -MP -MF .deps/$*.d
 ARFLAGS = D -M < <(tools/aggregate-libs.mri.sh $@ $^); :
+
+# if CXX set in cmd line or if shell function CXX not found in env
+ifneq (,$(or $(filter $(origin CXX),command line),$(call not,$(shell declare -F CXX))))
+    CXXFLAGS += $(CXX_OFLAGS)
+else
+    export CXX_ := $(CXX)
+    export CXX_OFLAGS
+    # will look for a function named "CXX" in the shell env
+    override CXX := CXX
+endif
 
 ###########################################################
 
