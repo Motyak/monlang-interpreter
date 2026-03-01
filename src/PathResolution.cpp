@@ -139,24 +139,26 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
 
                     /* 1) handle exclusive range, if present */
                     if (range.exclusive) {
-                        Int fromPos = intFromVal <= 0? str.size() - abs63(intFromVal) : intFromVal - 1;
-                        Int toPos = intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
                         if (intToVal == 0) {
                             intToVal = intFromVal < 0? -1 : 1;
                         }
-                        else if (fromPos == toPos) {
-                            return new prim_value_t{Str()}; // empty range
-                        }
-                        else if (fromPos < toPos) {
-                            intToVal -= 1;
-                        }
-                        else if (fromPos > toPos) {
-                            intToVal += 1;
+                        else {
+                            Int fromPos = intFromVal < 0? str.size() - abs63(intFromVal) : intFromVal - 1;
+                            Int toPos = intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
+                            if (fromPos == toPos) {
+                                return new prim_value_t{Str()}; // empty range
+                            }
+                            else if (fromPos < toPos) {
+                                intToVal -= 1;
+                            }
+                            else if (fromPos > toPos) {
+                                intToVal += 1;
+                            }
                         }
                     }
 
                     /* 2) transform to pos, with index starting at zero */
-                    fromPos = intFromVal <= 0? str.size() - abs63(intFromVal) : intFromVal - 1;
+                    fromPos = intFromVal < 0? str.size() - abs63(intFromVal) : intFromVal - 1;
                     toPos = intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
 
                     /* 3) check out of bounds */
@@ -242,24 +244,26 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
 
                     /* 1) handle exclusive range, if present */
                     if (range.exclusive) {
-                        Int fromPos = intFromVal <= 0? list.size() - abs63(intFromVal) : intFromVal - 1;
-                        Int toPos = intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
                         if (intToVal == 0) {
                             intToVal = intFromVal < 0? -1 : 1;
                         }
-                        else if (fromPos == toPos) {
-                            return new prim_value_t{List()}; // empty range
-                        }
-                        else if (fromPos < toPos) {
-                            intToVal -= 1;
-                        }
-                        else if (fromPos > toPos) {
-                            intToVal += 1;
+                        else {
+                            Int fromPos = intFromVal < 0? list.size() - abs63(intFromVal) : intFromVal - 1;
+                            Int toPos = intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
+                            if (fromPos == toPos) {
+                                return new prim_value_t{List()}; // empty range
+                            }
+                            else if (fromPos < toPos) {
+                                intToVal -= 1;
+                            }
+                            else if (fromPos > toPos) {
+                                intToVal += 1;
+                            }
                         }
                     }
 
                     /* 2) transform to pos, with index starting at zero */
-                    fromPos = intFromVal <= 0? list.size() - abs63(intFromVal) : intFromVal - 1;
+                    fromPos = intFromVal < 0? list.size() - abs63(intFromVal) : intFromVal - 1;
                     toPos = intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
 
                     /* 3) check out of bounds */
@@ -646,24 +650,26 @@ value_t PathResolution::createPaths(const Subscript& subscript, Environment* env
 
                     /* 1) handle exclusive range, if present */
                     if (range.exclusive) {
-                        Int fromPos = intFromVal <= 0? str.size() - abs63(intFromVal) : intFromVal - 1;
-                        Int toPos = intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
                         if (intToVal == 0) {
                             intToVal = intFromVal < 0? -1 : 1;
                         }
-                        else if (fromPos == toPos) {
-                            return new prim_value_t{Str()}; // empty range
-                        }
-                        else if (fromPos < toPos) {
-                            intToVal -= 1;
-                        }
-                        else if (fromPos > toPos) {
-                            intToVal += 1;
+                        else {
+                            Int fromPos = intFromVal < 0? str.size() - abs63(intFromVal) : intFromVal - 1;
+                            Int toPos = intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
+                            if (fromPos == toPos) {
+                                return new prim_value_t{Str()}; // empty range
+                            }
+                            else if (fromPos < toPos) {
+                                intToVal -= 1;
+                            }
+                            else if (fromPos > toPos) {
+                                intToVal += 1;
+                            }
                         }
                     }
 
                     /* 2) transform to pos, with index starting at zero */
-                    fromPos = intFromVal <= 0? str.size() - abs63(intFromVal) : intFromVal - 1;
+                    fromPos = intFromVal < 0? str.size() - abs63(intFromVal) : intFromVal - 1;
                     toPos = intToVal < 0? str.size() - abs63(intToVal) : intToVal - 1;
 
                     /* 3) check out of bounds */
@@ -748,24 +754,26 @@ value_t PathResolution::createPaths(const Subscript& subscript, Environment* env
 
                     /* 1) handle exclusive range, if present */
                     if (range.exclusive) {
-                        Int fromPos = intFromVal <= 0? list.size() - abs63(intFromVal) : intFromVal - 1;
-                        Int toPos = intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
                         if (intToVal == 0) {
                             intToVal = intFromVal < 0? -1 : 1;
                         }
-                        else if (fromPos == toPos) {
-                            return new prim_value_t{List()}; // empty range
-                        }
-                        else if (fromPos < toPos) {
-                            intToVal -= 1;
-                        }
-                        else if (fromPos > toPos) {
-                            intToVal += 1;
+                        else {
+                            Int fromPos = intFromVal < 0? list.size() - abs63(intFromVal) : intFromVal - 1;
+                            Int toPos = intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
+                            if (fromPos == toPos) {
+                                return new prim_value_t{List()}; // empty range
+                            }
+                            else if (fromPos < toPos) {
+                                intToVal -= 1;
+                            }
+                            else if (fromPos > toPos) {
+                                intToVal += 1;
+                            }
                         }
                     }
 
                     /* 2) transform to pos, with index starting at zero */
-                    fromPos = intFromVal <= 0? list.size() - abs63(intFromVal) : intFromVal - 1;
+                    fromPos = intFromVal < 0? list.size() - abs63(intFromVal) : intFromVal - 1;
                     toPos = intToVal < 0? list.size() - abs63(intToVal) : intToVal - 1;
 
                     /* 3) check out of bounds */
