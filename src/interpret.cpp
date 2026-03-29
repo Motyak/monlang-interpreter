@@ -104,6 +104,10 @@ value_t* evaluateLvalue(const Lvalue& lvalue, Environment* env, bool subscripted
 // performStatement
 //==============================================================
 
+void performStatement(const TypeDefinition& typedef_, Environment* env) {
+    TODO();
+}
+
 void performStatement(const Assignment& assignment, Environment* env) {
     auto new_value = evaluateValue(assignment.value, env);
     new_value = deepcopy(new_value);
