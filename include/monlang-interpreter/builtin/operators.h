@@ -27,6 +27,12 @@ namespace op {
     extern const value_t logical_or;
     extern const value_t eq;
     extern const value_t gt;
+    extern const value_t is;
+
+    /* for internal use, not part of the builtin table */
+
+    bool is_(const value_t&, const std::string&);
+    bool is_(const std::string&, const std::string&);
 
 }} // end of builtin::op::
 

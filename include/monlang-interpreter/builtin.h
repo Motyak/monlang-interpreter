@@ -59,6 +59,7 @@ BUILTIN_TABLE __attribute__((init_priority(6000))) = {
     {"&", builtin::op::bitwise_and},
     {"|", builtin::op::bitwise_or},
     {"^", builtin::op::bitwise_xor},
+    {"is", builtin::op::is},
 
     /* primitive constructors */
     {"Bool", builtin::prim_ctor::Bool},

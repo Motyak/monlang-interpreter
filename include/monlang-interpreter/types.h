@@ -91,8 +91,8 @@ inline prim_value_t::Map asMap(const prim_value_t& val) {return std::get<prim_va
 inline prim_value_t::Lambda asLambda(const prim_value_t& val) {return std::get<prim_value_t::Lambda>(val.variant);}
 
 struct type_value_t {
-    std::string_view type;
-    value_t value;
+    std::string typeTag;
+    value_t underlyingVal;
 };
 
 struct struct_value_t {
@@ -146,6 +146,13 @@ inline bool is_nil(const value_t& value) {
         [](auto* value){return value == nullptr;}
         , value
     );
+}
+
+inline value_t rec_unwrap_typeval(value_t value) {
+    while (std::holds_alternative<type_value_t*>(value)) {
+        value = std::get<type_value_t*>(value)->underlyingVal;
+    }
+    return value;
 }
 
 #endif // TYPES_H

@@ -31,7 +31,20 @@ bool INTERACTIVE_MODE = false;
 thread_local std::vector<Expression> activeCallStack;
 static bool top_level_stmt = true;
 static std::optional<FunctionCall> is_tailcallable;
+static uint64_t lambda_id = 1000;
 uint64_t builtin_lambda_id = 0;
+
+// associate type to subtypes (underlying type first), if any
+std::map<std::string, std::vector<std::string>> type_table = {
+        {"Bool", {}},
+        {"Byte", {}},
+        {"Int", {}},
+        {"Float", {}},
+        {"Str", {}},
+        {"List", {}},
+        {"Map", {}},
+        {"Lambda", {}},
+};
 
 /* sentinel value to allow chained autovivification
    , through PassByRef notably */
@@ -104,8 +117,152 @@ value_t* evaluateLvalue(const Lvalue& lvalue, Environment* env, bool subscripted
 // performStatement
 //==============================================================
 
+// calculate typelist's first common subtype
+// operate recursively on subtypeCandidates (row by row, from left to right)
+static std::string calculateCommonSubtype(
+        const std::vector<std::string>& typelist,
+        const std::vector<std::string>& subtypeCandidates)
+{
+    if (typelist.empty() || subtypeCandidates.empty()) {
+        return ""; // no common subtype
+    }
+
+    if (typelist.size() == 1) {
+        return typelist.at(0);
+    }
+
+    for (const auto& subtypeCandidate: subtypeCandidates) {
+        bool all_compatible = true;
+        for (auto type: typelist) {
+            if (!builtin::op::is_(type, subtypeCandidate)) {
+                all_compatible = false;
+                break;
+            }
+        }
+        if (all_compatible) {
+            return subtypeCandidate;
+        }
+    }
+
+    // recursion
+    for (const auto& subtypeCandidate: subtypeCandidates) {
+        ASSERT (type_table.contains(subtypeCandidate));
+        auto nextRowOfSubtypeCandidates = type_table[subtypeCandidate];
+        auto commonSubtype = calculateCommonSubtype(typelist, nextRowOfSubtypeCandidates);
+        if (commonSubtype != "") {
+            return commonSubtype;
+        }
+    }
+
+    return ""; // no common subtype
+}
+
 void performStatement(const TypeDefinition& typedef_, Environment* env) {
-    TODO();
+    static Symbol* STMT_TOKEN = new Symbol{};
+    STMT_TOKEN->_tokenId = typedef_._tokenId;
+    if (!top_level_stmt) {
+        ::activeCallStack.push_back(STMT_TOKEN);
+        throw InterpretError("TypeDefinition is a top-level statement");
+    }
+
+    auto typeTag = typedef_.type.name;
+
+    if (typeTag == "_") {
+        ::activeCallStack.push_back(const_cast<Symbol*>(&typedef_.type));
+        throw InterpretError("Redefinition of a special name");
+    }
+
+    if (BUILTIN_TABLE.contains(typeTag) || env->symbolTable.contains(typeTag)) {
+        ::activeCallStack.push_back(const_cast<Symbol*>(&typedef_.type));
+        throw SymbolRedefinitionError(typeTag);
+    }
+
+    for (const auto& subtype: typedef_.subtypes) {
+        if (!type_table.contains(subtype.name)) {
+            ::activeCallStack.push_back(const_cast<Symbol*>(&subtype));
+            throw InterpretError("Type `" + subtype.name + "` doesn't exist");
+        }
+    }
+
+    auto subtypes = std::vector<std::string>{};
+
+    // remove redundant subtypes (if some subtype outclasses some other)
+    for (size_t i = 0; i < typedef_.subtypes.size(); ++i) {
+        auto type_i = typedef_.subtypes.at(i).name;
+        // is type i a subtype of any type j ? if so => don't add it
+        for (size_t j = 0; j < typedef_.subtypes.size(); ++j) {
+            if (j == i) continue;
+            auto type_j = typedef_.subtypes.at(j).name;
+            if (builtin::op::is_(type_j, type_i)) {
+                goto NEXT_i;
+            }
+        }
+        subtypes.push_back(type_i);
+        NEXT_i:
+        ;
+    }
+    ASSERT (!subtypes.empty());
+
+    std::string commonSubtype;
+    {
+        auto typeListLeftmost = subtypes.at(0);
+        if (subtypes.size() == 1) {
+            commonSubtype = typeListLeftmost;
+        }
+        else {
+            ASSERT (type_table.contains(typeListLeftmost));
+            auto subtypeCandidates = type_table.at(typeListLeftmost);
+            commonSubtype = calculateCommonSubtype(subtypes, subtypeCandidates);
+        }
+    }
+
+    if (commonSubtype == "") {
+        ::activeCallStack.push_back(STMT_TOKEN);
+        throw InterpretError("Incompatible subtypes");
+    }
+    ASSERT (BUILTIN_TABLE.contains(commonSubtype) || env->contains(commonSubtype));
+
+    // put common subtype in front
+    std::erase(subtypes, commonSubtype);
+    subtypes.insert(subtypes.begin(), commonSubtype);
+
+    // add ctor to env
+    ASSERT (lambda_id > builtin_lambda_id);
+    ASSERT (lambda_id != uint64_t(-1));
+    auto lambdaVal = prim_value_t::Lambda{
+        lambda_id++,
+        IntConst::ONE,
+        [typeTag, commonSubtype, env](const std::vector<FlattenArg>& args) -> value_t {
+            prim_value_t::Lambda underlyingCtor;
+            if (env->contains(commonSubtype)) {
+                auto symVal = env->at(commonSubtype);
+                ASSERT (std::holds_alternative<Environment::Variable>(symVal));
+                auto val = *std::get<Environment::Variable>(symVal);
+                ASSERT (std::holds_alternative<prim_value_t*>(val));
+                auto prim_val = *std::get<prim_value_t*>(val);
+                ASSERT (std::holds_alternative<prim_value_t::Lambda>(prim_val.variant));
+                underlyingCtor = std::get<prim_value_t::Lambda>(prim_val.variant);
+            }
+            else if (BUILTIN_TABLE.contains(commonSubtype)) {
+                auto val = BUILTIN_TABLE.at(commonSubtype);
+                ASSERT (std::holds_alternative<prim_value_t*>(val));
+                auto prim_val = *std::get<prim_value_t*>(val);
+                ASSERT (std::holds_alternative<prim_value_t::Lambda>(prim_val.variant));
+                underlyingCtor = std::get<prim_value_t::Lambda>(prim_val.variant);
+            }
+            else SHOULD_NOT_HAPPEN();
+            auto underlyingVal = underlyingCtor.stdfunc(args);
+            underlyingVal = rec_unwrap_typeval(underlyingVal);
+            return new type_value_t{typeTag, underlyingVal}; // deepcopy underlyingVal ? I think it's only..
+            //                                                ..necessary in var/let stmt or in parameter binding
+        }
+    };
+    auto* val = new prim_value_t{lambdaVal};
+    auto* var = new value_t{val};
+    env->symbolTable[typeTag] = Environment::Variable{var};
+
+    // add type and subtypes to type_table
+    type_table[typeTag] = subtypes;
 }
 
 void performStatement(const Assignment& assignment, Environment* env) {
@@ -408,7 +565,6 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
     }
 
     Environment* envAtCreation = env->rec_copy();
-    static uint64_t lambda_id = 1000;
     ASSERT (lambda_id > builtin_lambda_id);
     ASSERT (lambda_id != uint64_t(-1));
     auto lambdaVal = prim_value_t::Lambda{

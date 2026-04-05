@@ -61,6 +61,7 @@ obj/builtin/operators/rightshift.o \
 obj/builtin/operators/bitwise_and.o \
 obj/builtin/operators/bitwise_or.o \
 obj/builtin/operators/bitwise_xor.o \
+obj/builtin/operators/is.o \
 
 PRIM_CTORS_OBJS := \
 obj/builtin/prim_ctors/Byte.o \

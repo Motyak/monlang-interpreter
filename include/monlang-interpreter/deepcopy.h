@@ -53,8 +53,11 @@ static value_t deepcopy(prim_value_t* primValPtr) {
     }, primValPtr->variant);
 }
 
-static value_t deepcopy(type_value_t*) {
-    TODO();
+static value_t deepcopy(type_value_t* type_val) {
+    return new type_value_t{
+        type_val->typeTag,
+        deepcopy(type_val->underlyingVal)
+    };
 }
 
 static value_t deepcopy(struct_value_t*) {
