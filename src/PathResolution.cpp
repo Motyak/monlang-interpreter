@@ -2,7 +2,7 @@
 #include <monlang-interpreter/interpret.h>
 #include <monlang-interpreter/InterpretError.h>
 #include <monlang-interpreter/types.h>
-#include <monlang-interpreter/builtin.h>
+#include <monlang-interpreter/builtin/prim_ctors.h>
 #include <monlang-interpreter/deepcopy.h>
 
 #include <utils/assert-utils.h>

@@ -1,6 +1,6 @@
 #include <monlang-interpreter/interpret.h>
 #include <monlang-interpreter/InterpretError.h>
-#include <monlang-interpreter/builtin.h>
+#include <monlang-interpreter/builtin/prim_ctors.h>
 
 #include <utils/variant-utils.h>
 #include <utils/assert-utils.h>

@@ -185,35 +185,20 @@ void performStatement(const TypeDefinition& typedef_, Environment* env) {
     }
 
     auto subtypes = std::vector<std::string>{};
-
-    // remove redundant subtypes (if some subtype outclasses some other)
-    for (size_t i = 0; i < typedef_.subtypes.size(); ++i) {
-        auto type_i = typedef_.subtypes.at(i).name;
-        // is type i a subtype of any type j ? if so => don't add it
-        for (size_t j = 0; j < typedef_.subtypes.size(); ++j) {
-            if (j == i) continue;
-            auto type_j = typedef_.subtypes.at(j).name;
-            if (builtin::op::is_(type_j, type_i)) {
-                goto NEXT_i;
-            }
-        }
-        subtypes.push_back(type_i);
-        NEXT_i:
-        ;
+    // remove duplicates in typelist
+    for (const auto& subtype: typedef_.subtypes) {
+        bool already_there = false;
+        for (const auto& s: subtypes)
+            already_there |= subtype.name == s;
+        if (already_there) continue;
+        subtypes.push_back(subtype.name);
     }
-    ASSERT (!subtypes.empty());
 
     std::string commonSubtype;
     {
         auto typeListLeftmost = subtypes.at(0);
-        if (subtypes.size() == 1) {
-            commonSubtype = typeListLeftmost;
-        }
-        else {
-            ASSERT (type_table.contains(typeListLeftmost));
-            auto subtypeCandidates = type_table.at(typeListLeftmost);
-            commonSubtype = calculateCommonSubtype(subtypes, subtypeCandidates);
-        }
+        commonSubtype = subtypes.size() == 1? typeListLeftmost
+                : calculateCommonSubtype(subtypes, {typeListLeftmost});
     }
 
     if (commonSubtype == "") {
@@ -252,7 +237,7 @@ void performStatement(const TypeDefinition& typedef_, Environment* env) {
             }
             else SHOULD_NOT_HAPPEN();
             auto underlyingVal = underlyingCtor.stdfunc(args);
-            underlyingVal = rec_unwrap_typeval(underlyingVal);
+            // underlyingVal = rec_unwrap_typeval(underlyingVal); // TODO: no, type_value_t can have type_value_t
             return new type_value_t{typeTag, underlyingVal}; // deepcopy underlyingVal ? I think it's only..
             //                                                ..necessary in var/let stmt or in parameter binding
         }

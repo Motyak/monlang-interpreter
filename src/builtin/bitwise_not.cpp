@@ -1,4 +1,4 @@
-#include <monlang-interpreter/builtin.h>
+#include <monlang-interpreter/builtin/bitwise_not.h>
 
 /* impl only */
 
