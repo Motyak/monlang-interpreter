@@ -313,6 +313,9 @@ void performStatement(const LetStatement& letStmt, Environment* env) {
     auto leftmostSymbol = leftmost(letStmt.variable);
     if (!env->contains(leftmostSymbol.name)) {
         ::activeCallStack.push_back(letStmt.variable);
+        if (BUILTIN_TABLE.contains(leftmostSymbol.name)) {
+            throw InterpretError("Can't bind a builtin to a let, use a var");
+        }
         throw InterpretError("Unbound symbol `" + leftmostSymbol.name + "`");
     }
 
