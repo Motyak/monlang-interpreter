@@ -168,8 +168,25 @@ static value_t concatListFromTypeVal(
         prim_value_t::Lambda lambda;
         if (firstArg.env->contains(symbol->name)) {
             auto symVal = firstArg.env->at(symbol->name);
-            ASSERT (std::holds_alternative<Environment::Variable>(symVal));
-            auto val = *std::get<Environment::Variable>(symVal);
+            value_t val;
+            if (std::holds_alternative<Environment::Variable>(symVal)) {
+                val = *std::get<Environment::Variable>(symVal);
+            }
+            else if (std::holds_alternative<Environment::LabelToLvalue /*or PassByRef*/>(symVal)) {
+                val = std::get<Environment::LabelToLvalue>(symVal).value();
+            }
+            else if (std::holds_alternative<Environment::PassByDelay>(symVal)) {
+                auto passByDelay = *std::get<Environment::PassByDelay>(symVal);
+                if (std::holds_alternative<thunk_with_memoization_t<value_t>*>(passByDelay)) {
+                    auto thunk = std::get<thunk_with_memoization_t<value_t>*>(passByDelay);
+                    val = (*thunk)();
+                }
+                else if (std::holds_alternative<value_t*>(passByDelay)) {
+                    val = *std::get<value_t*>(passByDelay);
+                }
+                else SHOULD_NOT_HAPPEN();
+            }
+            else break;
             ASSERT (std::holds_alternative<prim_value_t*>(val));
             auto prim_val = *std::get<prim_value_t*>(val);
             ASSERT (std::holds_alternative<prim_value_t::Lambda>(prim_val.variant));
@@ -183,6 +200,7 @@ static value_t concatListFromTypeVal(
             lambda = std::get<prim_value_t::Lambda>(prim_val.variant);
         }
         else break;
+
         returnTypeVal = lambda.requiredArgs == IntConst::ZERO;
     }
 
