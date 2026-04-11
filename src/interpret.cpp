@@ -211,33 +211,36 @@ void performStatement(const TypeDefinition& typedef_, Environment* env) {
     std::erase(subtypes, commonSubtype);
     subtypes.insert(subtypes.begin(), commonSubtype);
 
-    // add ctor to env
+    // we need to store the underlying ctor looked up AT DEFINITION TIME
+    prim_value_t::Lambda* underlyingCtor;
+    if (env->contains(commonSubtype)) {
+        auto symVal = env->at(commonSubtype);
+        ASSERT (std::holds_alternative<Environment::Variable>(symVal));
+        auto val = *std::get<Environment::Variable>(symVal);
+        ASSERT (std::holds_alternative<prim_value_t*>(val));
+        auto prim_val = *std::get<prim_value_t*>(val);
+        ASSERT (std::holds_alternative<prim_value_t::Lambda>(prim_val.variant));
+        underlyingCtor = new prim_value_t::Lambda{std::get<prim_value_t::Lambda>(prim_val.variant)};
+    }
+    else if (BUILTIN_TABLE.contains(commonSubtype)) {
+        auto val = BUILTIN_TABLE.at(commonSubtype);
+        ASSERT (std::holds_alternative<prim_value_t*>(val));
+        auto prim_val = *std::get<prim_value_t*>(val);
+        ASSERT (std::holds_alternative<prim_value_t::Lambda>(prim_val.variant));
+        underlyingCtor = new prim_value_t::Lambda{std::get<prim_value_t::Lambda>(prim_val.variant)}; // TODO: waste of heap
+    }
+    else SHOULD_NOT_HAPPEN();
+
+    // add tagging ctor to env
     ASSERT (lambda_id > builtin_lambda_id);
     ASSERT (lambda_id != uint64_t(-1));
     auto lambdaVal = prim_value_t::Lambda{
         lambda_id++,
-        IntConst::ONE,
-        [typeTag, commonSubtype, env](const std::vector<FlattenArg>& args) -> value_t {
-            prim_value_t::Lambda underlyingCtor;
-            if (env->contains(commonSubtype)) {
-                auto symVal = env->at(commonSubtype);
-                ASSERT (std::holds_alternative<Environment::Variable>(symVal));
-                auto val = *std::get<Environment::Variable>(symVal);
-                ASSERT (std::holds_alternative<prim_value_t*>(val));
-                auto prim_val = *std::get<prim_value_t*>(val);
-                ASSERT (std::holds_alternative<prim_value_t::Lambda>(prim_val.variant));
-                underlyingCtor = std::get<prim_value_t::Lambda>(prim_val.variant);
-            }
-            else if (BUILTIN_TABLE.contains(commonSubtype)) {
-                auto val = BUILTIN_TABLE.at(commonSubtype);
-                ASSERT (std::holds_alternative<prim_value_t*>(val));
-                auto prim_val = *std::get<prim_value_t*>(val);
-                ASSERT (std::holds_alternative<prim_value_t::Lambda>(prim_val.variant));
-                underlyingCtor = std::get<prim_value_t::Lambda>(prim_val.variant);
-            }
-            else SHOULD_NOT_HAPPEN();
-            auto underlyingVal = underlyingCtor.stdfunc(args);
-            // underlyingVal = rec_unwrap_typeval(underlyingVal); // TODO: no, type_value_t can have type_value_t
+        underlyingCtor->requiredArgs,
+        [typeTag, underlyingCtor](const std::vector<FlattenArg>& args) -> value_t {
+            auto underlyingVal = underlyingCtor->stdfunc(args);
+            underlyingVal = rec_unwrap_typeval(underlyingVal); // no need to store intermediate type_value_t..
+            //                                                    ..because we can find them in type table
             return new type_value_t{typeTag, underlyingVal}; // deepcopy underlyingVal ? I think it's only..
             //                                                ..necessary in var/let stmt or in parameter binding
         }

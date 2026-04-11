@@ -117,7 +117,7 @@ static void print(const prim_value_t& primVal, std::ostream& out, bool shouldQuo
 
 static void print(const type_value_t& type_val, std::ostream& out) {
     out << type_val.typeTag << "(";
-    print(type_val.underlyingVal, out);
+    print(type_val.underlyingVal, out, /*shouldQuot*/true);
     out << ")";
 }
 

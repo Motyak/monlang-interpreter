@@ -38,7 +38,7 @@ namespace prim_ctor {
 
     prim_value_t::Bool Bool_(const value_t&);
     prim_value_t::Byte Byte_(const value_t&);
-    prim_value_t::Int Int_(const value_t&);
+    prim_value_t::Int Int_(value_t);
     prim_value_t::Float Float_(const value_t&);
     prim_value_t::Str Str_(const value_t&);
 
