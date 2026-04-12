@@ -21,6 +21,7 @@ const value_t builtin::scan __attribute__((init_priority(3000))) = new prim_valu
         unless (args.size() == 1) throw InterpretError("scan() takes 1 arg");
         auto arg = args.at(0);
         auto argVal = evaluateValue(arg.expr, arg.env);
+        argVal = rec_unwrap_typeval(argVal);
         ::activeCallStack.push_back(arg.expr); // no need to pop
         defer {safe_pop_back(::activeCallStack);};
         ASSERT (std::holds_alternative<prim_value_t*>(argVal)); // TODO: tmp

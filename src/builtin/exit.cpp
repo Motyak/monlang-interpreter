@@ -19,6 +19,7 @@ const value_t builtin::exit __attribute__((init_priority(3000))) = new prim_valu
         unless (args.size() == 1) throw InterpretError("exit() takes 1 arg");
         auto arg = args.at(0);
         auto argVal = evaluateValue(arg.expr, arg.env);
+        argVal = rec_unwrap_typeval(argVal);
         ::activeCallStack.push_back(arg.expr); // no need to pop
         auto exitCode = builtin::prim_ctor::Byte_(argVal);
         ::exit(exitCode);

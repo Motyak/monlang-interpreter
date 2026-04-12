@@ -35,6 +35,7 @@ const value_t builtin::bitwise_not __attribute__((init_priority(3000))) = new pr
 
         auto arg = args.at(0);
         auto argValue = evaluateValue(arg.expr, arg.env);
+        argValue = rec_unwrap_typeval(argValue);
         ASSERT (std::holds_alternative<prim_value_t*>(argValue)); // TODO: tmp
         auto argPrimValuePtr = std::get<prim_value_t*>(argValue);
         if (argPrimValuePtr == nullptr) {

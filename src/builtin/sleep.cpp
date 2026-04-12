@@ -23,6 +23,7 @@ const value_t builtin::sleep __attribute__((init_priority(3000))) = new prim_val
         unless (args.size() == 1) throw InterpretError("sleep() takes 1 arg");
         auto arg = args.at(0);
         auto argVal = evaluateValue(arg.expr, arg.env);
+        argVal = rec_unwrap_typeval(argVal);
         ::activeCallStack.push_back(arg.expr);
         defer {safe_pop_back(::activeCallStack);};
         auto duration = builtin::prim_ctor::Float_(argVal);
