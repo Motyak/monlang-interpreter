@@ -4,6 +4,7 @@
 
 #include <monlang-interpreter/builtin/prim_ctors.h>
 #include <monlang-interpreter/interpret.h>
+#include <monlang-interpreter/builtin/operators.h>
 
 #include <utils/variant-utils.h>
 #include <utils/loop-utils.h>
@@ -116,9 +117,53 @@ static void print(const prim_value_t& primVal, std::ostream& out, bool shouldQuo
 }
 
 static void print(const type_value_t& type_val, std::ostream& out) {
-    out << type_val.typeTag << "(";
-    print(type_val.underlyingVal, out, /*shouldQuot*/true);
-    out << ")";
+    if (builtin::op::is_(type_val.typeTag, "Str")) {
+        auto underlyingVal = rec_unwrap_typeval(type_val.underlyingVal);
+        print(underlyingVal, out);
+    }
+    else if (builtin::op::is_(type_val.typeTag, "List")) {
+        auto underlyingVal = rec_unwrap_typeval(type_val.underlyingVal);
+        ASSERT (std::holds_alternative<prim_value_t*>(underlyingVal));
+        auto primVal = *std::get<prim_value_t*>(underlyingVal);
+        ASSERT (std::holds_alternative<prim_value_t::List>(primVal.variant));
+        auto list = std::get<prim_value_t::List>(primVal.variant);
+        out << type_val.typeTag << "(";
+        bool first_it = true;
+        for (const auto& val: list) {
+            if (!first_it) {
+                out << ", ";
+            }
+            print(val, out, /*shouldQuot*/true);
+            first_it = false;
+        }
+        out << ")";
+    }
+    else if (builtin::op::is_(type_val.typeTag, "Map")) {
+        auto underlyingVal = rec_unwrap_typeval(type_val.underlyingVal);
+        ASSERT (std::holds_alternative<prim_value_t*>(underlyingVal));
+        auto primVal = *std::get<prim_value_t*>(underlyingVal);
+        ASSERT (std::holds_alternative<prim_value_t::Map>(primVal.variant));
+        auto map = std::get<prim_value_t::Map>(primVal.variant);
+        out << type_val.typeTag << "(";
+        bool first_it = true;
+        for (const auto& [key, val]: map) {
+            if (!first_it) {
+                out << ", ";
+            }
+            out << "[";
+            print(key, out, /*shouldQuot*/true);
+            out << ", ";
+            print(val, out, /*shouldQuot*/true);
+            out << "]";
+            first_it = false;
+        }
+        out << ")";
+    }
+    else {
+        out << type_val.typeTag << "(";
+        print(type_val.underlyingVal, out, /*shouldQuot*/true);
+        out << ")";
+    }
 }
 
 static void print(const struct_value_t& struct_val, std::ostream& out) {
