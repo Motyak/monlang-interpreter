@@ -31,7 +31,8 @@ static prim_value_t::Byte to_byte(const type_value_t&);
 static prim_value_t::Byte to_byte(const struct_value_t&);
 static prim_value_t::Byte to_byte(const enum_value_t&);
 
-prim_value_t::Byte builtin::prim_ctor::Byte_(const value_t& val) {
+prim_value_t::Byte builtin::prim_ctor::Byte_(value_t val) {
+    val = rec_unwrap_typeval(val);
     return std::visit(overload{
         [](auto* val) -> prim_value_t::Byte {
             if (val == nullptr){
@@ -68,7 +69,7 @@ static prim_value_t::Byte to_byte(const prim_value_t& primVal) {
 }
 
 static prim_value_t::Byte to_byte(const type_value_t&) {
-    SHOULD_NOT_HAPPEN(); // TODO: tmp
+    SHOULD_NOT_HAPPEN(); // rec_unwrap_typeval() called in Byte_
 }
 
 static prim_value_t::Byte to_byte(const struct_value_t&) {

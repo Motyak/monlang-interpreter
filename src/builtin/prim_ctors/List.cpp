@@ -30,7 +30,8 @@ static prim_value_t::List to_list(const type_value_t&);
 static prim_value_t::List to_list(const struct_value_t&);
 static prim_value_t::List to_list(const enum_value_t&);
 
-prim_value_t::List builtin::prim_ctor::List_(const value_t& container) {
+prim_value_t::List builtin::prim_ctor::List_(value_t container) {
+    container = rec_unwrap_typeval(container);
     return std::visit(overload{
         [](auto* val) -> prim_value_t::List {
             if (val == nullptr){
@@ -74,7 +75,7 @@ static prim_value_t::List to_list(const prim_value_t& primVal) {
 }
 
 static prim_value_t::List to_list(const type_value_t&) {
-    SHOULD_NOT_HAPPEN(); // TODO: tmp
+    SHOULD_NOT_HAPPEN(); // rec_unwrap_typeval() called in List_
 }
 
 static prim_value_t::List to_list(const struct_value_t&) {

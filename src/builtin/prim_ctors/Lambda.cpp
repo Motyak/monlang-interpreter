@@ -31,7 +31,8 @@ static prim_value_t::Lambda to_lambda(const type_value_t&);
 static prim_value_t::Lambda to_lambda(const struct_value_t&);
 static prim_value_t::Lambda to_lambda(const enum_value_t&);
 
-prim_value_t::Lambda builtin::prim_ctor::Lambda_(const value_t& val) {
+prim_value_t::Lambda builtin::prim_ctor::Lambda_(value_t val) {
+    val = rec_unwrap_typeval(val);
     return std::visit(overload{
         [](auto* val) -> prim_value_t::Lambda {
             if (val == nullptr){
@@ -60,7 +61,7 @@ static prim_value_t::Lambda to_lambda(const prim_value_t& primVal) {
 }
 
 static prim_value_t::Lambda to_lambda(const type_value_t&) {
-    SHOULD_NOT_HAPPEN(); // TODO: tmp
+    SHOULD_NOT_HAPPEN(); // rec_unwrap_typeval() called in Lambda_
 }
 
 static prim_value_t::Lambda to_lambda(const struct_value_t&) {
