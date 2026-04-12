@@ -19,6 +19,7 @@ const value_t builtin::prim_ctor::Map __attribute__((init_priority(3000))) = new
         prim_value_t::Map res;
         for (auto arg: args) {
             auto argVal = evaluateValue(arg.expr, arg.env);
+            argVal = rec_unwrap_typeval(argVal);
             ASSERT (std::holds_alternative<prim_value_t*>(argVal)); // TODO: tmp
             auto argPrimValPtr = std::get<prim_value_t*>(argVal);
             ::activeCallStack.push_back(arg.expr);
@@ -64,6 +65,7 @@ static prim_value_t::Map to_map(const prim_value_t& primVal) {
         [](const prim_value_t::List& list) -> prim_value_t::Map {
             auto res = prim_value_t::Map();
             for (auto elem: list) {
+                elem = rec_unwrap_typeval(elem);
                 ASSERT (std::holds_alternative<prim_value_t*>(elem));
                 auto elemPrimValPtr = std::get<prim_value_t*>(elem);
                 unless (std::holds_alternative<prim_value_t::List>(elemPrimValPtr->variant)) {

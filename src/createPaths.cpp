@@ -31,6 +31,7 @@ value_t createPaths(const Lvalue& lvalue, Environment* env) {
 value_t createPaths(const FieldAccess& fieldAccess, Environment* env) {
     auto object = createPaths(fieldAccess.object, env);
     //            ^~~~~~~~~~~
+    object = rec_unwrap_typeval(object); // TODO: tmp
     ASSERT (std::holds_alternative<prim_value_t*>(object)); // TODO: tmp
     auto* objPrimValPtr = std::get<prim_value_t*>(object);
 
@@ -56,6 +57,7 @@ value_t createPaths(const Subscript& subscript, Environment* env) {
     extern value_t SENTINEL_NEW_MAP; // defined in src/interpret.cpp //
     auto arrVal = createPaths(subscript.array, env);
     //            ^~~~~~~~~~~
+    arrVal = rec_unwrap_typeval(arrVal);
     // arrVal = deepcopy(arrVal); // TODO: no need ?
 
     if (arrVal == SENTINEL_NEW_MAP) { //

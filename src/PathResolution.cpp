@@ -65,6 +65,7 @@ value_t PathResolution::evaluateValue(const Lvalue& lvalue, Environment* envAtRe
 value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* envAtResolution) {
     defer {this->nthSubscript += 1;};
     auto arrVal = this->evaluateValue(subscript.array, envAtResolution);
+    arrVal = rec_unwrap_typeval(arrVal);
     // arrVal = deepcopy(arrVal); // TODO: no need ?
     ASSERT (std::holds_alternative<prim_value_t*>(arrVal)); // TODO: tmp
     auto* arrPrimValPtr = std::get<prim_value_t*>(arrVal);
@@ -329,6 +330,7 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
 value_t PathResolution::evaluateValue(const FieldAccess& fieldAccess, Environment* envAtResolution) {
     auto object = this->evaluateValue(fieldAccess.object, envAtResolution);
     //            ^~~~~~                                  ^~~~~~~~~~~~~~~
+    object = rec_unwrap_typeval(object); // TODO: tmp
 
     ASSERT (std::holds_alternative<prim_value_t*>(object)); // TODO: tmp
     auto* objPrimValPtr = std::get<prim_value_t*>(object);
@@ -383,6 +385,7 @@ value_t* PathResolution::evaluateLvalue(const Subscript& subscript, Environment*
     auto* lvalue = this->evaluateLvalue(subscript.array, envAtResolution, /*subscripted*/true);
     //             ^~~~~~                                ^~~~~~~~~~~~~~~
     ASSERT (lvalue != nullptr);
+    lvalue = rec_unwrap_typeval(lvalue);
     ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
     auto& lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
 
@@ -497,6 +500,7 @@ value_t* PathResolution::evaluateLvalue(const FieldAccess& fieldAccess, Environm
     auto* lvalue = this->evaluateLvalue(fieldAccess.object, envAtResolution, /*subscripted*/true);
     //             ^~~~~~                                   ^~~~~~~~~~~~~~~
     ASSERT (lvalue != nullptr);
+    lvalue = rec_unwrap_typeval(lvalue);
 
     ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
     auto* lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
@@ -544,6 +548,7 @@ value_t PathResolution::createPaths(const Lvalue& lvalue, Environment* envAtReso
 value_t PathResolution::createPaths(const FieldAccess& fieldAccess, Environment* envAtResolution) {
     auto object = this->createPaths(fieldAccess.object, envAtResolution);
     //                  ^~~~~~~~~~~
+    object = rec_unwrap_typeval(object); // TODO: tmp
 
     ASSERT (std::holds_alternative<prim_value_t*>(object)); // TODO: tmp
     auto* objPrimValPtr = std::get<prim_value_t*>(object);
@@ -571,6 +576,7 @@ value_t PathResolution::createPaths(const Subscript& subscript, Environment* env
     defer {this->nthSubscript += 1;};
     auto arrVal = this->createPaths(subscript.array, envAtResolution);
     //                  ^~~~~~~~~~~
+    arrVal = rec_unwrap_typeval(arrVal);
     // arrVal = deepcopy(arrVal); // TODO: no need ?
 
     if (arrVal == SENTINEL_NEW_MAP) { //

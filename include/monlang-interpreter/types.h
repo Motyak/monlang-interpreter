@@ -155,4 +155,11 @@ inline value_t rec_unwrap_typeval(value_t value) {
     return value;
 }
 
+inline value_t* rec_unwrap_typeval(value_t* value) {
+    while (std::holds_alternative<type_value_t*>(*value)) {
+        value = &std::get<type_value_t*>(*value)->underlyingVal;
+    }
+    return value;
+}
+
 #endif // TYPES_H

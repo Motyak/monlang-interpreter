@@ -55,6 +55,7 @@ const value_t builtin::op::mul __attribute__((init_priority(3000))) = new prim_v
             [&otherArgs](Int int_) -> value_t {
                 auto secondArg = otherArgs.at(0);
                 auto secondArgValue = evaluateValue(secondArg.expr, secondArg.env);
+                secondArgValue = rec_unwrap_typeval(secondArgValue);
                 ASSERT (std::holds_alternative<prim_value_t*>(secondArgValue)); // TODO: tmp
                 auto secondArgPrimValuePtr = std::get<prim_value_t*>(secondArgValue);
                 if (secondArgPrimValuePtr == nullptr) {

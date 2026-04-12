@@ -217,6 +217,7 @@ void performStatement(const TypeDefinition& typedef_, Environment* env) {
         auto symVal = env->at(commonSubtype);
         ASSERT (std::holds_alternative<Environment::Variable>(symVal));
         auto val = *std::get<Environment::Variable>(symVal);
+        val = rec_unwrap_typeval(val);
         ASSERT (std::holds_alternative<prim_value_t*>(val));
         auto prim_val = *std::get<prim_value_t*>(val);
         ASSERT (std::holds_alternative<prim_value_t::Lambda>(prim_val.variant));
@@ -452,6 +453,7 @@ value_t evaluateValue(const Operation& operation, Environment* env) {
 
 value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
     auto fnVal = evaluateValue(fnCall.function, env);
+    fnVal = rec_unwrap_typeval(fnVal);
     ASSERT (std::holds_alternative<prim_value_t*>(fnVal)); // TODO: tmp
     auto* fnPrimValPtr = std::get<prim_value_t*>(fnVal);
     if (fnPrimValPtr == nullptr) {
@@ -772,6 +774,7 @@ value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
 
 value_t evaluateValue(const FieldAccess& fieldAccess, Environment* env) {
     auto object = evaluateValue(fieldAccess.object, env);
+    object = rec_unwrap_typeval(object); // TODO: tmp
     ASSERT (std::holds_alternative<prim_value_t*>(object)); // TODO: tmp
     auto* objPrimValPtr = std::get<prim_value_t*>(object);
 
@@ -794,6 +797,7 @@ value_t evaluateValue(const FieldAccess& fieldAccess, Environment* env) {
 
 value_t evaluateValue(const Subscript& subscript, Environment* env) {
     auto arrVal = evaluateValue(subscript.array, env);
+    arrVal = rec_unwrap_typeval(arrVal);
     // arrVal = deepcopy(arrVal); // TODO: no need ?
     ASSERT (std::holds_alternative<prim_value_t*>(arrVal)); // TODO: tmp
     auto* arrPrimValPtr = std::get<prim_value_t*>(arrVal);
@@ -1194,6 +1198,7 @@ value_t evaluateValue(const Symbol& symbol, const Environment* env) {
 value_t* evaluateLvalue(const FieldAccess& fieldAccess, Environment* env) {
     auto* lvalue = evaluateLvalue(fieldAccess.object, env, /*subscripted*/true);
     ASSERT (lvalue != nullptr);
+    lvalue = rec_unwrap_typeval(lvalue);
 
     ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
     auto* lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
@@ -1221,6 +1226,7 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
     }
     auto* lvalue = evaluateLvalue(subscript.array, env, /*subscripted*/true);
     ASSERT (lvalue != nullptr);
+    lvalue = rec_unwrap_typeval(lvalue);
     ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
     auto& lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
 

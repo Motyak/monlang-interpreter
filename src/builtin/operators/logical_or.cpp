@@ -22,12 +22,9 @@ const value_t builtin::op::logical_or __attribute__((init_priority(3000))) = new
         unless (args.size() >= 2) throw InterpretError("||() takes 2+ argument");
         for (auto arg: args) {
             auto argVal = evaluateValue(arg.expr, arg.env);
-            argVal = rec_unwrap_typeval(argVal);
-            ASSERT (std::holds_alternative<prim_value_t*>(argVal)); //TODO: tmp
-            auto argPrimValPtr = std::get<prim_value_t*>(argVal);
             // Bool_ is responsible for $nil handling
             ::activeCallStack.push_back(arg.expr);
-            auto argBool = builtin::prim_ctor::Bool_(argPrimValPtr);
+            auto argBool = builtin::prim_ctor::Bool_(argVal);
             safe_pop_back(::activeCallStack); // arg.expr
             if (argBool) {
                 return BoolConst::TRUE;

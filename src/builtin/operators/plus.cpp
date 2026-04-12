@@ -187,6 +187,7 @@ static value_t concatListFromTypeVal(
                 else SHOULD_NOT_HAPPEN();
             }
             else break;
+            val = rec_unwrap_typeval(val);
             ASSERT (std::holds_alternative<prim_value_t*>(val));
             auto prim_val = *std::get<prim_value_t*>(val);
             ASSERT (std::holds_alternative<prim_value_t::Lambda>(prim_val.variant));
