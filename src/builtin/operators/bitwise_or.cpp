@@ -5,6 +5,7 @@
 #include <monlang-interpreter/interpret.h>
 #include <monlang-interpreter/InterpretError.h>
 #include <monlang-interpreter/builtin/prim_ctors.h>
+#include <monlang-interpreter/builtin.h>
 
 #include <utils/assert-utils.h>
 #include <utils/variant-utils.h>
@@ -28,6 +29,15 @@ static value_t bitwise_or_Int(Int firstArgValue, const std::vector<FlattenArg>& 
 
 static value_t mergeMap(const Map& firstArgValue, const std::vector<FlattenArg>& args);
 
+// special case for when lhs is a type_value_t based on List/Map
+// ..AND its ctor seems to be a tagging ctor (no required arg)
+static value_t mergeMapFromTypeVal(
+    const std::string& typeTag,
+    const FlattenArg& firstArg,
+    const Map& firstArgValue,
+    const std::vector<FlattenArg>& args
+);
+
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
 const value_t builtin::op::bitwise_or __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
@@ -38,6 +48,12 @@ const value_t builtin::op::bitwise_or __attribute__((init_priority(3000))) = new
 
         auto firstArg = args.at(0);
         auto firstArgValue = evaluateValue(firstArg.expr, firstArg.env);
+        std::optional<std::string> typeTag;
+        if (std::holds_alternative<type_value_t*>(firstArgValue)) {
+            auto typeVal = std::get<type_value_t*>(firstArgValue);
+            typeTag = typeVal->typeTag;
+            firstArgValue = rec_unwrap_typeval(firstArgValue);
+        }
         ASSERT (std::holds_alternative<prim_value_t*>(firstArgValue)); // TODO: tmp
         auto firstArgPrimValuePtr = std::get<prim_value_t*>(firstArgValue);
         if (firstArgPrimValuePtr == nullptr) {
@@ -49,7 +65,10 @@ const value_t builtin::op::bitwise_or __attribute__((init_priority(3000))) = new
         return std::visit(overload{
             [&otherArgs](Byte byte) -> value_t {return bitwise_or_Byte(byte, otherArgs);},
             [&otherArgs](Int int_) -> value_t {return bitwise_or_Int(int_, otherArgs);},
-            [&otherArgs](const Map& map) -> value_t {return mergeMap(map, otherArgs);},
+            [&firstArg, &otherArgs, &typeTag](const Map& map) -> value_t {
+                return typeTag? mergeMapFromTypeVal(*typeTag, firstArg, map, otherArgs)
+                        : mergeMap(map, otherArgs);
+            },
 
             [](Bool) -> value_t {throw InterpretError("|() first arg cannot be Bool");},
             [](Float) -> value_t {throw InterpretError("|() first arg cannot be Float");},
@@ -103,4 +122,46 @@ static value_t mergeMap(const Map& firstArgValue, const std::vector<FlattenArg>&
     }
 
     return new prim_value_t{res};
+}
+
+static value_t mergeMapFromTypeVal(
+    const std::string& typeTag,
+    const FlattenArg& firstArg,
+    const Map& firstArgValue,
+    const std::vector<FlattenArg>& args
+)
+{
+    value_t val = mergeMap(firstArgValue, args);
+
+    // HUGE HACK INCOMING
+
+    bool returnTypeVal = false;
+    /* breakable block */ for (int z = 1; z <= 1; z++)
+    {
+        unless (std::holds_alternative<FunctionCall*>(firstArg.expr)) break;
+        auto fncall = *std::get<FunctionCall*>(firstArg.expr);
+        unless (std::holds_alternative<Symbol*>(fncall.function)) break;
+        auto symbol = std::get<Symbol*>(fncall.function);
+        prim_value_t::Lambda lambda;
+        if (firstArg.env->contains(symbol->name)) {
+            auto symVal = firstArg.env->at(symbol->name);
+            ASSERT (std::holds_alternative<Environment::Variable>(symVal));
+            auto val = *std::get<Environment::Variable>(symVal);
+            ASSERT (std::holds_alternative<prim_value_t*>(val));
+            auto prim_val = *std::get<prim_value_t*>(val);
+            ASSERT (std::holds_alternative<prim_value_t::Lambda>(prim_val.variant));
+            lambda = std::get<prim_value_t::Lambda>(prim_val.variant);
+        }
+        else if (BUILTIN_TABLE.contains(symbol->name)) {
+            auto val = BUILTIN_TABLE.at(symbol->name);
+            ASSERT (std::holds_alternative<prim_value_t*>(val));
+            auto prim_val = *std::get<prim_value_t*>(val);
+            ASSERT (std::holds_alternative<prim_value_t::Lambda>(prim_val.variant));
+            lambda = std::get<prim_value_t::Lambda>(prim_val.variant);
+        }
+        else break;
+        returnTypeVal = lambda.requiredArgs == IntConst::ZERO;
+    }
+
+    return returnTypeVal? new type_value_t{typeTag, val} : val;
 }
