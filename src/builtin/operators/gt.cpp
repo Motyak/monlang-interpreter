@@ -35,6 +35,7 @@ const value_t builtin::op::gt __attribute__((init_priority(3000))) = new prim_va
         bool first_it = true;
         for (auto arg: args) {
             auto argVal = evaluateValue(arg.expr, arg.env);
+            argVal = rec_unwrap_typeval(argVal);
             ::activeCallStack.push_back(arg.expr);
             if (is_nil(argVal)) {
                 throw InterpretError(">() arg cannot be $nil");

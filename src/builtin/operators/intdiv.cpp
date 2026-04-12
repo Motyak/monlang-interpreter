@@ -35,6 +35,7 @@ const value_t builtin::op::intdiv __attribute__((init_priority(3000))) = new pri
 
         auto firstArg = args.at(0);
         auto firstArgValue = evaluateValue(firstArg.expr, firstArg.env);
+        firstArgValue = rec_unwrap_typeval(firstArgValue);
         ASSERT (std::holds_alternative<prim_value_t*>(firstArgValue)); // TODO: tmp
         auto firstArgPrimValuePtr = std::get<prim_value_t*>(firstArgValue);
         if (firstArgPrimValuePtr == nullptr) {

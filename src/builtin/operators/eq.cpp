@@ -44,6 +44,7 @@ const value_t builtin::op::eq __attribute__((init_priority(3000))) = new prim_va
         bool first_it = true;
         for (auto arg: args) {
             auto argVal = evaluateValue(arg.expr, arg.env);
+            argVal = rec_unwrap_typeval(argVal);
 
             // // NOTE: at the moment we allow == with $nil, to check for $nil
             // if (is_nil(argVal)) {
