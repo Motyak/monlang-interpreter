@@ -26,9 +26,6 @@ const value_t builtin::prim_ctor::Str __attribute__((init_priority(3000))) = new
 }};
 
 prim_value_t::Str builtin::prim_ctor::Str_(const value_t& val) {
-    //TODO: if val is a type_value_t that inherits from Str,..
-    // ..then we return its Str value instead
-
     std::ostringstream oss;
     print_({val}, oss);
     auto res = oss.str();

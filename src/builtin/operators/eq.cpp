@@ -29,7 +29,7 @@ using Str = prim_value_t::Str;
 using List = prim_value_t::List;
 using Map = prim_value_t::Map;
 
-static bool compareValue(const value_t&, const value_t&, bool fromMain = false);
+static bool compareValue(value_t, value_t, bool fromMain = false);
 static bool comparePrimValPtr(prim_value_t*, prim_value_t*, bool fromMain = false);
 
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
@@ -44,7 +44,6 @@ const value_t builtin::op::eq __attribute__((init_priority(3000))) = new prim_va
         bool first_it = true;
         for (auto arg: args) {
             auto argVal = evaluateValue(arg.expr, arg.env);
-            argVal = rec_unwrap_typeval(argVal);
 
             // // NOTE: at the moment we allow == with $nil, to check for $nil
             // if (is_nil(argVal)) {
@@ -71,14 +70,16 @@ const value_t builtin::op::eq __attribute__((init_priority(3000))) = new prim_va
     }
 }};
 
-static bool compareValue(const value_t& lhsVal, const value_t& rhsVal, bool fromMain) {
+static bool compareValue(value_t lhsVal, value_t rhsVal, bool fromMain) {
+    lhsVal = rec_unwrap_typeval(lhsVal);
+    rhsVal = rec_unwrap_typeval(rhsVal);
     ASSERT (lhsVal.index() == rhsVal.index()); // TODO: tmp
     return std::visit(overload{
         [rhsVal, fromMain](prim_value_t* lhsPrimValPtr) -> bool {
             return comparePrimValPtr(lhsPrimValPtr, std::get<prim_value_t*>(rhsVal), fromMain);
         },
         [](type_value_t*) -> bool {
-            TODO();
+            SHOULD_NOT_HAPPEN(); // rec_unwrap_typeval() above
         },
         [](struct_value_t*) -> bool {
             TODO();

@@ -18,7 +18,7 @@
 
 static void print(const value_t&, std::ostream& = std::cout, bool shouldQuot = false);
 static void print(const prim_value_t&, std::ostream&, bool shouldQuot);
-static void print(const type_value_t&, std::ostream&);
+static void print(const type_value_t&, std::ostream&, bool shouldQuot);
 static void print(const struct_value_t&, std::ostream&);
 static void print(const enum_value_t&, std::ostream&);
 
@@ -50,8 +50,8 @@ static void print(const value_t& val, std::ostream& out, bool shouldQuot) {
         [&out, shouldQuot](prim_value_t* val){
             print(*val, out, shouldQuot);
         },
-        [&out](type_value_t* val){
-            print(*val, out);
+        [&out, shouldQuot](type_value_t* val){
+            print(*val, out, shouldQuot);
         },
         [&out](struct_value_t* val){
             print(*val, out);
@@ -116,10 +116,10 @@ static void print(const prim_value_t& primVal, std::ostream& out, bool shouldQuo
     }, primVal.variant);
 }
 
-static void print(const type_value_t& type_val, std::ostream& out) {
+static void print(const type_value_t& type_val, std::ostream& out, bool shouldQuote) {
     if (builtin::op::is_(type_val.typeTag, "Str")) {
         auto underlyingVal = rec_unwrap_typeval(type_val.underlyingVal);
-        print(underlyingVal, out);
+        print(underlyingVal, out, shouldQuote);
     }
     else if (builtin::op::is_(type_val.typeTag, "List")) {
         auto underlyingVal = rec_unwrap_typeval(type_val.underlyingVal);

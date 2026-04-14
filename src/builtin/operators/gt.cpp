@@ -67,7 +67,7 @@ static int compareValue(const value_t& lhsVal, const value_t& rhsVal) {
             return comparePrimValPtr(lhsPrimValPtr, std::get<prim_value_t*>(rhsVal));
         },
         [](type_value_t*) -> int {
-            TODO();
+            SHOULD_NOT_HAPPEN(); // rec_unwrap_typeval() above
         },
         [](struct_value_t*) -> int {
             TODO();

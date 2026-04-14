@@ -12,7 +12,6 @@ using Str = prim_value_t::Str;
 using List = prim_value_t::List;
 using Map = prim_value_t::Map;
 
-static int cmp(const value_t& lhs, const value_t& rhs);
 static int cmp(prim_value_t* lhs, prim_value_t* rhs);
 static int cmp(type_value_t* lhs, type_value_t* rhs);
 static int cmp(struct_value_t* lhs, struct_value_t* rhs);
@@ -36,6 +35,7 @@ bool MapKeyCmp::operator()(const value_t& lhs, const value_t& rhs) const {
     }, lhs);
 }
 
+// used by List, Map and type_value_t*
 static int cmp(const value_t& lhs, const value_t& rhs) {
     if (is_nil(lhs) && is_nil(rhs)) return 0;
     if (is_nil(lhs) && !is_nil(rhs)) return -1;
@@ -133,9 +133,12 @@ static int cmp(prim_value_t* lhs, prim_value_t* rhs) {
 }
 
 static int cmp(type_value_t* lhs, type_value_t* rhs) {
-    (void)lhs;
-    (void)rhs;
-    TODO();
+    if (lhs->typeTag != rhs->typeTag) {
+        return lhs->typeTag < rhs->typeTag? -1 : 1;
+    }
+    auto lhsVal = rec_unwrap_typeval(lhs->underlyingVal);
+    auto rhsVal = rec_unwrap_typeval(rhs->underlyingVal);
+    return cmp(lhsVal, rhsVal);
 }
 
 static int cmp(struct_value_t* lhs, struct_value_t* rhs) {
