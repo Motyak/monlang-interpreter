@@ -43,6 +43,7 @@ prim_value_t::Byte builtin::prim_ctor::Byte_(value_t val) {
             }
         },
         [](char*) -> prim_value_t::Byte {SHOULD_NOT_HAPPEN();},
+        [](FieldLvalue*) -> prim_value_t::Byte {SHOULD_NOT_HAPPEN();},
     }, val);
 }
 

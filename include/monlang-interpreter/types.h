@@ -42,6 +42,7 @@ struct prim_value_t;
 struct type_value_t;
 struct struct_value_t;
 struct enum_value_t;
+struct FieldLvalue;
 
 using value_t = std::variant<
     prim_value_t*, // primitive
@@ -49,8 +50,9 @@ using value_t = std::variant<
     type_value_t*,
     struct_value_t*,
     enum_value_t*,
-    /* for evaluating Str subscript as lvalue */
-    char*
+
+    char*, // for evaluating Str subscript as lvalue
+    FieldLvalue* // for evaluating FieldAccess as lvalue
 >;
 
 struct prim_value_t {
@@ -96,17 +98,25 @@ struct type_value_t {
 };
 
 struct struct_value_t {
-    std::string_view
-    type;
+    std::string type;
 
-    std::vector<std::pair<std::string_view, value_t>>
-    fields;
+    struct Field {
+        std::string type;
+        std::string name;
+        value_t val;
+    };
+    std::vector<Field> fields;
 };
 
 struct enum_value_t {
     std::string_view type;
     std::string_view enumerate_name; // TODO: no need ?
     value_t enumerate_value;
+};
+
+struct FieldLvalue {
+    std::string type;
+    value_t* lvalue;
 };
 
 template <typename R>

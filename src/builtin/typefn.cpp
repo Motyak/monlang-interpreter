@@ -13,6 +13,18 @@
 
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
+
+static auto PRIM_TYPE = std::map<std::string, prim_value_t*>{
+    {"$nil", new prim_value_t{"$nil"}},
+    {"Bool", new prim_value_t{"Bool"}},
+    {"Int", new prim_value_t{"Int"}},
+    {"Float", new prim_value_t{"Float"}},
+    {"Str", new prim_value_t{"Str"}},
+    {"List", new prim_value_t{"List"}},
+    {"Map", new prim_value_t{"Map"}},
+    {"Lambda", new prim_value_t{"Lambda"}},
+};
+
 const value_t builtin::typefn __attribute__((init_priority(3000))) = new prim_value_t{prim_value_t::Lambda{
     builtin_lambda_id++,
     IntConst::ONE,
@@ -20,45 +32,36 @@ const value_t builtin::typefn __attribute__((init_priority(3000))) = new prim_va
         unless (args.size() == 1) throw InterpretError("$type() takes 1 arg");
         auto arg = args.at(0);
         auto argVal = evaluateValue(arg.expr, arg.env);
-
-        if (is_nil(argVal)) {
-            static auto nil_type = new prim_value_t{prim_value_t::Str("$nil")};
-            return nil_type;
-        }
-
-        return new prim_value_t{builtin::typefn_(argVal)};
+        auto type = builtin::typefn_(argVal);
+        return PRIM_TYPE.contains(type)? PRIM_TYPE.at(type) : new prim_value_t{type};
     }
 }};
 
 static prim_value_t::Str get_type(const prim_value_t&);
 
 prim_value_t::Str builtin::typefn_(const value_t& val) {
+    if (is_nil(val)) {
+        return "$nil";
+    }
     return std::visit(overload{
         [](prim_value_t* val) -> prim_value_t::Str {return get_type(*val);},
         [](type_value_t* val) -> prim_value_t::Str {return (prim_value_t::Str)val->typeTag;},
         [](struct_value_t* val) -> prim_value_t::Str {return (prim_value_t::Str)val->type;},
         [](enum_value_t* val) -> prim_value_t::Str {return (prim_value_t::Str)val->type;},
         [](char*) -> prim_value_t::Str {SHOULD_NOT_HAPPEN();},
+        [](FieldLvalue*) -> prim_value_t::Str {SHOULD_NOT_HAPPEN();},
     }, val);
 }
 
 static prim_value_t::Str get_type(const prim_value_t& primVal) {
-    static auto bool_type = prim_value_t::Str("Bool");
-    static auto byte_type = prim_value_t::Str("Byte");
-    static auto int_type = prim_value_t::Str("Int");
-    static auto float_type = prim_value_t::Str("Float");
-    static auto str_type = prim_value_t::Str("Str");
-    static auto list_type = prim_value_t::Str("List");
-    static auto map_type = prim_value_t::Str("Map");
-    static auto lambda_type = prim_value_t::Str("Lambda");
     return std::visit(overload{
-        [](prim_value_t::Bool){return bool_type;},
-        [](prim_value_t::Byte){return byte_type;},
-        [](prim_value_t::Int){return int_type;},
-        [](prim_value_t::Float){return float_type;},
-        [](const prim_value_t::Str&){return str_type;},
-        [](const prim_value_t::List&){return list_type;},
-        [](const prim_value_t::Map&){return map_type;},
-        [](const prim_value_t::Lambda&){return lambda_type;},
+        [](prim_value_t::Bool){return "Bool";},
+        [](prim_value_t::Byte){return "Byte";},
+        [](prim_value_t::Int){return "Int";},
+        [](prim_value_t::Float){return "Float";},
+        [](const prim_value_t::Str&){return "Str";},
+        [](const prim_value_t::List&){return "List";},
+        [](const prim_value_t::Map&){return "Map";},
+        [](const prim_value_t::Lambda&){return "Lambda";},
     }, primVal.variant);
 }

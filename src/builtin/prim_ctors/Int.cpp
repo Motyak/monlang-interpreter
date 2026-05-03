@@ -47,6 +47,7 @@ prim_value_t::Int builtin::prim_ctor::Int_(value_t val) {
             }
         },
         [](char*) -> prim_value_t::Int {SHOULD_NOT_HAPPEN();},
+        [](FieldLvalue*) -> prim_value_t::Int {SHOULD_NOT_HAPPEN();},
     }, val);
 }
 

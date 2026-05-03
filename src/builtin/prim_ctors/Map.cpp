@@ -20,6 +20,9 @@ const value_t builtin::prim_ctor::Map __attribute__((init_priority(3000))) = new
         for (auto arg: args) {
             auto argVal = evaluateValue(arg.expr, arg.env);
             argVal = rec_unwrap_typeval(argVal);
+            if (std::holds_alternative<struct_value_t*>(argVal)) {
+                throw InterpretError("Map() argument isn't a list");
+            }
             ASSERT (std::holds_alternative<prim_value_t*>(argVal)); // TODO: tmp
             auto argPrimValPtr = std::get<prim_value_t*>(argVal);
             ::activeCallStack.push_back(arg.expr);
@@ -57,6 +60,7 @@ prim_value_t::Map builtin::prim_ctor::Map_(value_t val) {
             }
         },
         [](char*) -> prim_value_t::Map {SHOULD_NOT_HAPPEN();},
+        [](FieldLvalue*) -> prim_value_t::Map {SHOULD_NOT_HAPPEN();},
     }, val);
 }
 
@@ -66,6 +70,9 @@ static prim_value_t::Map to_map(const prim_value_t& primVal) {
             auto res = prim_value_t::Map();
             for (auto elem: list) {
                 elem = rec_unwrap_typeval(elem);
+                if (std::holds_alternative<struct_value_t*>(elem)) {
+                    throw InterpretError("this List is not a Map");
+                }
                 ASSERT (std::holds_alternative<prim_value_t*>(elem));
                 auto elemPrimValPtr = std::get<prim_value_t*>(elem);
                 unless (std::holds_alternative<prim_value_t::List>(elemPrimValPtr->variant)) {
@@ -94,8 +101,13 @@ static prim_value_t::Map to_map(const type_value_t&) {
     SHOULD_NOT_HAPPEN(); // rec_unwrap_typeval() called in Map_
 }
 
-static prim_value_t::Map to_map(const struct_value_t&) {
-    throw InterpretError("a struct val is not a Map"); // TODO: maybe this will change later on ?
+static prim_value_t::Map to_map(const struct_value_t& struct_val) {
+    auto map = prim_value_t::Map();
+    for (const auto& field: struct_val.fields) {
+        auto name = new prim_value_t{(prim_value_t::Str)field.name};
+        map[name] = field.val;
+    }
+    return map;
 }
 
 static prim_value_t::Map to_map(const enum_value_t&) {

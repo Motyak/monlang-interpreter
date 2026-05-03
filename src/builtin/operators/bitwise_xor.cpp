@@ -37,6 +37,9 @@ const value_t builtin::op::bitwise_xor __attribute__((init_priority(3000))) = ne
         auto firstArg = args.at(0);
         auto firstArgValue = evaluateValue(firstArg.expr, firstArg.env);
         firstArgValue = rec_unwrap_typeval(firstArgValue);
+        if (std::holds_alternative<struct_value_t*>(firstArgValue)) {
+            throw InterpretError("^() first arg cannot be a struct");
+        }
         ASSERT (std::holds_alternative<prim_value_t*>(firstArgValue)); // TODO: tmp
         auto firstArgPrimValuePtr = std::get<prim_value_t*>(firstArgValue);
         if (firstArgPrimValuePtr == nullptr) {

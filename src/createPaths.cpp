@@ -32,6 +32,18 @@ value_t createPaths(const FieldAccess& fieldAccess, Environment* env) {
     auto object = createPaths(fieldAccess.object, env);
     //            ^~~~~~~~~~~
     object = rec_unwrap_typeval(object); // TODO: tmp
+
+    if (std::holds_alternative<struct_value_t*>(object)) {
+        auto struct_ = *std::get<struct_value_t*>(object);
+        for (const auto& field: struct_.fields) {
+            if (field.name == fieldAccess.field.name) {
+                return field.val;
+            }
+        }
+        ::activeCallStack.push_back(const_cast<Symbol*>(&fieldAccess.field));
+        throw InterpretError("Field not found `" + fieldAccess.field.name + "`");
+    }
+
     ASSERT (std::holds_alternative<prim_value_t*>(object)); // TODO: tmp
     auto* objPrimValPtr = std::get<prim_value_t*>(object);
 
@@ -63,6 +75,10 @@ value_t createPaths(const Subscript& subscript, Environment* env) {
     if (arrVal == SENTINEL_NEW_MAP) { //
         arrVal = new prim_value_t{prim_value_t::Map()}; //
     } //
+
+    if (std::holds_alternative<struct_value_t*>(arrVal)) {
+        throw InterpretError("Subscripting a struct");
+    }
 
     ASSERT (std::holds_alternative<prim_value_t*>(arrVal)); // TODO: tmp
     auto* arrPrimValPtr = std::get<prim_value_t*>(arrVal);

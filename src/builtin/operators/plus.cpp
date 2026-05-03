@@ -54,6 +54,9 @@ const value_t builtin::op::plus __attribute__((init_priority(3000))) = new prim_
             typeTag = typeVal->typeTag;
             firstArgValue = rec_unwrap_typeval(firstArgValue);
         }
+        if (std::holds_alternative<struct_value_t*>(firstArgValue)) {
+            throw InterpretError("+() first arg cannot be a struct");
+        }
         ASSERT (std::holds_alternative<prim_value_t*>(firstArgValue)); // TODO: tmp
         auto firstArgPrimValuePtr = std::get<prim_value_t*>(firstArgValue);
         if (firstArgPrimValuePtr == nullptr) {

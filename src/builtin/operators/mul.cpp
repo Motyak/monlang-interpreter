@@ -41,6 +41,9 @@ const value_t builtin::op::mul __attribute__((init_priority(3000))) = new prim_v
         auto firstArg = args.at(0);
         auto firstArgValue = evaluateValue(firstArg.expr, firstArg.env);
         firstArgValue = rec_unwrap_typeval(firstArgValue);
+        if (std::holds_alternative<struct_value_t*>(firstArgValue)) {
+            throw InterpretError("*() first arg cannot be a struct");
+        }
         ASSERT (std::holds_alternative<prim_value_t*>(firstArgValue)); // TODO: tmp
         auto firstArgPrimValuePtr = std::get<prim_value_t*>(firstArgValue);
         if (firstArgPrimValuePtr == nullptr) {
@@ -56,6 +59,9 @@ const value_t builtin::op::mul __attribute__((init_priority(3000))) = new prim_v
                 auto secondArg = otherArgs.at(0);
                 auto secondArgValue = evaluateValue(secondArg.expr, secondArg.env);
                 secondArgValue = rec_unwrap_typeval(secondArgValue);
+                if (std::holds_alternative<struct_value_t*>(secondArgValue)) {
+                    throw InterpretError("&() second arg cannot be a struct");
+                }
                 ASSERT (std::holds_alternative<prim_value_t*>(secondArgValue)); // TODO: tmp
                 auto secondArgPrimValuePtr = std::get<prim_value_t*>(secondArgValue);
                 if (secondArgPrimValuePtr == nullptr) {

@@ -53,13 +53,14 @@ static void print(const value_t& val, std::ostream& out, bool shouldQuot) {
         [&out, shouldQuot](type_value_t* val){
             print(*val, out, shouldQuot);
         },
-        [&out](struct_value_t* val){
+        [&out, shouldQuot](struct_value_t* val){
             print(*val, out);
         },
         [&out](enum_value_t* val){
             print(*val, out);
         },
         [](char*){SHOULD_NOT_HAPPEN();},
+        [](FieldLvalue*){SHOULD_NOT_HAPPEN();},
     }, val);
 }
 
@@ -160,19 +161,37 @@ static void print(const type_value_t& type_val, std::ostream& out, bool shouldQu
         out << ")";
     }
     else {
-        out << type_val.typeTag << "(";
-        print(type_val.underlyingVal, out, /*shouldQuot*/true);
-        out << ")";
+        // if unwrapped typeval is a struct, then we directly
+        // ..print the struct content while keeping the type tag
+        auto unwrapped = rec_unwrap_typeval(type_val.underlyingVal);
+        if (std::holds_alternative<struct_value_t*>(unwrapped)) {
+            auto struct_val = *std::get<struct_value_t*>(unwrapped);
+            out << type_val.typeTag << "(";
+            LOOP for (auto [_type, _name, field_value]: struct_val.fields) {
+                if (!__first_it) {
+                    out << ", ";
+                }
+                print(field_value, out, /*shouldQuot*/true);
+                ENDLOOP
+            }
+            out << ")";
+        }
+        else {
+            /* ignore unwrapped */
+            out << type_val.typeTag << "(";
+            print(type_val.underlyingVal, out, /*shouldQuot*/true);
+            out << ")";
+        }
     }
 }
 
 static void print(const struct_value_t& struct_val, std::ostream& out) {
     out << struct_val.type << "(";
-    LOOP for (auto [_field_name, field_value]: struct_val.fields) {
+    LOOP for (auto [_type, _name, field_value]: struct_val.fields) {
         if (!__first_it) {
             out << ", ";
         }
-        print(field_value, out);
+        print(field_value, out, /*shouldQuot*/true);
         ENDLOOP
     }
     out << ")";

@@ -9,6 +9,7 @@ struct prim_value_t;
 struct type_value_t;
 struct struct_value_t;
 struct enum_value_t;
+struct FieldLvalue;
 
 using value_t = std::variant<
     prim_value_t*, // primitive
@@ -16,8 +17,9 @@ using value_t = std::variant<
     type_value_t*,
     struct_value_t*,
     enum_value_t*,
-    /* for evaluating Str subscript as lvalue */
-    char*
+
+    char*, // for evaluating Str subscript as lvalue
+    FieldLvalue* // for evaluating FieldAccess as lvalue
 >;
 
 ///////////////////////////////////////////////

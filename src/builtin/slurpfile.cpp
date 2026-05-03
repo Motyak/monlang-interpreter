@@ -22,6 +22,9 @@ const value_t builtin::slurpfile __attribute__((init_priority(3000))) = new prim
         auto arg = args.at(0);
         auto argVal = evaluateValue(arg.expr, arg.env);
         argVal = rec_unwrap_typeval(argVal);
+        if (std::holds_alternative<struct_value_t*>(argVal)) {
+            throw InterpretError("slurpfile() arg cannot be a struct");
+        }
         ASSERT (std::holds_alternative<prim_value_t*>(argVal)); // TODO
         auto argPrimValPtr = std::get<prim_value_t*>(argVal);
         unless (std::holds_alternative<prim_value_t::Str>(argPrimValPtr->variant)) {

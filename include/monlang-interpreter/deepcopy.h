@@ -21,6 +21,7 @@ inline value_t deepcopy(const value_t& val) {
     }
     return std::visit(overload{
         [](char*) -> value_t {SHOULD_NOT_HAPPEN();},
+        [](FieldLvalue*) -> value_t {SHOULD_NOT_HAPPEN();},
         [](auto* val) -> value_t {return deepcopy(val);}
     }, val);
 }
@@ -60,8 +61,21 @@ static value_t deepcopy(type_value_t* type_val) {
     };
 }
 
-static value_t deepcopy(struct_value_t*) {
-    TODO();
+static value_t deepcopy(struct_value_t* struct_val) {
+    auto fields = std::vector<struct_value_t::Field>();
+    for (const auto& field: struct_val->fields) {
+        fields.push_back(
+            struct_value_t::Field{
+                field.type,
+                field.name,
+                deepcopy(field.val)
+            }
+        );
+    }
+    return new struct_value_t{
+        struct_val->type,
+        fields
+    };
 }
 
 static value_t deepcopy(enum_value_t*) {

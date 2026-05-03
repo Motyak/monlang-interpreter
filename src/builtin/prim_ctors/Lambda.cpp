@@ -43,6 +43,7 @@ prim_value_t::Lambda builtin::prim_ctor::Lambda_(value_t val) {
             }
         },
         [](char*) -> prim_value_t::Lambda {SHOULD_NOT_HAPPEN();},
+        [](FieldLvalue*) -> prim_value_t::Lambda {SHOULD_NOT_HAPPEN();},
     }, val);
 }
 

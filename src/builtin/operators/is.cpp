@@ -7,8 +7,7 @@
 #include <monlang-interpreter/interpret.h>
 #include <monlang-interpreter/InterpretError.h>
 
-#include <utils/defer-util.h>
-#include <utils/vec-utils.h>
+#include <utils/assert-utils.h>
 
 #define unless(x) if (!(x))
 
@@ -40,6 +39,9 @@ bool builtin::op::is_(const value_t& lhs, const std::string& rhs) {
 bool builtin::op::is_(const std::string& lhs, const std::string& rhs) {
     if (lhs == rhs) {
         return true;
+    }
+    if (lhs == "$nil" || rhs == "$nil") {
+        return false;
     }
     ASSERT (type_table.contains(lhs));
     // recursive

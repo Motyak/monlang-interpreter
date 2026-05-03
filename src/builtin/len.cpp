@@ -26,6 +26,9 @@ const value_t builtin::len __attribute__((init_priority(3000))) = new prim_value
         auto arg = args.at(0);
         auto argVal = evaluateValue(arg.expr, arg.env);
         argVal = rec_unwrap_typeval(argVal);
+        if (std::holds_alternative<struct_value_t*>(argVal)) {
+            throw InterpretError("len() arg cannot be a struct");
+        }
         ASSERT (std::holds_alternative<prim_value_t*>(argVal)); // TODO: tmp
         auto argPrimValPtr = std::get<prim_value_t*>(argVal);
         if (argPrimValPtr == nullptr) {

@@ -32,6 +32,7 @@ bool MapKeyCmp::operator()(const value_t& lhs, const value_t& rhs) const {
         [&rhs](struct_value_t* lhs) -> bool {return cmp(lhs, std::get<struct_value_t*>(rhs)) < 0;},
         [&rhs](enum_value_t* lhs) -> bool {return cmp(lhs, std::get<enum_value_t*>(rhs)) < 0;},
         [](char*) -> bool {SHOULD_NOT_HAPPEN();},
+        [](FieldLvalue*) -> bool {SHOULD_NOT_HAPPEN();},
     }, lhs);
 }
 
@@ -51,6 +52,7 @@ static int cmp(const value_t& lhs, const value_t& rhs) {
         [&rhs](struct_value_t* lhs) -> int {return cmp(lhs, std::get<struct_value_t*>(rhs));},
         [&rhs](enum_value_t* lhs) -> int {return cmp(lhs, std::get<enum_value_t*>(rhs));},
         [](char*) -> int {SHOULD_NOT_HAPPEN();},
+        [](FieldLvalue*) -> int {SHOULD_NOT_HAPPEN();},
     }, lhs);
 }
 

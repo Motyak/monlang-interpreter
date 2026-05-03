@@ -90,6 +90,9 @@ static bool compareValue(value_t lhsVal, value_t rhsVal, bool fromMain) {
         [](char*) -> bool {
             SHOULD_NOT_HAPPEN();
         },
+        [](FieldLvalue*) -> bool {
+            SHOULD_NOT_HAPPEN();
+        },
     }, lhsVal);
 }
 

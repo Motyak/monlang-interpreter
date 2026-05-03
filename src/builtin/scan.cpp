@@ -24,6 +24,9 @@ const value_t builtin::scan __attribute__((init_priority(3000))) = new prim_valu
         argVal = rec_unwrap_typeval(argVal);
         ::activeCallStack.push_back(arg.expr); // no need to pop
         defer {safe_pop_back(::activeCallStack);};
+        if (std::holds_alternative<struct_value_t*>(argVal)) {
+            throw InterpretError("scan() arg cannot be a struct");
+        }
         ASSERT (std::holds_alternative<prim_value_t*>(argVal)); // TODO: tmp
         auto argPrimValPtr = std::get<prim_value_t*>(argVal);
         if (argPrimValPtr == nullptr) {

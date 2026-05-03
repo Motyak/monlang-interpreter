@@ -30,6 +30,21 @@ extern thread_local std::vector<Expression> activeCallStack;
 #define SymbolRedefinitionError(symbol_name) \
     InterpretError{__FILE__, __LINE__, "Redefinition of symbol `" + symbol_name + "`"}
 
+#define StructWrongNbOfArgsError(ctorTypes, args) \
+    InterpretError{__FILE__, __LINE__, "ctor defined with " \
+            + std::to_string(ctorTypes.size()) \
+            + (ctorTypes.size() <= 1? " param" : " params") \
+            + ", but called with " \
+            + std::to_string(args.size()) \
+            + (args.size() <= 1? " arg" : " args") \
+    }
+
+#define StructFieldTypeError(argType, fieldType) \
+    InterpretError{__FILE__, __LINE__, "struct field of type `" \
+            + fieldType + "` but assigned with arg of type `" \
+            + argType + "`" \
+    }
+
 class InterpretError : public std::exception {
   public:
     std::vector<Expression> callStack;

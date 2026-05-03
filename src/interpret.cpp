@@ -254,6 +254,87 @@ void performStatement(const TypeDefinition& typedef_, Environment* env) {
     type_table[typeTag] = subtypes;
 }
 
+static value_t type_default_val(const std::string& type) {
+    if (type == "_") return nil_value_t();
+    if (builtin::op::is_(type, "Byte")) return new prim_value_t{prim_value_t::Byte(0)};
+    if (builtin::op::is_(type, "Int")) return new prim_value_t{prim_value_t::Int(0)};
+    if (builtin::op::is_(type, "Float")) return new prim_value_t{prim_value_t::Float(0)};
+    if (builtin::op::is_(type, "Str")) return new prim_value_t{prim_value_t::Str()};
+    if (builtin::op::is_(type, "List")) return new prim_value_t{prim_value_t::List()};
+    if (builtin::op::is_(type, "Map")) return new prim_value_t{prim_value_t::Map()};
+    return nil_value_t();
+}
+
+void performStatement(const StructDefinition& structdef, Environment* env) {
+    static Symbol* STMT_TOKEN = new Symbol{};
+    STMT_TOKEN->_tokenId = structdef._tokenId;
+    if (!top_level_stmt) {
+        ::activeCallStack.push_back(STMT_TOKEN);
+        throw InterpretError("StructDefinition is a top-level statement");
+    }
+
+    std::vector<std::string> ctorTypes;
+    for (const auto& field: structdef.fields) {
+        if (!type_table.contains(field.type.name) && field.type.name != "_") {
+            ::activeCallStack.push_back(const_cast<Symbol*>(&field.type));
+            throw InterpretError("Type `" + field.type.name + "` doesn't exist");
+        }
+        ASSERT (field.name.name.size() >= 1);
+        if (field.name.name[0] != '_') {
+            ctorTypes.push_back(field.type.name);
+        }
+    }
+
+    auto structCtor = prim_value_t::Lambda{
+        lambda_id++,
+        new prim_value_t{static_cast<prim_value_t::Int>(ctorTypes.size())},
+        [structdef, ctorTypes](const std::vector<FlattenArg>& args) -> value_t {
+            if (args.size() != ctorTypes.size()){
+                ::activeCallStack.push_back(const_cast<Symbol*>(&structdef.struct_));
+                throw StructWrongNbOfArgsError(ctorTypes, args);
+            }
+
+            auto fields = std::vector<struct_value_t::Field>();
+            for (size_t i = 0; i < args.size(); ++i) {
+                const auto& arg = args[i]; // TODO: ok?
+                auto argVal = evaluateValue(arg.expr, arg.env);
+                auto argType = builtin::typefn_(argVal);
+                auto fieldType = ctorTypes[i];
+                unless (fieldType == "_" || builtin::op::is_(argType, fieldType)) {
+                    ::activeCallStack.push_back(arg.expr);
+                    throw StructFieldTypeError(argType, fieldType);
+                }
+                fields.push_back(
+                    struct_value_t::Field{
+                        fieldType,
+                        structdef.fields[i].name.name,
+                        argVal
+                    }
+                );
+            }
+
+            /* add additional fields if any, and init them with default val */
+            for (const auto& field: structdef.fields) {
+                unless (field.name.name[0] == '_') continue;
+                fields.push_back(
+                    struct_value_t::Field{
+                        field.type.name,
+                        field.name.name,
+                        type_default_val(field.type.name)
+                    }
+                );
+            }
+
+            return new struct_value_t{structdef.struct_.name, fields};
+        }
+    };
+    auto* val = new prim_value_t{structCtor};
+    auto* var = new value_t{val};
+    env->symbolTable[structdef.struct_.name] = Environment::Variable{var};
+
+    type_table[structdef.struct_.name] = {};
+}
+
 void performStatement(const Assignment& assignment, Environment* env) {
     auto new_value = evaluateValue(assignment.value, env);
     new_value = deepcopy(new_value);
@@ -271,6 +352,18 @@ void performStatement(const Assignment& assignment, Environment* env) {
         defer {safe_pop_back(::activeCallStack);};
         auto newChar = builtin::prim_ctor::Byte_(new_value);
         *c = newChar;
+        return;
+    }
+
+    /* special case: assign to FieldAccess (we must check type) */
+    if (std::holds_alternative<FieldLvalue*>(*lvalue)) {
+        auto fieldLvalue = *std::get<FieldLvalue*>(*lvalue);
+        auto rhs_type = builtin::typefn_(new_value);
+        unless (fieldLvalue.type == "_" || builtin::op::is_(rhs_type, fieldLvalue.type)) {
+            ::activeCallStack.push_back(assignment.value);
+            throw StructFieldTypeError(rhs_type, fieldLvalue.type);
+        }
+        *fieldLvalue.lvalue = new_value;
         return;
     }
 
@@ -775,6 +868,18 @@ value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
 value_t evaluateValue(const FieldAccess& fieldAccess, Environment* env) {
     auto object = evaluateValue(fieldAccess.object, env);
     object = rec_unwrap_typeval(object); // TODO: tmp
+
+    if (std::holds_alternative<struct_value_t*>(object)) {
+        auto struct_ = *std::get<struct_value_t*>(object);
+        for (const auto& field: struct_.fields) {
+            if (field.name == fieldAccess.field.name) {
+                return field.val;
+            }
+        }
+        ::activeCallStack.push_back(const_cast<Symbol*>(&fieldAccess.field));
+        throw InterpretError("Field not found `" + fieldAccess.field.name + "`");
+    }
+
     ASSERT (std::holds_alternative<prim_value_t*>(object)); // TODO: tmp
     auto* objPrimValPtr = std::get<prim_value_t*>(object);
 
@@ -799,6 +904,11 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
     auto arrVal = evaluateValue(subscript.array, env);
     arrVal = rec_unwrap_typeval(arrVal);
     // arrVal = deepcopy(arrVal); // TODO: no need ?
+
+    if (std::holds_alternative<struct_value_t*>(arrVal)) {
+        throw InterpretError("Subscripting a struct");
+    }
+
     ASSERT (std::holds_alternative<prim_value_t*>(arrVal)); // TODO: tmp
     auto* arrPrimValPtr = std::get<prim_value_t*>(arrVal);
     if (arrPrimValPtr == nullptr) {
@@ -1200,6 +1310,35 @@ value_t* evaluateLvalue(const FieldAccess& fieldAccess, Environment* env) {
     ASSERT (lvalue != nullptr);
     lvalue = rec_unwrap_typeval(lvalue);
 
+    if (std::holds_alternative<struct_value_t*>(*lvalue)) {
+        auto& struct_ = *std::get<struct_value_t*>(*lvalue);
+        for (auto& field: struct_.fields) {
+            if (field.name == fieldAccess.field.name) {
+                auto val = new FieldLvalue{field.type, &field.val};
+                return new value_t{val};
+            }
+        }
+        ::activeCallStack.push_back(const_cast<Symbol*>(&fieldAccess.field));
+        throw InterpretError("Field not found `" + fieldAccess.field.name + "`");
+    }
+
+    // chained struct field access
+    if (std::holds_alternative<FieldLvalue*>(*lvalue)) {
+        auto& fieldLvalue = *std::get<FieldLvalue*>(*lvalue);
+        unless (std::holds_alternative<struct_value_t*>(*fieldLvalue.lvalue)) {
+            throw InterpretError("Accessing field on a non-struct");
+        }
+        auto& structVal = std::get<struct_value_t*>(*fieldLvalue.lvalue);
+        for (auto& field: structVal->fields) {
+            if (field.name == fieldAccess.field.name) {
+                auto val = new FieldLvalue{field.type, &field.val};
+                return new value_t{val};
+            }
+        }
+        ::activeCallStack.push_back(const_cast<Symbol*>(&fieldAccess.field));
+        throw InterpretError("Field not found `" + fieldAccess.field.name + "`");
+    }
+
     ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
     auto* lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
 
@@ -1227,6 +1366,17 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
     auto* lvalue = evaluateLvalue(subscript.array, env, /*subscripted*/true);
     ASSERT (lvalue != nullptr);
     lvalue = rec_unwrap_typeval(lvalue);
+
+    // unwrap field lvalue
+    if (std::holds_alternative<FieldLvalue*>(*lvalue)) {
+        auto& fieldLvalue = *std::get<FieldLvalue*>(*lvalue);
+        lvalue = fieldLvalue.lvalue; // type check not needed after all
+    }
+
+    if (std::holds_alternative<struct_value_t*>(*lvalue)) {
+        throw InterpretError("Subscripting a struct");
+    }
+
     ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
     auto& lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
 

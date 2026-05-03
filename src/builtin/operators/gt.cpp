@@ -78,6 +78,9 @@ static int compareValue(const value_t& lhsVal, const value_t& rhsVal) {
         [](char*) -> int {
             SHOULD_NOT_HAPPEN();
         },
+        [](FieldLvalue*) -> int {
+            SHOULD_NOT_HAPPEN();
+        },
     }, lhsVal);
 }
 

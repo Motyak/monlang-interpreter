@@ -42,6 +42,7 @@ prim_value_t::List builtin::prim_ctor::List_(value_t container) {
             }
         },
         [](char*) -> prim_value_t::List {SHOULD_NOT_HAPPEN();},
+        [](FieldLvalue*) -> prim_value_t::List {SHOULD_NOT_HAPPEN();},
     }, container);
 }
 

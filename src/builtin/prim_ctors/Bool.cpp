@@ -49,6 +49,7 @@ prim_value_t::Bool builtin::prim_ctor::Bool_(value_t val) {
             return to_bool(*val);
         },
         [](char*) -> prim_value_t::Bool {SHOULD_NOT_HAPPEN();},
+        [](FieldLvalue*) -> prim_value_t::Bool {SHOULD_NOT_HAPPEN();},
     }, val);
 }
 

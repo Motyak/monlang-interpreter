@@ -43,6 +43,7 @@ prim_value_t::Float builtin::prim_ctor::Float_(value_t val) {
             }
         },
         [](char*) -> prim_value_t::Float {SHOULD_NOT_HAPPEN();},
+        [](FieldLvalue*) -> prim_value_t::Float {SHOULD_NOT_HAPPEN();},
     }, val);
 }
 
