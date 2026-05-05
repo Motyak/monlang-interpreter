@@ -357,13 +357,13 @@ void performStatement(const Assignment& assignment, Environment* env) {
 
     /* special case: assign to FieldAccess (we must check type) */
     if (std::holds_alternative<FieldLvalue*>(*lvalue)) {
-        auto fieldLvalue = *std::get<FieldLvalue*>(*lvalue);
+        auto* fieldLvalue = std::get<FieldLvalue*>(*lvalue);
         auto rhs_type = builtin::typefn_(new_value);
-        unless (fieldLvalue.type == "_" || builtin::op::is_(rhs_type, fieldLvalue.type)) {
+        unless (fieldLvalue->type == "_" || builtin::op::is_(rhs_type, fieldLvalue->type)) {
             ::activeCallStack.push_back(assignment.value);
-            throw StructFieldTypeError(rhs_type, fieldLvalue.type);
+            throw StructFieldTypeError(rhs_type, fieldLvalue->type);
         }
-        *fieldLvalue.lvalue = new_value;
+        *fieldLvalue->lvalue = new_value;
         return;
     }
 
@@ -676,8 +676,8 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
 
             /* binding required parameters (<> variadic parameter) */
             for (; i < lambda.parameters.size(); ++i) {
-                auto currParam = lambda.parameters.at(i);
-                auto currArg = flattenArgs.at(i);
+                const auto& currParam = lambda.parameters.at(i);
+                const auto& currArg = flattenArgs.at(i);
 
                 if (parametersBinding.contains(currParam.name)
                         && currParam.name != "_") {
@@ -817,9 +817,9 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 return nil_value_t();
             }
 
-            auto exprStmt = *std::get<ExpressionStatement*>(*trailing_stmt);
-            ASSERT (exprStmt.expression);
-            auto res = evaluateValue(*exprStmt.expression, &lambdaEnv);
+            auto* exprStmt = std::get<ExpressionStatement*>(*trailing_stmt);
+            ASSERT (exprStmt->expression);
+            auto res = evaluateValue(*exprStmt->expression, &lambdaEnv);
             // res = deepcopy(res); // TODO: no need ?
             return res;
         }
@@ -858,9 +858,9 @@ value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
         return nil_value_t();
     }
 
-    auto exprStmt = *std::get<ExpressionStatement*>(*trailing_stmt);
-    ASSERT (exprStmt.expression);
-    auto res = evaluateValue(*exprStmt.expression, newEnv);
+    auto* exprStmt = std::get<ExpressionStatement*>(*trailing_stmt);
+    ASSERT (exprStmt->expression);
+    auto res = evaluateValue(*exprStmt->expression, newEnv);
     // res = deepcopy(res); // TODO: no need ?
     return res;
 }
