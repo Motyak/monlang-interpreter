@@ -40,7 +40,7 @@ bool builtin::op::is_(const std::string& lhs, const std::string& rhs) {
     if (lhs == rhs) {
         return true;
     }
-    if (lhs == "$nil" || rhs == "$nil") {
+    if (lhs == "$nil") {
         return false;
     }
     ASSERT (type_table.contains(lhs));

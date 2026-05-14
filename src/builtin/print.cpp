@@ -20,7 +20,7 @@ static void print(const value_t&, std::ostream& = std::cout, bool shouldQuot = f
 static void print(const prim_value_t&, std::ostream&, bool shouldQuot);
 static void print(const type_value_t&, std::ostream&, bool shouldQuot);
 static void print(const struct_value_t&, std::ostream&);
-static void print(const enum_value_t&, std::ostream&);
+static void print(const enum_value_t&, std::ostream&, bool shouldQuot);
 
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
@@ -56,8 +56,8 @@ static void print(const value_t& val, std::ostream& out, bool shouldQuot) {
         [&out, shouldQuot](struct_value_t* val){
             print(*val, out);
         },
-        [&out](enum_value_t* val){
-            print(*val, out);
+        [&out, shouldQuot](enum_value_t* val){
+            print(*val, out, shouldQuot);
         },
         [](char*){SHOULD_NOT_HAPPEN();},
         [](FieldLvalue*){SHOULD_NOT_HAPPEN();},
@@ -197,10 +197,14 @@ static void print(const struct_value_t& struct_val, std::ostream& out) {
     out << ")";
 }
 
-static void print(const enum_value_t& enum_val, std::ostream& out) {
-    out << enum_val.type << "(";
-    print(enum_val.enumerate_value, out);
-    out << ")";
+static void print(const enum_value_t& enum_val, std::ostream& out, bool shouldQuote) {
+    if (builtin::op::is_(enum_val.type, "Str")) {
+        auto unwrapped = rec_unwrap_typeval(enum_val.enumerate);
+        print(unwrapped, out, shouldQuote);
+    }
+    else {
+        out << enum_val.type << "::" << enum_val.enumerator;
+    }
 }
 
 void builtin::print_(const std::vector<value_t>& varargs, std::ostream& out) {

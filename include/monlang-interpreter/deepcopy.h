@@ -78,8 +78,13 @@ static value_t deepcopy(struct_value_t* struct_val) {
     };
 }
 
-static value_t deepcopy(enum_value_t*) {
-    TODO();
+static value_t deepcopy(enum_value_t* enum_val) {
+    return new enum_value_t{
+        enum_val->type,
+        enum_val->ordinal,
+        enum_val->enumerator,
+        deepcopy(enum_val->enumerate)
+    };
 }
 
 #endif // INTERP_DEEPCOPY_H

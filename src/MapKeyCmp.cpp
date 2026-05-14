@@ -144,13 +144,23 @@ static int cmp(type_value_t* lhs, type_value_t* rhs) {
 }
 
 static int cmp(struct_value_t* lhs, struct_value_t* rhs) {
-    (void)lhs;
-    (void)rhs;
-    TODO();
+    if (lhs->type != rhs->type) {
+        return lhs->type < rhs->type? -1 : 1;
+    }
+    ASSERT (lhs->fields.size() == rhs->fields.size());
+    for (size_t i = 0; i < lhs->fields.size(); ++i) {
+        auto lhsVal = rec_unwrap_typeval(lhs->fields.at(i).val);
+        auto rhsVal = rec_unwrap_typeval(rhs->fields.at(i).val);
+        auto cmp_ = cmp(lhsVal, rhsVal);
+        if (cmp_ != 0) return cmp_;
+    }
+    return 0;
 }
 
 static int cmp(enum_value_t* lhs, enum_value_t* rhs) {
-    (void)lhs;
-    (void)rhs;
-    TODO();
+    if (lhs->type != rhs->type) {
+        return lhs->type < rhs->type? -1 : 1;
+    }
+    if (lhs->ordinal == rhs->ordinal) return 0;
+    return lhs->ordinal < rhs->ordinal? -1 : 1;
 }

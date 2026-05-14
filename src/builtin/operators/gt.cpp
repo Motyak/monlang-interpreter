@@ -21,7 +21,7 @@ using List = prim_value_t::List;
 using Map = prim_value_t::Map;
 
 static int compareValue(const value_t&, const value_t&);
-static int comparePrimValPtr(prim_value_t*, prim_value_t*);
+static int comparePrimValPtr(prim_value_t*, const value_t&);
 
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
@@ -35,7 +35,6 @@ const value_t builtin::op::gt __attribute__((init_priority(3000))) = new prim_va
         bool first_it = true;
         for (auto arg: args) {
             auto argVal = evaluateValue(arg.expr, arg.env);
-            argVal = rec_unwrap_typeval(argVal);
             ::activeCallStack.push_back(arg.expr);
             if (is_nil(argVal)) {
                 throw InterpretError(">() arg cannot be $nil");
@@ -61,19 +60,26 @@ const value_t builtin::op::gt __attribute__((init_priority(3000))) = new prim_va
 }};
 
 static int compareValue(const value_t& lhsVal, const value_t& rhsVal) {
-    ASSERT (lhsVal.index() == rhsVal.index()); // TODO: tmp
     return std::visit(overload{
         [rhsVal](prim_value_t* lhsPrimValPtr) -> int {
-            return comparePrimValPtr(lhsPrimValPtr, std::get<prim_value_t*>(rhsVal));
+            return comparePrimValPtr(lhsPrimValPtr, rhsVal);
         },
-        [](type_value_t*) -> int {
-            SHOULD_NOT_HAPPEN(); // rec_unwrap_typeval() above
+        [rhsVal](type_value_t* lhs) -> int {
+            auto unwrapped_lhs = rec_unwrap_typeval(lhs->underlyingVal);
+            return compareValue(unwrapped_lhs, rhsVal);
         },
         [](struct_value_t*) -> int {
-            TODO();
+            throw InterpretError(">() lhs cannot be a struct");
         },
-        [](enum_value_t*) -> int {
-            TODO();
+        [rhsVal](enum_value_t* lhs) -> int {
+            unless (std::holds_alternative<enum_value_t*>(rhsVal)) {
+                throw InterpretError(">() rhs isn't an enum");
+            }
+            auto* rhs_enum = std::get<enum_value_t*>(rhsVal);
+            unless (lhs->type == rhs_enum->type) {
+                throw InterpretError(">() rhs is a different enum");
+            }
+            return lhs->ordinal > rhs_enum->ordinal;
         },
         [](char*) -> int {
             SHOULD_NOT_HAPPEN();
@@ -84,41 +90,41 @@ static int compareValue(const value_t& lhsVal, const value_t& rhsVal) {
     }, lhsVal);
 }
 
-static int comparePrimValPtr(prim_value_t* primValPtr_lhs, prim_value_t* primValPtr_rhs) {
+static int comparePrimValPtr(prim_value_t* primValPtr_lhs, const value_t& rhs) {
     ASSERT (primValPtr_lhs != nullptr);
     return std::visit(overload{
-        [primValPtr_rhs](Bool bool_) -> int {
-            auto rhsAsBool = builtin::prim_ctor::Bool_(primValPtr_rhs);
+        [rhs](Bool bool_) -> int {
+            auto rhsAsBool = builtin::prim_ctor::Bool_(rhs);
             safe_pop_back(::activeCallStack); // from before compareValue() call
             return bool_ < rhsAsBool? -1 : bool_ > rhsAsBool? 1 : 0;
         },
-        [primValPtr_rhs](Byte byte) -> int {
-            auto rhsAsByte = builtin::prim_ctor::Byte_(primValPtr_rhs);
+        [rhs](Byte byte) -> int {
+            auto rhsAsByte = builtin::prim_ctor::Byte_(rhs);
             safe_pop_back(::activeCallStack); // from before compareValue() call
             return byte < rhsAsByte? -1 : byte > rhsAsByte? 1 : 0;
         },
-        [primValPtr_rhs](Int int_) -> int {
-            auto rhsAsInt = builtin::prim_ctor::Int_(primValPtr_rhs);
+        [rhs](Int int_) -> int {
+            auto rhsAsInt = builtin::prim_ctor::Int_(rhs);
             safe_pop_back(::activeCallStack); // from before compareValue() call
             return int_ < rhsAsInt? -1 : int_ > rhsAsInt? 1 : 0;
         },
-        [primValPtr_rhs](Float float_) -> int {
-            auto rhsAsFloat = builtin::prim_ctor::Float_(primValPtr_rhs);
+        [rhs](Float float_) -> int {
+            auto rhsAsFloat = builtin::prim_ctor::Float_(rhs);
             safe_pop_back(::activeCallStack); // from before compareValue() call
             return float_ < rhsAsFloat? -1 : float_ > rhsAsFloat? 1 : 0;
         },
-        [primValPtr_rhs](const Str& str) -> int {
-            auto rhsAsStr = builtin::prim_ctor::Str_(primValPtr_rhs);
+        [rhs](const Str& str) -> int {
+            auto rhsAsStr = builtin::prim_ctor::Str_(rhs);
             return str < rhsAsStr? -1 : str > rhsAsStr? 1 : 0;
         },
-        [primValPtr_rhs](const List&) -> int {
-            throw InterpretError(">() first arg cannot be List");
+        [](const List&) -> int {
+            throw InterpretError(">() lhs cannot be a List");
         },
-        [primValPtr_rhs](const Map&) -> int {
-            throw InterpretError(">() first arg cannot be Map");
+        [](const Map&) -> int {
+            throw InterpretError(">() lhs cannot be a Map");
         },
-        [primValPtr_rhs](const prim_value_t::Lambda&) -> int {
-            throw InterpretError(">() first arg cannot be Lambda");
+        [](const prim_value_t::Lambda&) -> int {
+            throw InterpretError(">() lhs cannot be a Lambda");
         },
     }, primValPtr_lhs->variant);
 }

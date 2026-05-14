@@ -29,8 +29,8 @@ using Str = prim_value_t::Str;
 using List = prim_value_t::List;
 using Map = prim_value_t::Map;
 
-static bool compareValue(value_t, value_t, bool fromMain = false);
-static bool comparePrimValPtr(prim_value_t*, prim_value_t*, bool fromMain = false);
+static bool compareValue(const value_t&, const value_t&, bool fromMain = false);
+static bool comparePrimValPtr(prim_value_t*, const value_t&, bool fromMain = false);
 
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
@@ -52,10 +52,10 @@ const value_t builtin::op::eq __attribute__((init_priority(3000))) = new prim_va
 
             /* compare with lhs (arg from last iteration) */
             if (!first_it) {
-                if (!is_nil(argVal)) {
+                if (!is_enum_nil(argVal)) {
                     ::activeCallStack.push_back(arg.expr);
                 }
-                res &= is_nil(argVal)? is_nil(lhsVal) : compareValue(lhsVal, argVal, /*fromMain*/true);
+                res &= is_enum_nil(argVal)? is_enum_nil(lhsVal) : compareValue(lhsVal, argVal, /*fromMain*/true);
             }
 
             if (res == false) {
@@ -70,22 +70,34 @@ const value_t builtin::op::eq __attribute__((init_priority(3000))) = new prim_va
     }
 }};
 
-static bool compareValue(value_t lhsVal, value_t rhsVal, bool fromMain) {
-    lhsVal = rec_unwrap_typeval(lhsVal);
-    rhsVal = rec_unwrap_typeval(rhsVal);
-    ASSERT (lhsVal.index() == rhsVal.index()); // TODO: tmp
+static bool compareValue(const value_t& lhsVal, const value_t& rhsVal, bool fromMain) {
     return std::visit(overload{
         [rhsVal, fromMain](prim_value_t* lhsPrimValPtr) -> bool {
-            return comparePrimValPtr(lhsPrimValPtr, std::get<prim_value_t*>(rhsVal), fromMain);
+            return comparePrimValPtr(lhsPrimValPtr, rhsVal, fromMain);
         },
-        [](type_value_t*) -> bool {
-            SHOULD_NOT_HAPPEN(); // rec_unwrap_typeval() above
+        [rhsVal, fromMain](type_value_t* lhs) -> bool {
+            auto unwrapped_lhs = rec_unwrap_typeval(lhs->underlyingVal);
+            return compareValue(unwrapped_lhs, rhsVal, fromMain);
         },
-        [](struct_value_t*) -> bool {
-            TODO();
+        [rhsVal](struct_value_t* lhs) -> bool {
+            unless (std::holds_alternative<struct_value_t*>(rhsVal)) {
+                throw InterpretError("==() rhs isn't a struct");
+            }
+            auto* rhs_struct = std::get<struct_value_t*>(rhsVal);
+            unless (lhs->type == rhs_struct->type) {
+                throw InterpretError("==() rhs is a different struct");
+            }
+            ASSERT (lhs->fields.size() == rhs_struct->fields.size());
+            for (size_t i = 0; i < lhs->fields.size(); ++i) {
+                if (!compareValue(lhs->fields.at(i).val, rhs_struct->fields.at(i).val)) {
+                    return false;
+                }
+            }
+            return true;
         },
-        [](enum_value_t*) -> bool {
-            TODO();
+        [rhsVal, fromMain](enum_value_t* lhs) -> bool {
+            auto unwrapped_lhs = rec_unwrap_typeval(lhs->enumerate);
+            return compareValue(unwrapped_lhs, rhsVal, fromMain);
         },
         [](char*) -> bool {
             SHOULD_NOT_HAPPEN();
@@ -96,37 +108,36 @@ static bool compareValue(value_t lhsVal, value_t rhsVal, bool fromMain) {
     }, lhsVal);
 }
 
-static bool comparePrimValPtr(prim_value_t* primValPtr_lhs, prim_value_t* primValPtr_rhs, bool fromMain) {
-    ASSERT (primValPtr_rhs != nullptr);
+static bool comparePrimValPtr(prim_value_t* primValPtr_lhs, const value_t& rhs, bool fromMain) {
     if (primValPtr_lhs == nullptr) {
         if (fromMain) safe_pop_back(activeCallStack); // from before compareValue() call in builtin::op::eq()
-        return false;
+        return false; // because we already checked that rhs isn't $nil
     }
     ASSERT (primValPtr_lhs != nullptr);
     return std::visit(overload{
-        [primValPtr_rhs, fromMain](Bool bool_) -> bool {
+        [rhs, fromMain](Bool bool_) -> bool {
             defer {if (fromMain) safe_pop_back(activeCallStack);}; // from before compareValue() call in builtin::op::eq()
-            return bool_ == builtin::prim_ctor::Bool_(primValPtr_rhs);
+            return bool_ == builtin::prim_ctor::Bool_(rhs);
         },
-        [primValPtr_rhs, fromMain](Byte byte) -> bool {
+        [rhs, fromMain](Byte byte) -> bool {
             defer {if (fromMain) safe_pop_back(activeCallStack);}; // from before compareValue() call in builtin::op::eq()
-            return byte == builtin::prim_ctor::Byte_(primValPtr_rhs);
+            return byte == builtin::prim_ctor::Byte_(rhs);
         },
-        [primValPtr_rhs, fromMain](Int int_) -> bool {
+        [rhs, fromMain](Int int_) -> bool {
             defer {if (fromMain) safe_pop_back(activeCallStack);}; // from before compareValue() call in builtin::op::eq()
-            return int_ == builtin::prim_ctor::Int_(primValPtr_rhs);
+            return int_ == builtin::prim_ctor::Int_(rhs);
         },
-        [primValPtr_rhs, fromMain](Float float_) -> bool {
+        [rhs, fromMain](Float float_) -> bool {
             defer {if (fromMain) safe_pop_back(activeCallStack);}; // from before compareValue() call in builtin::op::eq()
-            return float_ == builtin::prim_ctor::Float_(primValPtr_rhs);
+            return float_ == builtin::prim_ctor::Float_(rhs);
         },
-        [primValPtr_rhs, fromMain](const Str& str) -> bool {
+        [rhs, fromMain](const Str& str) -> bool {
             defer {if (fromMain) safe_pop_back(activeCallStack);}; // from before compareValue() call in builtin::op::eq()
-            return str == builtin::prim_ctor::Str_(primValPtr_rhs);
+            return str == builtin::prim_ctor::Str_(rhs);
         },
-        [primValPtr_rhs, fromMain](const List& list) -> bool {
+        [rhs, fromMain](const List& list) -> bool {
             defer {if (fromMain) safe_pop_back(activeCallStack);}; // from before compareValue() call in builtin::op::eq()
-            auto rhsAsList = builtin::prim_ctor::List_(primValPtr_rhs);
+            auto rhsAsList = builtin::prim_ctor::List_(rhs);
             if (list.size() != rhsAsList.size()) {
                 return false;
             }
@@ -137,9 +148,9 @@ static bool comparePrimValPtr(prim_value_t* primValPtr_lhs, prim_value_t* primVa
             }
             return true;
         },
-        [primValPtr_rhs, fromMain](const Map& map) -> bool {
+        [rhs, fromMain](const Map& map) -> bool {
             defer {if (fromMain) safe_pop_back(activeCallStack);}; // from before compareValue() call in builtin::op::eq()
-            auto rhsAsMap = builtin::prim_ctor::Map_(primValPtr_rhs);
+            auto rhsAsMap = builtin::prim_ctor::Map_(rhs);
             if (map.size() != rhsAsMap.size()) {
                 return false;
             }
@@ -155,10 +166,10 @@ static bool comparePrimValPtr(prim_value_t* primValPtr_lhs, prim_value_t* primVa
             }
             return true;
         },
-        [primValPtr_rhs, fromMain](const prim_value_t::Lambda& lambda) -> bool {
-            auto rhs = builtin::prim_ctor::Lambda_(primValPtr_rhs);
+        [rhs, fromMain](const prim_value_t::Lambda& lambda) -> bool {
+            auto rhsAsLambda = builtin::prim_ctor::Lambda_(rhs);
             if (fromMain) safe_pop_back(activeCallStack); // from before compareValue() call in builtin::op::eq()
-            return lambda.id == rhs.id;
+            return lambda.id == rhsAsLambda.id;
         },
     }, primValPtr_lhs->variant);
 }

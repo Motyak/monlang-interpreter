@@ -109,9 +109,10 @@ struct struct_value_t {
 };
 
 struct enum_value_t {
-    std::string_view type;
-    std::string_view enumerate_name; // TODO: no need ?
-    value_t enumerate_value;
+    std::string type;
+    uint64_t ordinal; // used in MapKeyCmp and gt
+    std::string enumerator; // used in print()
+    value_t enumerate;
 };
 
 struct FieldLvalue {
@@ -159,17 +160,38 @@ inline bool is_nil(const value_t& value) {
 }
 
 inline value_t rec_unwrap_typeval(value_t value) {
-    while (std::holds_alternative<type_value_t*>(value)) {
+    LOOP:
+    if (std::holds_alternative<type_value_t*>(value)) {
         value = std::get<type_value_t*>(value)->underlyingVal;
+        goto LOOP;
+    }
+    if (std::holds_alternative<enum_value_t*>(value)) {
+        value = std::get<enum_value_t*>(value)->enumerate;
+        goto LOOP;
     }
     return value;
 }
 
 inline value_t* rec_unwrap_typeval(value_t* value) {
-    while (std::holds_alternative<type_value_t*>(*value)) {
+    LOOP:
+    if (std::holds_alternative<type_value_t*>(*value)) {
         value = &std::get<type_value_t*>(*value)->underlyingVal;
+        goto LOOP;
+    }
+    if (std::holds_alternative<enum_value_t*>(*value)) {
+        value = &std::get<enum_value_t*>(*value)->enumerate;
+        goto LOOP;
     }
     return value;
+}
+
+// this ver. of is_nil works with enum as well
+inline bool is_enum_nil(value_t value) {
+    value = rec_unwrap_typeval(value);
+    return std::visit(
+        [](auto* value){return value == nullptr;}
+        , value
+    );
 }
 
 #endif // TYPES_H

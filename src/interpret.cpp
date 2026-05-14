@@ -273,6 +273,14 @@ void performStatement(const StructDefinition& structdef, Environment* env) {
         throw InterpretError("StructDefinition is a top-level statement");
     }
 
+    {
+        auto structName = structdef.struct_.name;
+        if (BUILTIN_TABLE.contains(structName) || env->symbolTable.contains(structName)) {
+            ::activeCallStack.push_back(const_cast<Symbol*>(&structdef.struct_));
+            throw SymbolRedefinitionError(structName);
+        }
+    }
+
     std::vector<std::string> ctorTypes;
     for (const auto& field: structdef.fields) {
         if (!type_table.contains(field.type.name) && field.type.name != "_") {
@@ -333,6 +341,96 @@ void performStatement(const StructDefinition& structdef, Environment* env) {
     env->symbolTable[structdef.struct_.name] = Environment::Variable{var};
 
     type_table[structdef.struct_.name] = {};
+}
+
+void performStatement(const EnumDefinition& enumdef, Environment* env) {
+    static Symbol* STMT_TOKEN = new Symbol{};
+    STMT_TOKEN->_tokenId = enumdef._tokenId;
+    if (!top_level_stmt) {
+        ::activeCallStack.push_back(STMT_TOKEN);
+        throw InterpretError("EnumDefinition is a top-level statement");
+    }
+
+    {
+        const auto& enumName = enumdef.enum_.name;
+        if (BUILTIN_TABLE.contains(enumName) || env->symbolTable.contains(enumName)) {
+            ::activeCallStack.push_back(const_cast<Symbol*>(&enumdef.enum_));
+            throw SymbolRedefinitionError(enumName);
+        }
+    }
+
+    auto unique_enumerators = std::map<std::string, nullptr_t>();
+    // the set of all enum values
+    auto enum_set = prim_value_t::List();
+    // associates enumerate to enum value
+    auto enum_map = std::map<value_t, value_t, MapKeyCmp>();
+    std::string enumerateCommonType = "";
+
+    uint64_t i = 1;
+    for (const auto& enumVal: enumdef.enumValues) {
+        if (unique_enumerators.contains(enumVal.enumerator.name)) {
+            ::activeCallStack.push_back(const_cast<Symbol*>(&enumVal.enumerator));
+            throw InterpretError("enumerator already exist");
+        }
+        unique_enumerators[enumVal.enumerator.name]; // autovivificaction
+
+        auto enumerateVal = evaluateValue(enumVal.enumerate, env);
+        if (i == 1) {
+            enumerateCommonType = builtin::typefn_(enumerateVal);
+        }
+        else if (builtin::typefn_(enumerateVal) != enumerateCommonType) {
+            enumerateCommonType = "";
+        }
+        auto enumVal_ = new enum_value_t{enumdef.enum_.name, i++, enumVal.enumerator.name, enumerateVal};
+
+        enum_set.push_back(enumVal_);
+
+        if (enum_map.contains(enumerateVal)) {
+            ::activeCallStack.push_back(enumVal.enumerate);
+            throw InterpretError("enumerate already exist");
+        }
+        enum_map[enumerateVal] = enumVal_;
+
+        auto varname = enumdef.enum_.name + "::" + enumVal.enumerator.name;
+        if (env->symbolTable.contains(varname)) {
+            ::activeCallStack.push_back(const_cast<Symbol*>(&enumVal.enumerator));
+            throw SymbolRedefinitionError(enumVal.enumerator.name);
+        }
+        env->symbolTable[varname] = Environment::ConstValue{enumVal_};
+    }
+
+    /* export enum set as EnumName:: */
+    {
+        auto varname = enumdef.enum_.name + "::";
+        auto val = new prim_value_t{std::move(enum_set)};
+        env->symbolTable[varname] = Environment::ConstValue{val};
+    }
+
+    auto enumCtor = prim_value_t::Lambda{
+        lambda_id++,
+        IntConst::ONE,
+        [enumdef, enum_map](const std::vector<FlattenArg>& args) -> value_t {
+            unless (args.size() == 1) throw InterpretError("enum ctor takes 1 arg");
+            auto arg = args.at(0);
+            auto argVal = evaluateValue(arg.expr, arg.env);
+            if (!enum_map.contains(argVal)) {
+                ::activeCallStack.push_back(arg.expr);
+                throw InterpretError("enumerate not part of enum `" + enumdef.enum_.name + "`");
+            }
+            return enum_map.at(argVal);
+        }
+    };
+    auto* val = new prim_value_t{enumCtor};
+    auto* var = new value_t{val};
+    env->symbolTable[enumdef.enum_.name] = Environment::Variable{var};
+
+
+    if (enumerateCommonType == "") {
+        type_table[enumdef.enum_.name] = {};
+    }
+    else {
+        type_table[enumdef.enum_.name] = {enumerateCommonType};
+    }
 }
 
 void performStatement(const Assignment& assignment, Environment* env) {
@@ -1265,7 +1363,7 @@ value_t evaluateValue(const Symbol& symbol, const Environment* env) {
     if (env->contains(symbol.name)) {
         auto symbolVal = env->at(symbol.name);
         return std::visit(overload{
-            [](const Environment::ConstValue&) -> value_t {SHOULD_NOT_HAPPEN();}, // special symbols exclusively
+            [](const Environment::ConstValue& val) -> value_t {return val;},
             [](Environment::Variable var) -> value_t {return *var;},
             [](Environment::LabelToLvalue& label_ref /*or PassByRef*/) -> value_t {return label_ref.value();},
             [](const Environment::PassByDelay& delayed) -> value_t {
@@ -1493,7 +1591,9 @@ value_t* evaluateLvalue(const Symbol& symbol, const Environment* env, bool subsc
                 return std::get<value_t*>(*delayed);
             },
 
-            [](Environment::ConstValue) -> value_t* {SHOULD_NOT_HAPPEN();},
+            [](Environment::ConstValue) -> value_t* {
+                throw InterpretError("Cannot lvaluate a const value");
+            },
             [](const Environment::VariadicArguments&) -> value_t* {
                 throw InterpretError("Cannot refer to variadic arguments as symbol");
             },

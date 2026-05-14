@@ -111,5 +111,5 @@ static prim_value_t::Map to_map(const struct_value_t& struct_val) {
 }
 
 static prim_value_t::Map to_map(const enum_value_t&) {
-    SHOULD_NOT_HAPPEN(); // TODO: tmp
+    SHOULD_NOT_HAPPEN(); // rec_unwrap_typeval() called in Map_
 }

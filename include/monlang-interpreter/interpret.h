@@ -11,6 +11,7 @@
 /* statements */
 #include <monlang-LV2/ast/stmt/TypeDefinition.h>
 #include <monlang-LV2/ast/stmt/StructDefinition.h>
+#include <monlang-LV2/ast/stmt/EnumDefinition.h>
 #include <monlang-LV2/ast/stmt/Assignment.h>
 #include <monlang-LV2/ast/stmt/Accumulation.h>
 #include <monlang-LV2/ast/stmt/LetStatement.h>
@@ -53,6 +54,7 @@ value_t* evaluateLvalue(const Lvalue&, Environment*, bool subscripted = false);
 /* performStatement */
 void performStatement(const TypeDefinition&, Environment*);
 void performStatement(const StructDefinition&, Environment*);
+void performStatement(const EnumDefinition&, Environment*);
 void performStatement(const Assignment&, Environment*);
 void performStatement(const Accumulation&, Environment*);
 void performStatement(const LetStatement&, Environment*);
