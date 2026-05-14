@@ -41,7 +41,7 @@ const value_t builtin::op::pow __attribute__((init_priority(3000))) = new prim_v
         if (std::holds_alternative<struct_value_t*>(firstArgValue)) {
             throw InterpretError("**() first arg cannot be a struct");
         }
-        ASSERT (std::holds_alternative<prim_value_t*>(firstArgValue)); // TODO: tmp
+        ASSERT (std::holds_alternative<prim_value_t*>(firstArgValue));
         auto firstArgPrimValuePtr = std::get<prim_value_t*>(firstArgValue);
         if (firstArgPrimValuePtr == nullptr) {
             throw InterpretError("**() first arg cannot be $nil");

@@ -31,7 +31,7 @@ value_t createPaths(const Lvalue& lvalue, Environment* env) {
 value_t createPaths(const FieldAccess& fieldAccess, Environment* env) {
     auto object = createPaths(fieldAccess.object, env);
     //            ^~~~~~~~~~~
-    object = rec_unwrap_typeval(object); // TODO: tmp
+    object = rec_unwrap_typeval(object);
 
     if (std::holds_alternative<struct_value_t*>(object)) {
         auto struct_ = *std::get<struct_value_t*>(object);
@@ -44,7 +44,7 @@ value_t createPaths(const FieldAccess& fieldAccess, Environment* env) {
         throw InterpretError("Field not found `" + fieldAccess.field.name + "`");
     }
 
-    ASSERT (std::holds_alternative<prim_value_t*>(object)); // TODO: tmp
+    ASSERT (std::holds_alternative<prim_value_t*>(object));
     auto* objPrimValPtr = std::get<prim_value_t*>(object);
 
     if (objPrimValPtr == nullptr) {
@@ -80,7 +80,7 @@ value_t createPaths(const Subscript& subscript, Environment* env) {
         throw InterpretError("Subscripting a struct");
     }
 
-    ASSERT (std::holds_alternative<prim_value_t*>(arrVal)); // TODO: tmp
+    ASSERT (std::holds_alternative<prim_value_t*>(arrVal));
     auto* arrPrimValPtr = std::get<prim_value_t*>(arrVal);
 
     if (arrPrimValPtr == nullptr) {

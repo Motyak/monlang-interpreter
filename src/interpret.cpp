@@ -218,9 +218,16 @@ void performStatement(const TypeDefinition& typedef_, Environment* env) {
         ASSERT (std::holds_alternative<Environment::Variable>(symVal));
         auto val = *std::get<Environment::Variable>(symVal);
         val = rec_unwrap_typeval(val);
+        if (std::holds_alternative<struct_value_t*>(val)) {
+            ::activeCallStack.push_back(STMT_TOKEN);
+            throw InterpretError("underlying ctor is a struct");
+        }
         ASSERT (std::holds_alternative<prim_value_t*>(val));
         auto prim_val = *std::get<prim_value_t*>(val);
-        ASSERT (std::holds_alternative<prim_value_t::Lambda>(prim_val.variant));
+        unless (std::holds_alternative<prim_value_t::Lambda>(prim_val.variant)) {
+            ::activeCallStack.push_back(STMT_TOKEN);
+            throw InterpretError("underlying ctor isn't a Lambda");
+        }
         underlyingCtor = new prim_value_t::Lambda{std::get<prim_value_t::Lambda>(prim_val.variant)};
     }
     else if (BUILTIN_TABLE.contains(commonSubtype)) {
@@ -645,7 +652,11 @@ value_t evaluateValue(const Operation& operation, Environment* env) {
 value_t evaluateValue(const FunctionCall& fnCall, Environment* env) {
     auto fnVal = evaluateValue(fnCall.function, env);
     fnVal = rec_unwrap_typeval(fnVal);
-    ASSERT (std::holds_alternative<prim_value_t*>(fnVal)); // TODO: tmp
+    if (std::holds_alternative<struct_value_t*>(fnVal)) {
+        ::activeCallStack.push_back(fnCall.function);
+        throw InterpretError("Calling a struct");
+    }
+    ASSERT (std::holds_alternative<prim_value_t*>(fnVal));
     auto* fnPrimValPtr = std::get<prim_value_t*>(fnVal);
     if (fnPrimValPtr == nullptr) {
         ::activeCallStack.push_back(fnCall.function);
@@ -965,7 +976,7 @@ value_t evaluateValue(const BlockExpression& blockExpr, Environment* env) {
 
 value_t evaluateValue(const FieldAccess& fieldAccess, Environment* env) {
     auto object = evaluateValue(fieldAccess.object, env);
-    object = rec_unwrap_typeval(object); // TODO: tmp
+    object = rec_unwrap_typeval(object);
 
     if (std::holds_alternative<struct_value_t*>(object)) {
         auto struct_ = *std::get<struct_value_t*>(object);
@@ -978,7 +989,7 @@ value_t evaluateValue(const FieldAccess& fieldAccess, Environment* env) {
         throw InterpretError("Field not found `" + fieldAccess.field.name + "`");
     }
 
-    ASSERT (std::holds_alternative<prim_value_t*>(object)); // TODO: tmp
+    ASSERT (std::holds_alternative<prim_value_t*>(object));
     auto* objPrimValPtr = std::get<prim_value_t*>(object);
 
     if (objPrimValPtr == nullptr) {
@@ -1007,7 +1018,7 @@ value_t evaluateValue(const Subscript& subscript, Environment* env) {
         throw InterpretError("Subscripting a struct");
     }
 
-    ASSERT (std::holds_alternative<prim_value_t*>(arrVal)); // TODO: tmp
+    ASSERT (std::holds_alternative<prim_value_t*>(arrVal));
     auto* arrPrimValPtr = std::get<prim_value_t*>(arrVal);
     if (arrPrimValPtr == nullptr) {
         throw InterpretError("Subscripting a $nil");
@@ -1437,7 +1448,7 @@ value_t* evaluateLvalue(const FieldAccess& fieldAccess, Environment* env) {
         throw InterpretError("Field not found `" + fieldAccess.field.name + "`");
     }
 
-    ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
+    ASSERT (std::holds_alternative<prim_value_t*>(*lvalue));
     auto* lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
 
     if (lvaluePrimValPtr == nullptr) {
@@ -1475,7 +1486,7 @@ value_t* evaluateLvalue(const Subscript& subscript, Environment* env) {
         throw InterpretError("Subscripting a struct");
     }
 
-    ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
+    ASSERT (std::holds_alternative<prim_value_t*>(*lvalue));
     auto& lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
 
     if (*lvalue == SENTINEL_NEW_MAP) {

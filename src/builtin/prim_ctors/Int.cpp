@@ -74,5 +74,5 @@ static prim_value_t::Int to_int(const struct_value_t&) {
 }
 
 static prim_value_t::Int to_int(const enum_value_t&) {
-    SHOULD_NOT_HAPPEN(); // TODO: tmp
+    SHOULD_NOT_HAPPEN(); // rec_unwrap_typeval() called in Bool_
 }

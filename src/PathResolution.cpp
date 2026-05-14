@@ -72,7 +72,7 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
         throw InterpretError("Subscripting a struct");
     }
 
-    ASSERT (std::holds_alternative<prim_value_t*>(arrVal)); // TODO: tmp
+    ASSERT (std::holds_alternative<prim_value_t*>(arrVal));
     auto* arrPrimValPtr = std::get<prim_value_t*>(arrVal);
     if (arrPrimValPtr == nullptr) {
         throw InterpretError("Subscripting a $nil");
@@ -335,7 +335,7 @@ value_t PathResolution::evaluateValue(const Subscript& subscript, Environment* e
 value_t PathResolution::evaluateValue(const FieldAccess& fieldAccess, Environment* envAtResolution) {
     auto object = this->evaluateValue(fieldAccess.object, envAtResolution);
     //            ^~~~~~                                  ^~~~~~~~~~~~~~~
-    object = rec_unwrap_typeval(object); // TODO: tmp
+    object = rec_unwrap_typeval(object);
 
     if (std::holds_alternative<struct_value_t*>(object)) {
         auto struct_ = *std::get<struct_value_t*>(object);
@@ -348,7 +348,7 @@ value_t PathResolution::evaluateValue(const FieldAccess& fieldAccess, Environmen
         throw InterpretError("Field not found `" + fieldAccess.field.name + "`");
     }
 
-    ASSERT (std::holds_alternative<prim_value_t*>(object)); // TODO: tmp
+    ASSERT (std::holds_alternative<prim_value_t*>(object));
     auto* objPrimValPtr = std::get<prim_value_t*>(object);
 
     if (objPrimValPtr == nullptr) {
@@ -413,7 +413,7 @@ value_t* PathResolution::evaluateLvalue(const Subscript& subscript, Environment*
         throw InterpretError("Subscripting a struct");
     }
 
-    ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
+    ASSERT (std::holds_alternative<prim_value_t*>(*lvalue));
     auto& lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
 
     if (*lvalue == SENTINEL_NEW_MAP) {
@@ -558,7 +558,7 @@ value_t* PathResolution::evaluateLvalue(const FieldAccess& fieldAccess, Environm
         throw InterpretError("Field not found `" + fieldAccess.field.name + "`");
     }
 
-    ASSERT (std::holds_alternative<prim_value_t*>(*lvalue)); // TODO: tmp
+    ASSERT (std::holds_alternative<prim_value_t*>(*lvalue));
     auto* lvaluePrimValPtr = std::get<prim_value_t*>(*lvalue);
 
     if (lvaluePrimValPtr == nullptr) {
@@ -604,7 +604,7 @@ value_t PathResolution::createPaths(const Lvalue& lvalue, Environment* envAtReso
 value_t PathResolution::createPaths(const FieldAccess& fieldAccess, Environment* envAtResolution) {
     auto object = this->createPaths(fieldAccess.object, envAtResolution);
     //                  ^~~~~~~~~~~
-    object = rec_unwrap_typeval(object); // TODO: tmp
+    object = rec_unwrap_typeval(object);
 
     if (std::holds_alternative<struct_value_t*>(object)) {
         auto struct_ = *std::get<struct_value_t*>(object);
@@ -617,7 +617,7 @@ value_t PathResolution::createPaths(const FieldAccess& fieldAccess, Environment*
         throw InterpretError("Field not found `" + fieldAccess.field.name + "`");
     }
 
-    ASSERT (std::holds_alternative<prim_value_t*>(object)); // TODO: tmp
+    ASSERT (std::holds_alternative<prim_value_t*>(object));
     auto* objPrimValPtr = std::get<prim_value_t*>(object);
 
     if (objPrimValPtr == nullptr) {
@@ -654,7 +654,7 @@ value_t PathResolution::createPaths(const Subscript& subscript, Environment* env
         throw InterpretError("Subscripting a struct");
     }
 
-    ASSERT (std::holds_alternative<prim_value_t*>(arrVal)); // TODO: tmp
+    ASSERT (std::holds_alternative<prim_value_t*>(arrVal));
     auto* arrPrimValPtr = std::get<prim_value_t*>(arrVal);
 
     if (arrPrimValPtr == nullptr) {

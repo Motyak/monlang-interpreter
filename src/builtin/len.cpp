@@ -29,7 +29,7 @@ const value_t builtin::len __attribute__((init_priority(3000))) = new prim_value
         if (std::holds_alternative<struct_value_t*>(argVal)) {
             throw InterpretError("len() arg cannot be a struct");
         }
-        ASSERT (std::holds_alternative<prim_value_t*>(argVal)); // TODO: tmp
+        ASSERT (std::holds_alternative<prim_value_t*>(argVal));
         auto argPrimValPtr = std::get<prim_value_t*>(argVal);
         if (argPrimValPtr == nullptr) {
             throw InterpretError("len() arg cannot be $nil");

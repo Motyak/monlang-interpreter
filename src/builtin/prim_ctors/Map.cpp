@@ -23,7 +23,7 @@ const value_t builtin::prim_ctor::Map __attribute__((init_priority(3000))) = new
             if (std::holds_alternative<struct_value_t*>(argVal)) {
                 throw InterpretError("Map() argument isn't a list");
             }
-            ASSERT (std::holds_alternative<prim_value_t*>(argVal)); // TODO: tmp
+            ASSERT (std::holds_alternative<prim_value_t*>(argVal));
             auto argPrimValPtr = std::get<prim_value_t*>(argVal);
             ::activeCallStack.push_back(arg.expr);
             // auto argAsList = List_(argPrimValPtr); // <== this doesn't make sense after all

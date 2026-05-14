@@ -39,7 +39,7 @@ const value_t builtin::bitwise_not __attribute__((init_priority(3000))) = new pr
         if (std::holds_alternative<struct_value_t*>(argValue)) {
             throw InterpretError("~() arg cannot be a struct");
         }
-        ASSERT (std::holds_alternative<prim_value_t*>(argValue)); // TODO: tmp
+        ASSERT (std::holds_alternative<prim_value_t*>(argValue));
         auto argPrimValuePtr = std::get<prim_value_t*>(argValue);
         if (argPrimValuePtr == nullptr) {
             throw InterpretError("~() arg cannot be $nil");
