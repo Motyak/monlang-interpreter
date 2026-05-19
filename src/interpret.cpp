@@ -1214,7 +1214,8 @@ value_t evaluateValue(const ListLiteral& listLiteral, Environment* env) {
     List res;
     res.reserve(listLiteral.arguments.size());
     for (auto arg: listLiteral.arguments) {
-        auto currArgVal = evaluateValue(arg, env);
+        unless (arg.expr) continue;
+        auto currArgVal = evaluateValue(*arg.expr, env);
         res.push_back(currArgVal);
     }
     return new prim_value_t{res};
@@ -1222,9 +1223,10 @@ value_t evaluateValue(const ListLiteral& listLiteral, Environment* env) {
 
 value_t evaluateValue(const MapLiteral& mapLiteral, Environment* env) {
     Map res;
-    for (auto [key, val]: mapLiteral.arguments) {
-        auto currKeyVal = evaluateValue(key, env);
-        auto currValVal = evaluateValue(val, env);
+    for (auto arg: mapLiteral.arguments) {
+        unless (arg.pair) continue;
+        auto currKeyVal = evaluateValue(arg.pair->key, env);
+        auto currValVal = evaluateValue(arg.pair->value, env);
         res[currKeyVal] = currValVal;
     }
     return new prim_value_t{res};
