@@ -375,33 +375,35 @@ void performStatement(const EnumDefinition& enumdef, Environment* env) {
 
     uint64_t i = 1;
     for (const auto& enumVal: enumdef.enumValues) {
-        if (unique_enumerators.contains(enumVal.enumerator.name)) {
-            ::activeCallStack.push_back(const_cast<Symbol*>(&enumVal.enumerator));
+        unless (enumVal.pair) continue;
+        auto [enumerator, enumerate] = *enumVal.pair;
+        if (unique_enumerators.contains(enumerator.name)) {
+            ::activeCallStack.push_back(const_cast<Symbol*>(&enumerator));
             throw InterpretError("enumerator already exist");
         }
-        unique_enumerators[enumVal.enumerator.name]; // autovivificaction
+        unique_enumerators[enumerator.name]; // autovivificaction
 
-        auto enumerateVal = evaluateValue(enumVal.enumerate, env);
+        auto enumerateVal = evaluateValue(enumerate, env);
         if (i == 1) {
             enumerateCommonType = builtin::typefn_(enumerateVal);
         }
         else if (builtin::typefn_(enumerateVal) != enumerateCommonType) {
             enumerateCommonType = "";
         }
-        auto enumVal_ = new enum_value_t{enumdef.enum_.name, i++, enumVal.enumerator.name, enumerateVal};
+        auto enumVal_ = new enum_value_t{enumdef.enum_.name, i++, enumerator.name, enumerateVal};
 
         enum_set.push_back(enumVal_);
 
         if (enum_map.contains(enumerateVal)) {
-            ::activeCallStack.push_back(enumVal.enumerate);
+            ::activeCallStack.push_back(enumerate);
             throw InterpretError("enumerate already exist");
         }
         enum_map[enumerateVal] = enumVal_;
 
-        auto varname = enumdef.enum_.name + "::" + enumVal.enumerator.name;
+        auto varname = enumdef.enum_.name + "::" + enumerator.name;
         if (env->symbolTable.contains(varname)) {
-            ::activeCallStack.push_back(const_cast<Symbol*>(&enumVal.enumerator));
-            throw SymbolRedefinitionError(enumVal.enumerator.name);
+            ::activeCallStack.push_back(const_cast<Symbol*>(&enumerator));
+            throw SymbolRedefinitionError(enumerator.name);
         }
         env->symbolTable[varname] = Environment::ConstValue{enumVal_};
     }
