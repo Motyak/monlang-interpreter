@@ -290,13 +290,15 @@ void performStatement(const StructDefinition& structdef, Environment* env) {
 
     std::vector<std::string> ctorTypes;
     for (const auto& field: structdef.fields) {
-        if (!type_table.contains(field.type.name) && field.type.name != "_") {
-            ::activeCallStack.push_back(const_cast<Symbol*>(&field.type));
-            throw InterpretError("Type `" + field.type.name + "` doesn't exist");
+        unless (field.pair) continue;
+        auto [field_type, field_name] = *field.pair;
+        if (!type_table.contains(field_type.name) && field_type.name != "_") {
+            ::activeCallStack.push_back(const_cast<Symbol*>(&field_type));
+            throw InterpretError("Type `" + field_type.name + "` doesn't exist");
         }
-        ASSERT (field.name.name.size() >= 1);
-        if (field.name.name[0] != '_') {
-            ctorTypes.push_back(field.type.name);
+        ASSERT (field_name.name.size() >= 1);
+        if (field_name.name[0] != '_') {
+            ctorTypes.push_back(field_type.name);
         }
     }
 
@@ -322,7 +324,7 @@ void performStatement(const StructDefinition& structdef, Environment* env) {
                 fields.push_back(
                     struct_value_t::Field{
                         fieldType,
-                        structdef.fields[i].name.name,
+                        structdef.fields[i].pair->name.name,
                         argVal
                     }
                 );
@@ -330,12 +332,14 @@ void performStatement(const StructDefinition& structdef, Environment* env) {
 
             /* add additional fields if any, and init them with default val */
             for (const auto& field: structdef.fields) {
-                unless (field.name.name[0] == '_') continue;
+                unless (field.pair) continue;
+                auto [field_type, field_name] = *field.pair;
+                unless (field_name.name[0] == '_') continue;
                 fields.push_back(
                     struct_value_t::Field{
-                        field.type.name,
-                        field.name.name,
-                        type_default_val(field.type.name)
+                        field_type.name,
+                        field_name.name,
+                        type_default_val(field_type.name)
                     }
                 );
             }
