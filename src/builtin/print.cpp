@@ -226,5 +226,5 @@ void builtin::putstr_(const std::vector<value_t>& varargs, std::ostream& out) {
         ::print(arg, out);
         ENDLOOP
     }
-    // out << std::endl;
+    out << std::flush;
 };
