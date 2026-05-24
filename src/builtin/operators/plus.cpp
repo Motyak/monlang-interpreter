@@ -159,53 +159,17 @@ static value_t concatListFromTypeVal(
 {
     value_t val = concatList(firstArgValue, args);
 
-    // HUGE HACK INCOMING
+    // little hack incoming
 
     bool returnTypeVal = false;
     /* breakable block */ for (int z = 1; z <= 1; z++)
     {
         unless (std::holds_alternative<FunctionCall*>(firstArg.expr)) break;
         auto fncall = *std::get<FunctionCall*>(firstArg.expr);
+        unless (fncall.arguments.size() == 0) break;
         unless (std::holds_alternative<Symbol*>(fncall.function)) break;
         auto symbol = std::get<Symbol*>(fncall.function);
-        prim_value_t::Lambda lambda;
-        if (firstArg.env->contains(symbol->name)) {
-            auto symVal = firstArg.env->at(symbol->name);
-            value_t val;
-            if (std::holds_alternative<Environment::Variable>(symVal)) {
-                val = *std::get<Environment::Variable>(symVal);
-            }
-            else if (std::holds_alternative<Environment::LabelToLvalue /*or PassByRef*/>(symVal)) {
-                val = std::get<Environment::LabelToLvalue>(symVal).value();
-            }
-            else if (std::holds_alternative<Environment::PassByDelay>(symVal)) {
-                auto passByDelay = *std::get<Environment::PassByDelay>(symVal);
-                if (std::holds_alternative<thunk_with_memoization_t<value_t>*>(passByDelay)) {
-                    auto thunk = std::get<thunk_with_memoization_t<value_t>*>(passByDelay);
-                    val = (*thunk)();
-                }
-                else if (std::holds_alternative<value_t*>(passByDelay)) {
-                    val = *std::get<value_t*>(passByDelay);
-                }
-                else SHOULD_NOT_HAPPEN();
-            }
-            else break;
-            val = rec_unwrap_typeval(val);
-            ASSERT (std::holds_alternative<prim_value_t*>(val));
-            auto prim_val = *std::get<prim_value_t*>(val);
-            ASSERT (std::holds_alternative<prim_value_t::Lambda>(prim_val.variant));
-            lambda = std::get<prim_value_t::Lambda>(prim_val.variant);
-        }
-        else if (BUILTIN_TABLE.contains(symbol->name)) {
-            auto val = BUILTIN_TABLE.at(symbol->name);
-            ASSERT (std::holds_alternative<prim_value_t*>(val));
-            auto prim_val = *std::get<prim_value_t*>(val);
-            ASSERT (std::holds_alternative<prim_value_t::Lambda>(prim_val.variant));
-            lambda = std::get<prim_value_t::Lambda>(prim_val.variant);
-        }
-        else break;
-
-        returnTypeVal = lambda.requiredArgs == IntConst::ZERO;
+        returnTypeVal = symbol->name == typeTag;
     }
 
     return returnTypeVal? new type_value_t{typeTag, val} : val;
