@@ -891,7 +891,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
                 parametersBinding["$#varargs"] = Environment::ConstValue{new prim_value_t{Int(varargs.size())}};
             }
 
-            auto lambdaEnv = Environment{.symbolTable = parametersBinding, .enclosingEnv = envAtCreation};
+            auto* lambdaEnv = new Environment{.symbolTable = parametersBinding, .enclosingEnv = envAtCreation};
 
             /*
 
@@ -900,7 +900,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
 
                 NOTE: lambda's parameters must be in the same environment
                 as lambda's body local variables.
-                Therefore we can't just call `return evaluateValue(lambda.body, &lambdaEnv);`
+                Therefore we can't just call `return evaluateValue(lambda.body, lambdaEnv);`
             */
 
             if (lambda.body.statements.size() == 0) {
@@ -915,7 +915,7 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
             for (i = 0; i < lambda.body.statements.size(); ++i) {
                 if (!is_empty_expr_stmt(lambda.body.statements.at(i))) {
                     if (trailing_stmt) {
-                        performStatement(*trailing_stmt, &lambdaEnv);
+                        performStatement(*trailing_stmt, lambdaEnv);
                     }
                     trailing_stmt = lambda.body.statements.at(i);
                 }
@@ -928,13 +928,13 @@ value_t evaluateValue(const LV2::Lambda& lambda, Environment* env) {
             defer {is_tailcallable = backup_is_tailcallable;};
 
             if (!std::holds_alternative<ExpressionStatement*>(*trailing_stmt)) {
-                performStatement(*trailing_stmt, &lambdaEnv);
+                performStatement(*trailing_stmt, lambdaEnv);
                 return nil_value_t();
             }
 
             auto* exprStmt = std::get<ExpressionStatement*>(*trailing_stmt);
             ASSERT (exprStmt->expression);
-            auto res = evaluateValue(*exprStmt->expression, &lambdaEnv);
+            auto res = evaluateValue(*exprStmt->expression, lambdaEnv);
             // res = deepcopy(res); // TODO: no need ?
             return res;
         }

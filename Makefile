@@ -6,6 +6,7 @@ SHELL := /bin/bash
 RM := rm -rf
 CXXFLAGS := --std=c++23 -Wall -Wextra -ggdb3 -I include
 CXX_OFLAGS := -Og -fno-inline -fno-reorder-blocks -fno-thread-jumps -fno-ipa-pure-const -fno-tree-ter -fno-tree-ccp -fno-tree-dce -fno-tree-fre -fno-tree-copy-prop -fno-tree-sink -fno-tree-slsr -fno-cprop-registers -fno-split-wide-types -fno-tree-ch -fno-tree-dominator-opts -fno-ipa-reference-addressable -fno-compare-elim -fno-ipa-profile -fno-ipa-reference -fno-toplevel-reorder -fno-guess-branch-probability -fno-forward-propagate -fno-defer-pop -fno-tree-builtin-call-dce -fno-combine-stack-adjustments -fno-shrink-wrap
+# CXX_OFLAGS := -O0
 DEPFLAGS = -MMD -MP -MF .deps/$*.d
 ARFLAGS = D -M < <(tools/aggregate-libs.mri.sh $@ $^); :
 
