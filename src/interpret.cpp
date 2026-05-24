@@ -291,7 +291,7 @@ void performStatement(const StructDefinition& structdef, Environment* env) {
     std::vector<std::string> ctorTypes;
     for (const auto& field: structdef.fields) {
         unless (field.pair) continue;
-        auto [field_type, field_name] = *field.pair;
+        auto& [field_type, field_name] = *field.pair;
         if (!type_table.contains(field_type.name) && field_type.name != "_") {
             ::activeCallStack.push_back(const_cast<Symbol*>(&field_type));
             throw InterpretError("Type `" + field_type.name + "` doesn't exist");
