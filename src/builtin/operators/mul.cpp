@@ -60,7 +60,7 @@ const value_t builtin::op::mul __attribute__((init_priority(3000))) = new prim_v
                 auto secondArgValue = evaluateValue(secondArg.expr, secondArg.env);
                 secondArgValue = rec_unwrap_typeval(secondArgValue);
                 if (std::holds_alternative<struct_value_t*>(secondArgValue)) {
-                    throw InterpretError("&() second arg cannot be a struct");
+                    throw InterpretError("*() second arg cannot be a struct");
                 }
                 ASSERT (std::holds_alternative<prim_value_t*>(secondArgValue));
                 auto secondArgPrimValuePtr = std::get<prim_value_t*>(secondArgValue);

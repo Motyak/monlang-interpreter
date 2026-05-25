@@ -23,7 +23,8 @@ using Str = prim_value_t::Str;
 using List = prim_value_t::List;
 using Map = prim_value_t::Map;
 
-static value_t intdiv(Int firstArgValue, const std::vector<FlattenArg>& args);
+static value_t intdiv_Int(Int firstArgValue, const std::vector<FlattenArg>& args);
+static value_t intdiv_Byte(Byte firstArgValue, const std::vector<FlattenArg>& args);
 
 extern uint64_t builtin_lambda_id; // defined in src/interpret.cpp
 
@@ -48,10 +49,10 @@ const value_t builtin::op::intdiv __attribute__((init_priority(3000))) = new pri
 
         // dispatch impl based on first argument type
         return std::visit(overload{
-            [&otherArgs](Byte byte) -> value_t {return ::intdiv(byte, otherArgs);},
-            [&otherArgs](Int int_) -> value_t {return ::intdiv(int_, otherArgs);},
-            [&otherArgs](Float float_) -> value_t {return ::intdiv(float_, otherArgs);},
+            [&otherArgs](Byte byte) -> value_t {return intdiv_Byte(byte, otherArgs);},
+            [&otherArgs](Int int_) -> value_t {return intdiv_Int(int_, otherArgs);},
 
+            [](Float) -> value_t {throw InterpretError("//() first arg cannot be Float");},
             [](Bool) -> value_t {throw InterpretError("//() first arg cannot be Bool");},
             [](const Str&) -> value_t {throw InterpretError("//() first arg cannot be Str");},
             [](const List&) -> value_t {throw InterpretError("//() first arg cannot be List");},
@@ -62,7 +63,7 @@ const value_t builtin::op::intdiv __attribute__((init_priority(3000))) = new pri
     }
 }};
 
-static value_t intdiv(Int firstArgValue, const std::vector<FlattenArg>& args) {
+static value_t intdiv_Int(Int firstArgValue, const std::vector<FlattenArg>& args) {
     auto res = firstArgValue;
 
     for (auto arg: args) {
@@ -75,4 +76,19 @@ static value_t intdiv(Int firstArgValue, const std::vector<FlattenArg>& args) {
     }
 
     return new prim_value_t{res};
+}
+
+static value_t intdiv_Byte(Byte firstArgValue, const std::vector<FlattenArg>& args) {
+    Int res = firstArgValue;
+
+    for (auto arg: args) {
+        auto argValue = evaluateValue(arg.expr, arg.env);
+        ::activeCallStack.push_back(arg.expr);
+        auto intVal = builtin::prim_ctor::Byte_(argValue);
+        if (intVal == 0) throw InterpretError("intdiv by zero");
+        safe_pop_back(::activeCallStack); // arg.expr
+        res /= intVal;
+    }
+
+    return new prim_value_t{Byte(res)};
 }

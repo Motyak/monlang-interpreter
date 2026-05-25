@@ -152,7 +152,7 @@ int stdinput_main(int argc, char* argv[]) {
             std::cerr << "die(): " << assert.what() << "\n";
         }
         reportCallStack(assert.callStack, tokens, SRCNAME);
-        return 1;
+        return 2;
     }
 
     return 0;
@@ -197,7 +197,7 @@ int fileinput_main(int argc, char* argv[]) {
             std::cerr << "die(): " << assert.what() << "\n";
         }
         reportCallStack(assert.callStack, tokens, SRCNAME);
-        return 1;
+        return 2;
     }
 
     return 0;
@@ -251,7 +251,7 @@ int embed_main(int argc, char* argv[]) {
             std::cerr << "die(): " << assert.what() << "\n";
         }
         reportCallStack(assert.callStack, tokens, SRCNAME);
-        return 1;
+        return 2;
     }
 
     return 0;

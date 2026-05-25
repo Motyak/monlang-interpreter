@@ -1,0 +1,36 @@
+monlang-interpreter/main.elf exit codes:
+
+- default exit code is 0
+- exit(1) can be used in predicate-type programs
+ (similar to `diff` CLI utility)
+
+- exit code 2 is returned by die()
+- exit code 101 is returned on Runtime error
+- exit code 102 is returned on Parsing error
+- exit code 103 is returned when we can't
+  read (open) the src file
+
+- exit code 124 is returned on timeout
+ (playground only)
+
+- any exit code above 128 indicates that a signal
+  has terminated the program (exit code will then be
+  128 + <sig_nb>)
+
+- exit code 134 is returned on SIGABRT(6)
+  -> this generally means stack overflow
+    (infinite recursion)
+  -> unless there is an active C++ exception,
+     which message will get printed before
+     terminating the program
+     "terminate called after throwing an instance of ..."
+     followed by
+     "what(): ..."
+    -> when an ASSERT() fails in the interpreter code
+      (which indicates a bug)
+
+- exit code 139 is returned on SIGSEGV(11)
+  -> this generally means stack overflow
+    (infinite recursion)
+  -> could also be a nasty memory bug in the
+     interpreter code (related to Environment*)

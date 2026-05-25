@@ -21,22 +21,9 @@ const value_t builtin::scan __attribute__((init_priority(3000))) = new prim_valu
         unless (args.size() == 1) throw InterpretError("scan() takes 1 arg");
         auto arg = args.at(0);
         auto argVal = evaluateValue(arg.expr, arg.env);
-        argVal = rec_unwrap_typeval(argVal);
-        ::activeCallStack.push_back(arg.expr); // no need to pop
-        defer {safe_pop_back(::activeCallStack);};
-        if (std::holds_alternative<struct_value_t*>(argVal)) {
-            throw InterpretError("scan() arg cannot be a struct");
-        }
-        ASSERT (std::holds_alternative<prim_value_t*>(argVal));
-        auto argPrimValPtr = std::get<prim_value_t*>(argVal);
-        if (argPrimValPtr == nullptr) {
-            throw InterpretError("scan() arg cannot be $nil");
-        }
-        unless (std::holds_alternative<prim_value_t::Int>(argPrimValPtr->variant)) {
-            throw InterpretError("scan() arg must be an Int");
-        }
-        auto argInt = std::get<prim_value_t::Int>(argPrimValPtr->variant);
+        auto argInt = builtin::prim_ctor::Int_(argVal);
         if (argInt < 0) {
+            ::activeCallStack.push_back(arg.expr);
             throw InterpretError("scan() arg can't be negative");
         }
 
