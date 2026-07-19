@@ -370,7 +370,7 @@ void performStatement(const EnumDefinition& enumdef, Environment* env) {
         }
     }
 
-    auto unique_enumerators = std::map<std::string, nullptr_t>();
+    auto unique_enumerators = std::map<std::string, std::nullptr_t>();
     // the set of all enum values
     auto enum_set = prim_value_t::List();
     // associates enumerate to enum value
