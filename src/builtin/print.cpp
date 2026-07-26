@@ -186,7 +186,9 @@ static void print(const type_value_t& type_val, std::ostream& out, bool shouldQu
 }
 
 static void print(const struct_value_t& struct_val, std::ostream& out) {
-    out << struct_val.type << "(";
+    // printing mystruct{} allows to distinguish between a monofield struct and a type alias
+    // ; furthermore, since it also prints optional fields it wouldn't make sense to surround with parentheses
+    out << struct_val.type << "{";
     LOOP for (auto [_type, _name, field_value]: struct_val.fields) {
         if (!__first_it) {
             out << ", ";
@@ -194,7 +196,7 @@ static void print(const struct_value_t& struct_val, std::ostream& out) {
         print(field_value, out, /*shouldQuot*/true);
         ENDLOOP
     }
-    out << ")";
+    out << "}";
 }
 
 static void print(const enum_value_t& enum_val, std::ostream& out, bool shouldQuote) {
