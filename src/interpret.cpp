@@ -288,6 +288,20 @@ void performStatement(const StructDefinition& structdef, Environment* env) {
         }
     }
 
+    /* Make sure there are no duplicate field */
+    {
+        std::map<std::string, std::nullptr_t> prev_fields;
+        for (const auto& field: structdef.fields) {
+            unless (field.pair) continue;
+            const auto& [_, field_name] = *field.pair;
+            if (prev_fields.contains(field_name.name)) {
+                ::activeCallStack.push_back(const_cast<Symbol*>(&field_name));
+                throw InterpretError("Redefinition of field `" + field_name.name + "`");
+            }
+            prev_fields[field_name.name]; // autovivification
+        }
+    }
+
     std::vector<std::string> ctorTypes;
     for (const auto& field: structdef.fields) {
         unless (field.pair) continue;
