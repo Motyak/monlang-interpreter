@@ -1260,10 +1260,24 @@ static value_t init_ARGS() {
     return new prim_value_t{strs};
 }
 
+static value_t init_ENV_VARS() {
+    extern char** environ;
+    Map env_vars;
+    for (char** entry_ptr = environ; *entry_ptr != nullptr; ++entry_ptr) {
+        auto entry = std::string(*entry_ptr);
+        auto sep = entry.find("=");
+        auto key = new prim_value_t{(Str)entry.substr(0, sep)};
+        auto val = new prim_value_t{(Str)entry.substr(sep + 1)};
+        env_vars[key] = val;
+    }
+    return new prim_value_t{env_vars};
+}
+
 value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env) {
     static const value_t ARG0 = new prim_value_t{(Str)::ARG0};
     static const value_t SRCNAME = new prim_value_t{(Str)::SRCNAME};
     static const value_t ARGS = init_ARGS();
+    static const value_t ENV_VARS = init_ENV_VARS(); // process environment variables
 
     if (specialSymbol.name == "$nil") {
         return nil_value_t();
@@ -1287,6 +1301,20 @@ value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env
 
     if (specialSymbol.name == "$args") {
         return ARGS;
+    }
+
+    if (specialSymbol.name == "$env") {
+        return ENV_VARS;
+    }
+
+    ASSERT (specialSymbol.name.size() >= 2);
+    if ('A' <= specialSymbol.name[1] && specialSymbol.name[1] <= 'Z') {
+        static const auto& env_vars= std::get<prim_value_t::Map>(std::get<prim_value_t*>(ENV_VARS)->variant);
+        auto key = new prim_value_t{(Str)specialSymbol.name.substr(1)};
+        if (!env_vars.contains(key)) {
+            throw InterpretError("Unbound $env entry `" + specialSymbol.name.substr(1) + "`");
+        }
+        return env_vars.at(key);
     }
 
     if (env->contains(specialSymbol.name)) {
