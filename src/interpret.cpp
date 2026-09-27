@@ -331,7 +331,7 @@ void performStatement(const StructDefinition& structdef, Environment* env) {
                 auto argVal = evaluateValue(arg.expr, arg.env);
                 auto argType = builtin::typefn_(argVal);
                 auto fieldType = ctorTypes[i];
-                unless (fieldType == "_" || builtin::op::is_(argType, fieldType)) {
+                unless (fieldType == "_" || argType == fieldType) {
                     ::activeCallStack.push_back(arg.expr);
                     throw StructFieldTypeError(argType, fieldType);
                 }
