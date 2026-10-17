@@ -1307,14 +1307,16 @@ value_t evaluateValue(const SpecialSymbol& specialSymbol, const Environment* env
         return ENV_VARS;
     }
 
-    ASSERT (specialSymbol.name.size() >= 2);
-    if ('A' <= specialSymbol.name[1] && specialSymbol.name[1] <= 'Z') {
-        static const auto& env_vars= std::get<prim_value_t::Map>(std::get<prim_value_t*>(ENV_VARS)->variant);
-        auto key = new prim_value_t{(Str)specialSymbol.name.substr(1)};
-        if (!env_vars.contains(key)) {
-            throw InterpretError("Unbound $env entry `" + specialSymbol.name.substr(1) + "`");
+    if (specialSymbol.name.size() >= 2) {
+        auto& c = specialSymbol.name[1];
+        if ('A' <= c && c <= 'Z') {
+            static const auto& env_vars= std::get<prim_value_t::Map>(std::get<prim_value_t*>(ENV_VARS)->variant);
+            auto key = new prim_value_t{(Str)specialSymbol.name.substr(1)};
+            if (!env_vars.contains(key)) {
+                throw InterpretError("Unbound $env entry `" + specialSymbol.name.substr(1) + "`");
+            }
+            return env_vars.at(key);
         }
-        return env_vars.at(key);
     }
 
     if (env->contains(specialSymbol.name)) {
