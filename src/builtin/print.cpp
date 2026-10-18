@@ -166,7 +166,7 @@ static void print(const type_value_t& type_val, std::ostream& out, bool shouldQu
         auto unwrapped = rec_unwrap_typeval(type_val.underlyingVal);
         if (std::holds_alternative<struct_value_t*>(unwrapped)) {
             auto struct_val = *std::get<struct_value_t*>(unwrapped);
-            out << type_val.typeTag << "(";
+            out << type_val.typeTag << "{";
             LOOP for (auto [_type, _name, field_value]: struct_val.fields) {
                 if (!__first_it) {
                     out << ", ";
@@ -174,7 +174,7 @@ static void print(const type_value_t& type_val, std::ostream& out, bool shouldQu
                 print(field_value, out, /*shouldQuot*/true);
                 ENDLOOP
             }
-            out << ")";
+            out << "}";
         }
         else {
             /* ignore unwrapped */
