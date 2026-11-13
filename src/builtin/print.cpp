@@ -129,13 +129,12 @@ static void print(const type_value_t& type_val, std::ostream& out, bool shouldQu
         ASSERT (std::holds_alternative<prim_value_t::List>(primVal.variant));
         auto list = std::get<prim_value_t::List>(primVal.variant);
         out << type_val.typeTag << "(";
-        bool first_it = true;
-        for (const auto& val: list) {
-            if (!first_it) {
+        LOOP for (const auto& val: list) {
+            if (!__first_it) {
                 out << ", ";
             }
             print(val, out, /*shouldQuot*/true);
-            first_it = false;
+            ENDLOOP
         }
         out << ")";
     }
@@ -146,9 +145,8 @@ static void print(const type_value_t& type_val, std::ostream& out, bool shouldQu
         ASSERT (std::holds_alternative<prim_value_t::Map>(primVal.variant));
         auto map = std::get<prim_value_t::Map>(primVal.variant);
         out << type_val.typeTag << "(";
-        bool first_it = true;
-        for (const auto& [key, val]: map) {
-            if (!first_it) {
+        LOOP for (const auto& [key, val]: map) {
+            if (!__first_it) {
                 out << ", ";
             }
             out << "[";
@@ -156,7 +154,7 @@ static void print(const type_value_t& type_val, std::ostream& out, bool shouldQu
             out << ", ";
             print(val, out, /*shouldQuot*/true);
             out << "]";
-            first_it = false;
+            ENDLOOP
         }
         out << ")";
     }
